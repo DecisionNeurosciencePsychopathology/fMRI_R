@@ -4,7 +4,9 @@
 ####################################################
 
 #This function can't be run in R Studio anymore because of Mac's inheritence policy
-
+#Alternatively, use command line to open Rstuido, 'open -a Rstudio' so profile will be inherented
+#Function also use fsl's FLIRT to create first level flirt matrix if needed; 
+#if made somewhere else, soft link to each .feat folder as "masktostandtransforms.mat" matrix must be in FLIRT style
 
 ########Start Function:
 son.prepare4secondlvl<-function(ssana.path=NULL,preproc.path=NULL,standardbarin.path="/Volumes/bek/Newtemplate_may18/fsl_mni152/MNI152_T1_2mm_brain.nii",
