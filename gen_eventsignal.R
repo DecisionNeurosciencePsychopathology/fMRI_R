@@ -216,8 +216,13 @@ bandit.proc<-function(data.mat=data.mat,design=ds.bandit){
   
   vba$value.chosen.diff.sigmoid<-(1./(1+exp(as.numeric(unlist(vba["value.chosen.diff"])))))
   vba$nullres<-as.numeric(wking$choice_logical)
+  vba$choice.num<-as.numeric(!wking$choice_logical)
+  vba$feedback.num<-as.numeric(!wking$feedback_logical)
   vba$motor.left<-as.numeric(wking$hand_reg=="left")
   vba$motor.right<-as.numeric(wking$hand_reg=="right")
+  vba$comp.trials<-as.numeric(data.mat$b$comp.index)
+  vba$myst.trials<-as.numeric(data.mat$b$myst.index)
+  
   
   output<-list(event.list=finalist,output.df=bsrc::dnpl.envir2df(wking),value=vba)
   return(output)
@@ -255,7 +260,7 @@ makesignal.single<-function(output,ename,norm="none",normargu=c("durmax_1","evtm
 }
 
 #Make all of them with a grid:
-makesignalwithgrid<-function(dsgrid=read.csv(gridpath,stringsAsFactors = FALSE), outputdata=NULL,nona=F, expectedtn=300,add_taskness=F) {
+makesignalwithgrid<-function(dsgrid=read.csv("grid.csv",stringsAsFactors = FALSE), outputdata=NULL,nona=F, expectedtn=300,add_taskness=F) {
   if (is.null(outputdata)) {stop("NO DATA")}
   allofthem<-new.env(parent = emptyenv())
   dsgrid[dsgrid=="NA"]<-NA
@@ -295,7 +300,7 @@ makesignalwithgrid<-function(dsgrid=read.csv(gridpath,stringsAsFactors = FALSE),
 }
 
 getnuisancefrompipe<-function(id=NULL,
-                              cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/bandit_oldPreCMMR.cfg",
+                              cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/bandit_oldPreCMMR.cfg"
 ) {
   cfg<-readLines(cfgfilepath,n=grep("export",readLines(cfgfilepath))[1]-1)
 }
@@ -306,18 +311,40 @@ getnuisancefrompipe<-function(id=NULL,
 if (F) {
   output<-bandit.proc(data.mat = data.mat,design = ds.bandit)
   final<-makesignalwithgrid(outputdata = output,nona = F)
+  final.multi->final
+  #final.subset->final
+  
 
-  test.x<-list(unsingedPE=final$signedPEs,
+  test.x<-list(feedback=final$feedback.num,
+               decision=final$choice.num,
+               unsingedPE=final$signedPEs,
                DecisionAligned_chosen_diff_sigmoid=final$valueDecisionAligned_chosen_diff_sigmoid,
-               decision_evt=final$decision_evt,
-               feedback_evt=final$feedback_evt)
+               computer=final$computer_trials,
+               myst=final$myst_trials,
+               rewardMagnitudeFeedbackAligned_MC=final$rewardMagnitudeFeedbackAligned_MC,
+               #valueDecisionAligned_diff=final$valueDecisionAligned_diff,
+               #valueDecisionAligned_chosen=final$valueDecisionAligned_chosen,
+               valueFeedbackAligned_chosen=final$valueFeedbackAligned_chosen,
+               #valueDecisionAligned=final$valueDecisionAligned,
+               stakeFeedbackAligned=final$stakeFeedbackAligned,
+               stakeDecisionAligned_MC=final$stakeDecisionAligned_MC,
+               chosenPosPEs=final$chosenPosPEs
+               )
   #test.x$pe$add_deriv <- TRUE
   #test.x$ev$add_deriv <- TRUE
   
-design.full<-dependlab::build_design_matrix(events = output$event.list$allconcat, 
-                                       signals = final,
-                                       write_timing_files = c("convolved", "AFNI", "FSL"),
+  
+design<-dependlab::build_design_matrix(events = output$event.list$allconcat, 
+                                       signals = test.x,
+                                       #write_timing_files = c("convolved", "AFNI", "FSL"),
                                        tr=1.0)
+design$collin_convolve$run3$vif
+
+
+design.full.2<-dependlab::build_design_matrix(events = output$event.list$allconcat, 
+                                                    signals = final,
+                                                    #write_timing_files = c("convolved", "AFNI", "FSL"),
+                                                    tr=1.0)
 }
 
 #Use data.frame"
