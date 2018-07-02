@@ -187,7 +187,9 @@ getnuisancefrompipe<-function(id=NULL,
   cfg<-readLines(cfgfilepath,n=grep("export",readLines(cfgfilepath))[1]-1)
 }
 
-
+make_heatmap_with_design<-function(design=NULL) {
+  return(dependlab::cor_heatmap(as.data.frame(dependlab::concat_design_runs(design))))
+}
 
 
 
