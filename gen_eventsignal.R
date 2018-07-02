@@ -99,6 +99,13 @@ depthoflist <- function(list,thisdepth=0){
   }
 }
 
+addcenterscaletolist<-function(list) {
+  test<-lapply(list, scale,center=T)
+  names(test)<-paste(names(list),"centerscaled",sep = "_")
+  newlist<-c(list,test) 
+  return(newlist)
+}
+
 #End
 
 #bandit specific functions:
