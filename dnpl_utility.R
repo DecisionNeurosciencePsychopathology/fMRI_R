@@ -19,6 +19,7 @@
 #Reconstruction functions:
 #Maybe you can try using recon method designated for list or array;
 #Following will 
+
 recon.list<-function(mat.raw=NULL){
   mat.better<-sapply(mat.raw, function(x){
     emp<-list()
@@ -233,7 +234,31 @@ get_nuisance_preproc<-function(id=NULL,
 }
 
 ####################
-
+get_volume_run<-function(id=NULL,
+                         cfgfilepath=NULL,
+                         reg.nii.name="swudktm*[0-9].nii.gz",
+                         returnas=c("path","numbers")){
+  cfg<-cfg_info(cfgpath = cfgfilepath)
+  if (returnas=="path"){
+  lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
+    file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""))->procpath
+    system(paste0("find ",procpath," -iname ",reg.nii.name," -maxdepth 2 -mindepth 1"),intern = T)
+   # file.path(,nii.name)
+  })
+  return(unlist(lpath))
+  }
+  if (returnas=="numbers"){
+    lnum<-lapply(1:cfg$n_expected_funcruns, function(i) {
+      length(readLines(file.path(cfg$loc_mrproc_root,id,
+                cfg$preprocessed_dirname,
+                paste(cfg$paradigm_name,i,sep = ""),
+                "motion_info","fd.txt")
+      ))
+      # file.path(,nii.name)
+    })
+    return(unlist(lnum))
+  }
+}
 
 
 
