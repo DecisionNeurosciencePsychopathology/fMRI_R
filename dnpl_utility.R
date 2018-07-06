@@ -143,7 +143,8 @@ makesignal.single<-function(output,ename,norm="none",normargu=c("durmax_1","evtm
 }
 
 #Make all of them with a grid:
-makesignalwithgrid<-function(dsgrid=read.csv("grid.csv",stringsAsFactors = FALSE), outputdata=NULL,nona=F, expectedtn=300,add_taskness=F) {
+make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NULL,nona=F, expectedtn=300,add_taskness=F) {
+  if (is.null(dsgrid)) {dsgrid<-read.csv(dsgridpath, stringsAsFactors = FALSE)}
   if (is.null(outputdata)) {stop("NO DATA")}
   allofthem<-new.env(parent = emptyenv())
   dsgrid[dsgrid=="NA"]<-NA
@@ -206,12 +207,11 @@ cfg_info<-function(cfgpath=NULL) {
   return(as.list(xout))
 }
 
-#########
 get_nuisance_preproc<-function(id=NULL,
-                               cfg=NULL,
-                               cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
-                               returnas=c("path","data.frame")) {
-  if (is.null(cfg)) {cfg<-cfg_info(cfgpath = cfgfilepath)}
+                              cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
+                              returnas=c("path","data.frame")
+) {
+  cfg<-cfg_info(cfgpath = cfgfilepath)
   lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
     list(
     nuisance=
@@ -236,11 +236,10 @@ get_nuisance_preproc<-function(id=NULL,
 
 ####################
 get_volume_run<-function(id=NULL,
-                         cfg=NULL,
                          cfgfilepath=NULL,
                          reg.nii.name="swudktm*[0-9].nii.gz",
                          returnas=c("path","numbers")){
-  if (is.null(cfg)) {cfg<-cfg_info(cfgpath = cfgfilepath)}
+  cfg<-cfg_info(cfgpath = cfgfilepath)
   if (returnas=="path"){
   lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
     file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""))->procpath
@@ -265,6 +264,72 @@ get_volume_run<-function(id=NULL,
 make_heatmap_with_design<-function(design=NULL) {
   return(dependlab::cor_heatmap(as.data.frame(dependlab::concat_design_runs(design))))
 }
+
+
+
+######General function for Single subject loop: (can be ready for lapply or do call)
+do.all.subjs<-function(
+  tid=NULL,
+  do.prep.call="prep.son1",
+  do.prep.arg=list(son1_single=son1_single),
+  cfgpath="/Volumes/bek/autopreprocessing_pipeline/Neurofeedback/nfb.cfg",
+  regpath="/Volumes/bek/neurofeedback/sonrisa1/nfb/regs/R_fsl_reg/",
+  gridpath="grid.csv",
+  func.nii.name="swudktm*[0-9].nii.gz",
+  proc_id_subs="_a",    #Put "" for nothing.
+  wrt.timing=c("convolved", "FSL"),
+  model.name="PE_8C_reg_by_vol",
+  model.varinames=c("infusion",         
+                    "noinfusion",
+                    "feedback",
+                    "nofeedback",
+                    "twoLRPE_CS_reinf_cont",
+                    "twoLRPE_CS_reinf_cont_r",
+                    "twoLRValueShifted_CS_plac_ctrl",
+                    "twoLRValueShifted_CS_plac_ctrl_r"),
+  assigntoenvir=xtxt) {
+
+    #Read config file:
+    cfg<-cfg_info(cfgpath)
+    
+    #Prep the data into generally acceptable output object;
+    output<-do.call(what = do.prep.call, do.prep.arg)
+    
+    #Generate signal with make signal with grid function (grid.csv need to be in working directory or specified otherwise)
+    signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgridpath = gridpath)
+    
+    #Get nuissance regressor: 
+    nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),cfgfilepath = cfgpath,returnas = "data.frame")
+    
+    #Get the actual volume by run:
+    run_volum<-get_volume_run(id=paste0(tid,proc_id_subs),
+                              cfgfilepath = cfgpath,
+                              returnas = "numbers",
+                              reg.nii.name = func.nii.name)
+    
+    #Create  models:
+    model<-signals[model.varinames]
+    
+    #Use Michael's package to generate design matrix and correlation graph;
+    design<-dependlab::build_design_matrix(
+      events = output$event.list$allconcat, #Load the task info
+      signals = model,     #Load the Model
+      write_timing_files = wrt.timing, #Output timing files to FSL style
+      tr=as.numeric(cfg$preproc_call$tr), #Grab the tr from cfg instead of hard coding it...
+      plot = F,
+      run_volumes = run_volum,
+      #tr=1 second, maybe need to double check, I'm kinda sure....
+      output_directory = file.path(regpath,model.name,tid), #Where to output the timing files, default is the working directory
+      nuisance_regressors = nuisa #Maybe could add in nuisance_regressors from pre-proc
+    )
+    
+    design$heatmap<-make_heatmap_with_design(design)
+    
+    if (!is.null(assigntoenvir)) {assign(as.character(tid),design,envir = assigntoenvir)
+      } else {return(design)}
+  
+}
+
 
 
 
