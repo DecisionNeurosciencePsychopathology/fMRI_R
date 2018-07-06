@@ -181,11 +181,61 @@ makesignalwithgrid<-function(dsgrid=read.csv("grid.csv",stringsAsFactors = FALSE
   
 }
 
-getnuisancefrompipe<-function(id=NULL,
-                              cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/bandit_oldPreCMMR.cfg"
-) {
-  cfg<-readLines(cfgfilepath,n=grep("export",readLines(cfgfilepath))[1]-1)
+cfg_info<-function(cfgpath=NULL) {
+  if (is.null(cfgpath)) {stop("No cfg file supplied!")}
+  sysm<-system(paste("source",cfgpath,"\n","env"),intern = T)
+  larg<-regmatches(sysm, regexpr("=", sysm), invert = TRUE)
+  xout<-as.environment(list())
+  NULL.x<-lapply(larg,function(y) {
+    if (length(y)>1) {
+      if (length(grep("-* ",y[2]))>0) {
+        tc<-strsplit(y[2],split = " -")[[1]]
+        if (regexpr("-",tc[1])[[1]] > 0) {
+          tc[1]<-substr(tc[1],start = 2,stop = nchar(tc[1]))}
+        tx<-strsplit(tc,split = " ")
+        etx<-as.environment(list())
+        NUx<-lapply(tx, function(x) {
+          assign(x[1],x[2],envir = etx)
+        })
+        x.2x<-as.list(etx)
+      } else {x.2x<-y[2]} 
+    }
+    assign(y[1],x.2x,envir = xout)
+  })
+  return(as.list(xout))
 }
+
+get_nuisance_preproc<-function(id=NULL,
+                              cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
+                              returnas=c("path","data.frame")
+) {
+  cfg<-cfg_info(cfgpath = cfgfilepath)
+  lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
+    list(
+    nuisance=
+    file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""),cfg$preproc_call$nuisance_file),
+    motion=
+    file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""),"motion.par"))
+    })
+  names(lpath)<-paste("run",1:cfg$n_expected_funcruns,sep = "")
+  if (returnas=="path") {
+  return(lpath)} else if (returnas=="data.frame") {
+    ldf<-lapply(lpath,function(x) {
+      nui<-read.table(x$nuisance)
+      names(nui)<-unlist(strsplit(cfg$preproc_call$nuisance_compute,split = ","))
+      mo<-read.table(x$motion)
+      names(mo)<-paste0("motion_V",1:length(mo))
+      combo<-cbind(nui,mo)
+      return(combo)
+    })
+    
+  }
+}
+
+####################
+
+
+
 
 make_heatmap_with_design<-function(design=NULL) {
   return(dependlab::cor_heatmap(as.data.frame(dependlab::concat_design_runs(design))))
