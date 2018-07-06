@@ -206,11 +206,12 @@ cfg_info<-function(cfgpath=NULL) {
   return(as.list(xout))
 }
 
+#########
 get_nuisance_preproc<-function(id=NULL,
-                              cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
-                              returnas=c("path","data.frame")
-) {
-  cfg<-cfg_info(cfgpath = cfgfilepath)
+                               cfg=NULL,
+                               cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
+                               returnas=c("path","data.frame")) {
+  if (is.null(cfg)) {cfg<-cfg_info(cfgpath = cfgfilepath)}
   lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
     list(
     nuisance=
@@ -235,10 +236,11 @@ get_nuisance_preproc<-function(id=NULL,
 
 ####################
 get_volume_run<-function(id=NULL,
+                         cfg=NULL,
                          cfgfilepath=NULL,
                          reg.nii.name="swudktm*[0-9].nii.gz",
                          returnas=c("path","numbers")){
-  cfg<-cfg_info(cfgpath = cfgfilepath)
+  if (is.null(cfg)) {cfg<-cfg_info(cfgpath = cfgfilepath)}
   if (returnas=="path"){
   lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
     file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""))->procpath
