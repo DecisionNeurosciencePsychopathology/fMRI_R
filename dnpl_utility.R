@@ -260,8 +260,6 @@ get_volume_run<-function(id=NULL,
   }
 }
 
-
-
 make_heatmap_with_design<-function(design=NULL) {
   return(dependlab::cor_heatmap(as.data.frame(dependlab::concat_design_runs(design))))
 }
