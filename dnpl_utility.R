@@ -20,10 +20,12 @@
 #Maybe you can try using recon method designated for list or array;
 #Following will 
 fsl_2_sys_env<-function(){
+  if (length(system("env | grep 'fsl' ",intern = T))<1) {
   if(file.exists(file.path(Sys.getenv("HOME"),".bash_profile"))) {
     print("Using user .bashprofile")
     fslinfo<-cfg_info(file.path(Sys.getenv("HOME"),".bash_profile"))
     info_to_sysenv(fslinfo)
+  }
   }
 }
 
