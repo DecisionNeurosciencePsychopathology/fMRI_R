@@ -19,6 +19,22 @@
 #Reconstruction functions:
 #Maybe you can try using recon method designated for list or array;
 #Following will 
+fsl_2_sys_env<-function(){
+  if(file.exists(file.path(Sys.getenv("HOME"),".bash_profile"))) {
+    print("Using user .bashprofile")
+    fslinfo<-cfg_info(file.path(Sys.getenv("HOME"),".bash_profile"))
+    info_to_sysenv(fslinfo)
+  }
+}
+
+info_to_sysenv<-function(info=NULL) {
+  if (is.null(info)) {stop("HEY! NO INFO!")}
+  for (kz in names(info)) {
+    print(kz)
+    eval(parse(text=paste0("Sys.setenv(",kz,"='",info[[kz]],"')")))
+  }  
+}
+
 
 recon.list<-function(mat.raw=NULL){
   mat.better<-sapply(mat.raw, function(x){
@@ -61,7 +77,7 @@ recon.mat<-function(data.raw=NULL) {
   }
 
 
-makeeprimestruct<-function(rawtext=file.choose(),
+make_eprime_struct<-function(rawtext=file.choose(),
                            rawdf=NULL,
                            breakpointname="BreakProc") {
   if (is.null(rawdf)){
@@ -185,7 +201,9 @@ make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NU
 
 cfg_info<-function(cfgpath=NULL) {
   if (is.null(cfgpath)) {stop("No cfg file supplied!")}
-  sysm<-system(paste("source",cfgpath,"\n","env"),intern = T)
+  pre.sym<-system("env",intern = T)
+  sysm.temp<-system(paste("source",cfgpath,"\n","env"),intern = T)
+  sysm<-sysm.temp[which(!sysm.temp %in% pre.sym)]
   larg<-regmatches(sysm, regexpr("=", sysm), invert = TRUE)
   xout<-as.environment(list())
   NULL.x<-lapply(larg,function(y) {
@@ -324,6 +342,15 @@ do.all.subjs<-function(
     )
     
     design$heatmap<-make_heatmap_with_design(design)
+    design$volume<-run_volum
+    design$nuisan<-nuisa
+    design$ID<-tid
+    
+    for (k in 1:length(nuisa)) {
+      write.table(as.matrix(nuisa[[k]]),file.path(regpath,model.name,tid,
+                                                  paste0("run",k,"_nuisance_regressor_with_motion.txt")),
+                  row.names = F,col.names = FALSE)
+    }
     
     if (!is.null(assigntoenvir)) {assign(as.character(tid),design,envir = assigntoenvir)
       } else {return(design)}
