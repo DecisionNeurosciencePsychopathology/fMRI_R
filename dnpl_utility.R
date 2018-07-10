@@ -320,7 +320,7 @@ do.all.subjs<-function(
     signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgridpath = gridpath)
     
     #Get nuissance regressor: 
-    nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),cfgfilepath = cfgpath, c,returnas = "data.frame")
+    nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),cfgfilepath = cfgpath,returnas = "data.frame")
     
     #Get the actual volume by run:
     run_volum<-get_volume_run(id=paste0(tid,proc_id_subs),
