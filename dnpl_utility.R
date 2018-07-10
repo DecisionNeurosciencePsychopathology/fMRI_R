@@ -19,11 +19,12 @@
 #Reconstruction functions:
 #Maybe you can try using recon method designated for list or array;
 #Following will 
-fsl_2_sys_env<-function(){
+fsl_2_sys_env<-function(bashprofilepath=NULL){
+  if (is.null(bashprofilepath)){bashprofilepath<-file.path(Sys.getenv("HOME"),".bash_profile")}
   if (length(system("env | grep 'fsl' ",intern = T))<1) {
-  if(file.exists(file.path(Sys.getenv("HOME"),".bash_profile"))) {
+  if(file.exists(bashprofilepath)) {
     print("Using user .bashprofile")
-    fslinfo<-cfg_info(file.path(Sys.getenv("HOME"),".bash_profile"))
+    fslinfo<-cfg_info(bashprofilepath)
     info_to_sysenv(fslinfo)
   }
   }
@@ -319,7 +320,7 @@ do.all.subjs<-function(
     signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgridpath = gridpath)
     
     #Get nuissance regressor: 
-    nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),cfgfilepath = cfgpath,returnas = "data.frame")
+    nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),cfgfilepath = cfgpath, c,returnas = "data.frame")
     
     #Get the actual volume by run:
     run_volum<-get_volume_run(id=paste0(tid,proc_id_subs),
@@ -347,6 +348,8 @@ do.all.subjs<-function(
     design$volume<-run_volum
     design$nuisan<-nuisa
     design$ID<-tid
+    design$preprocID<-paste0(tid,proc_id_subs)
+    design$regpath<-file.path(regpath,model.name,tid)
     
     for (k in 1:length(nuisa)) {
       write.table(as.matrix(nuisa[[k]]),file.path(regpath,model.name,tid,
@@ -360,7 +363,16 @@ do.all.subjs<-function(
 }
 
 
-
+change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenvir=xarg) {
+  for (tofind in grep(paste0(begin,"*"),fsltemplate) ){
+    tryCatch(
+      {varixma<-substr(fsltemplate[tofind],regexpr(paste0(begin,"*"),fsltemplate[tofind])+nchar(begin),
+                       regexpr(paste0("*",end),fsltemplate[tofind])-1)
+      fsltemplate[tofind]<-gsub(paste0(begin,varixma,end),searchenvir[[varixma]],fsltemplate[tofind])},
+      error=function(x){print("something went wrong...")})
+  }
+  return(fsltemplate)
+}
 
 #Use data.frame"
  #Name, Begining, Ending, alter = name, beg, dura

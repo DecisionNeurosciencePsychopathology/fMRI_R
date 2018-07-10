@@ -1,5 +1,5 @@
 ####Bandit script
-source("./gen_eventsignal.R")
+devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/dnpl_utility.R")
 
 if (F) {
   start_time <- Sys.time()
