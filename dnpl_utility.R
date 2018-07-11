@@ -314,7 +314,7 @@ do.all.subjs<-function(
     cfg<-cfg_info(cfgpath)
     
     #Prep the data into generally acceptable output object;
-    output<-do.call(what = do.prep.call, do.prep.arg)
+    output<-do.call(what = do.prep.call,args = do.prep.arg,quote = T)
     
     #Generate signal with make signal with grid function (grid.csv need to be in working directory or specified otherwise)
     signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgridpath = gridpath)
