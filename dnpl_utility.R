@@ -387,7 +387,17 @@ change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenv
 #                  PWD = rstudioapi::askForPassword("Database password"),
 #                  Port = 1433)
 
-
+feat_w_template<-function(templatepath=NULL,
+                          beg="ARG_",
+                          end="_END",
+                          fsf.path=NULL,
+                          envir=NULL) {
+  fsltemplate<-readLines(templatepath)
+  subbyrunfeat<-change_fsl_template(fsltemplate = fsltemplate,begin = beg,end=end,searchenvir = envir)
+  fsfpath<-fsf.path
+  writeLines(subbyrunfeat,fsfpath)
+  system(paste0("feat ",fsfpath),intern = T)
+}
 
 
 
