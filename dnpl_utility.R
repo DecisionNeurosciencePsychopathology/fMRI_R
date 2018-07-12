@@ -399,6 +399,28 @@ feat_w_template<-function(templatepath=NULL,
   system(paste0("feat ",fsfpath),intern = T)
 }
 
+plot_image_all<-function(rootpath=NULL,
+                         templatedir=NULL,
+                         model.name=NULL,
+                         patt=NULL,
+                         threshold=0.999,
+                         outputdir=getwd(),
+                         colour="red") {
+  dirs<-system(paste0("find ",file.path(rootpath,model.name)," -iname '",patt,"' -maxdepth 3 -mindepth 1 -type f"),intern = T)
+  sapply(dirs,function(sdir) {
+    spdir<-strsplit(sdir,.Platform$file.sep) 
+    spdir[[1]][sapply(spdir, function(x) {grep(patt,x)})-1]->filex
+    tep<-readNIfTI(templatedir)
+    img<-readNIfTI(dirs[1])
+    mask<-tep
+    in_mask<- img > threshold
+    mask[in_mask] <- 1
+    mask[!in_mask] <- NA
+    jpeg(filename = file.path(outputdir,paste0(filex,".jpeg")),width = 2560, height = 1440,quality = 90,pointsize = 20)
+    orthographic(x = tep, y = mask, col.y = colour)
+    dev.off()
+  })
+}
 
 
 
