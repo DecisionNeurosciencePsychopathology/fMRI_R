@@ -293,76 +293,84 @@ do.all.subjs<-function(
   tid=NULL,
   do.prep.call="prep.son1",
   do.prep.arg=list(son1_single=son1_single),
-  cfgpath="/Volumes/bek/autopreprocessing_pipeline/Neurofeedback/nfb.cfg",
-  regpath="/Volumes/bek/neurofeedback/sonrisa1/nfb/regs/R_fsl_reg/",
+  cfgpath=NULL,
+  regpath=NULL,
   gridpath="grid.csv",
   func.nii.name="swudktm*[0-9].nii.gz",
-  proc_id_subs="_a",    #Put "" for nothing.
-  wrt.timing=c("convolved", "FSL"),
-  model.name="PE_8C_reg_by_vol",
-  model.varinames=c("infusion",         
-                    "noinfusion",
-                    "feedback",
-                    "nofeedback",
-                    "twoLRPE_CS_reinf_cont",
-                    "twoLRPE_CS_reinf_cont_r",
-                    "twoLRValueShifted_CS_plac_ctrl",
-                    "twoLRValueShifted_CS_plac_ctrl_r"),
-  assigntoenvir=xtxt) {
-
-    #Read config file:
-    cfg<-cfg_info(cfgpath)
-    
-    #Prep the data into generally acceptable output object;
-    output<-do.call(what = do.prep.call,args = do.prep.arg,quote = T)
-    
-    #Generate signal with make signal with grid function (grid.csv need to be in working directory or specified otherwise)
-    signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgridpath = gridpath)
-    
-    #Get nuissance regressor: 
-    nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),cfgfilepath = cfgpath,returnas = "data.frame")
-    
-    #Get the actual volume by run:
-    run_volum<-get_volume_run(id=paste0(tid,proc_id_subs),
-                              cfgfilepath = cfgpath,
-                              returnas = "numbers",
-                              reg.nii.name = func.nii.name)
-    
-    #Create  models:
-    model<-signals[model.varinames]
-    
-    #Use Michael's package to generate design matrix and correlation graph;
-    design<-dependlab::build_design_matrix(
-      events = output$event.list$allconcat, #Load the task info
-      signals = model,     #Load the Model
-      write_timing_files = wrt.timing, #Output timing files to FSL style
-      tr=as.numeric(cfg$preproc_call$tr), #Grab the tr from cfg instead of hard coding it...
-      plot = F,
-      run_volumes = run_volum,
-      #tr=1 second, maybe need to double check, I'm kinda sure....
-      output_directory = file.path(regpath,model.name,tid), #Where to output the timing files, default is the working directory
-      nuisance_regressors = nuisa #Maybe could add in nuisance_regressors from pre-proc
-    )
-    
-    design$heatmap<-make_heatmap_with_design(design)
-    design$volume<-run_volum
-    design$nuisan<-nuisa
-    design$ID<-tid
-    design$preprocID<-paste0(tid,proc_id_subs)
-    design$regpath<-file.path(regpath,model.name,tid)
-    
+  proc_id_subs=NULL,    #Put "" for nothing.
+  wrt.timing=c("convolved", "FSL","AFNI"),
+  model.name=NULL,
+  model.varinames=NULL,
+  add.nuisa=TRUE,
+  assigntoenvir=NULL) {
+  
+  #Read config file:
+  cfg<-cfg_info(cfgpath)
+  
+  #Prep the data into generally acceptable output object;
+  output<-do.call(what = do.prep.call,args = do.prep.arg,quote = T)
+  
+  dsgrid.og<-read.csv(gridpath,stringsAsFactors = F)
+  if (length(grep("evt",dsgrid.og$valuefrom))>0){
+    dsgrid<-dsgrid.og[-grep("evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
+  #Generate signal with make signal with grid function (grid.csv need to be in working directory or specified otherwise)
+  signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgrid = dsgrid)
+  if (length(grep("evt",dsgrid.og$valuefrom))>0){
+    dxgrid<-dsgrid<-dsgrid.og[grep("evt",dsgrid.og$valuefrom),]
+    for (u in 1:length(dxgrid$name)) {
+      signals[dxgrid$name[u]]<-signals[dxgrid$valuefrom[u]]
+    }
+  }  
+  #Get nuissance regressor: 
+  #Still concat nuisa regressor together
+  nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),cfgfilepath = cfgpath,returnas = "data.frame") 
+  if (add.nuisa) {
+    nuisa.x<-nuisa
+  } else {
+    nuisa.x<-NULL
+  }
+  
+  #Get the actual volume by run:
+  run_volum<-get_volume_run(id=paste0(tid,proc_id_subs),
+                            cfgfilepath = cfgpath,
+                            returnas = "numbers",
+                            reg.nii.name = func.nii.name)
+  
+  #Create  models:
+  model<-signals[model.varinames]
+  
+  #Use Michael's package to generate design matrix and correlation graph;
+  design<-dependlab::build_design_matrix(
+    events = output$event.list$allconcat, #Load the task info
+    signals = model,     #Load the Model
+    write_timing_files = wrt.timing, #Output timing files to FSL style
+    tr=as.numeric(cfg$preproc_call$tr), #Grab the tr from cfg instead of hard coding it...
+    plot = F,
+    run_volumes = run_volum,
+    #tr=1 second, maybe need to double check, I'm kinda sure....
+    output_directory = file.path(regpath,model.name,tid), #Where to output the timing files, default is the working directory
+    nuisance_regressors = nuisa.x #Maybe could add in nuisance_regressors from pre-proc
+  )
+  
+  design$heatmap<-make_heatmap_with_design(design)
+  design$volume<-run_volum
+  design$nuisan<-nuisa
+  design$ID<-tid
+  design$preprocID<-paste0(tid,proc_id_subs)
+  design$regpath<-file.path(regpath,model.name,tid)
+  
+  if (!is.null(nuisa)){
     for (k in 1:length(nuisa)) {
       write.table(as.matrix(nuisa[[k]]),file.path(regpath,model.name,tid,
                                                   paste0("run",k,"_nuisance_regressor_with_motion.txt")),
                   row.names = F,col.names = FALSE)
-    }
-    
-    if (!is.null(assigntoenvir)) {assign(as.character(tid),design,envir = assigntoenvir)
-      } else {return(design)}
+    }}
+  
+  if (is.environment(assigntoenvir)) {assign(as.character(tid),design,envir = assigntoenvir)
+  } else {return(design)}
   
 }
-
-
+######Modify fsl template with variable switch
 change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenvir=xarg) {
   for (tofind in grep(paste0(begin,"*"),fsltemplate) ){
     tryCatch(
@@ -374,6 +382,13 @@ change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenv
   return(fsltemplate)
 }
 
+#####Generate reg path from model name:
+
+gen_reg<-function(vmodel=NULL,regpath=NULL,idx=NULL,runnum=NULL,env=NULL,regtype=NULL) {
+  NUP<-lapply(vmodel<-argu$model.varinames, function(x) {
+    assign(paste0(x,"reg"),file.path(regpath,idx,paste0("run",runnum,"_",x,regtype)),envir = env)
+  })
+}               
 #Use data.frame"
  #Name, Begining, Ending, alter = name, beg, dura
 
@@ -388,11 +403,12 @@ change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenv
 #                  Port = 1433)
 
 feat_w_template<-function(templatepath=NULL,
+                          fsltemplate=NULL,
                           beg="ARG_",
                           end="_END",
                           fsf.path=NULL,
                           envir=NULL) {
-  fsltemplate<-readLines(templatepath)
+  if (is.null(fsltemplate)) {fsltemplate<-readLines(templatepath)}
   subbyrunfeat<-change_fsl_template(fsltemplate = fsltemplate,begin = beg,end=end,searchenvir = envir)
   fsfpath<-fsf.path
   writeLines(subbyrunfeat,fsfpath)
@@ -403,15 +419,15 @@ plot_image_all<-function(rootpath=NULL,
                          templatedir=NULL,
                          model.name=NULL,
                          patt=NULL,
-                         threshold=0.999,
+                         threshold=0.99,
                          outputdir=getwd(),
                          colour="red") {
   dirs<-system(paste0("find ",file.path(rootpath,model.name)," -iname '",patt,"' -maxdepth 3 -mindepth 1 -type f"),intern = T)
-  sapply(dirs,function(sdir) {
+  for (sdir in dirs) {
     spdir<-strsplit(sdir,.Platform$file.sep) 
     spdir[[1]][sapply(spdir, function(x) {grep(patt,x)})-1]->filex
     tep<-readNIfTI(templatedir)
-    img<-readNIfTI(dirs[1])
+    img<-readNIfTI(sdir)
     mask<-tep
     in_mask<- img > threshold
     mask[in_mask] <- 1
@@ -419,7 +435,7 @@ plot_image_all<-function(rootpath=NULL,
     jpeg(filename = file.path(outputdir,paste0(filex,".jpeg")),width = 2560, height = 1440,quality = 90,pointsize = 20)
     orthographic(x = tep, y = mask, col.y = colour)
     dev.off()
-  })
+  }
 }
 
 
