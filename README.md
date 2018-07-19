@@ -27,7 +27,7 @@ Each of these steps can be skipped using arguments but will fail if not enough d
 To utilize the pipeline in this repository, there are couple thing one would need to set up few things before calling the main function:
 For an example, see: https://github.com/Jiazhouchen/pecina/blob/master/gen_regressor_signal.R
 
-1, One must set up proper argument environment which contains the following objects
+-1, One must set up proper argument environment which contains the following objects
 ```
 argu<-as.environment(list(
 nprocess=12,                                         #Number of processes to allow for paralle processing, if NULL will use detectCores()-2
@@ -55,13 +55,13 @@ hig_lvl_path_filter=NULL,                            #If there's anyother folder
 graphic.threshold=0.95                               #Threshold for graphic purposes
 ))
 ```
-2, Then you must modify the grid.csv and fsl templates to ensure that everything mataches
+-2, Then you must modify the grid.csv and fsl templates to ensure that everything mataches
 (More specific examples and how-tos are coming soon)
 
-3, Make an preprocessing function and generate subject level behaviroal data
+-3, Make an preprocessing function and generate subject level behaviroal data
 (More specific examples and how-tos are coming soon)
 
-4, Call the function and it should take off and run. 
+-4, Call the function and it should take off and run. 
 ```
 fsl_pipe(argu=NULL, #Input for an environment object that contains all arguments;
          prep.call.func="", #Input a character string that's the name of the prep proc function.
