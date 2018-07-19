@@ -286,7 +286,12 @@ make_heatmap_with_design<-function(design=NULL) {
   return(dependlab::cor_heatmap(as.data.frame(dependlab::concat_design_runs(design))))
 }
 
-
+findbox<-function() {
+  if (Sys.getenv("USER")=="jiazhouchen") {boxdir <- "/Users/jiazhouchen/Box Sync"
+  } else if (Sys.getenv("USER")=="jiazhou") {boxdir <- "/Volumes/bek/Box Sync"} else {
+    boxdir<-system("find ~ -iname 'Box*' -maxdepth 2 -type d",intern = T)}
+  return(boxdir)
+}
 
 ######General function for Single subject loop: (can be ready for lapply or do call)
 do.all.subjs<-function(
