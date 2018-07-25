@@ -190,8 +190,8 @@ make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NU
   if (add_taskness) {
   for (taskname in unique(dsgrid$ename)) {
     
-    if (any(is.na(output$event.list[[taskname]]))) {
-      tempdf<-output$event.list[[taskname]][which(!is.na(output$event.list[[taskname]]$onset)),]
+    if (any(is.na(outputdata$event.list[[taskname]]))) {
+      tempdf<-outputdata$event.list[[taskname]][which(!is.na(outputdata$event.list[[taskname]]$onset)),]
       tempdf.a<-subset.data.frame(tempdf,select = c("run","trial"))
       tempdf.a$value<-1
       allofthemlist[[paste(taskname,"_evt",sep = "")]] <- list(value=tempdf.a,event=taskname,normalization="none")
@@ -313,13 +313,14 @@ do.all.subjs<-function(
   cfg<-cfg_info(cfgpath)
   
   #Prep the data into generally acceptable output object;
-  output<-do.call(what = do.prep.call,args = do.prep.arg,quote = T, envir=globalenv())
+  output<-do.call(what = do.prep.call,args = do.prep.arg,envir=globalenv())
+  #assign("output",do.call(what = do.prep.call,args = do.prep.arg),envir=globalenv())
   
   dsgrid.og<-read.csv(gridpath,stringsAsFactors = F)
   if (length(grep("evt",dsgrid.og$valuefrom))>0){
     dsgrid<-dsgrid.og[-grep("evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
   #Generate signal with make signal with grid function (grid.csv need to be in working directory or specified otherwise)
-  signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgrid = dsgrid)
+  signals<-make_signal_with_grid(outputdata = do.call(what = do.prep.call,args = do.prep.arg),add_taskness = T,dsgrid = dsgrid)
   if (length(grep("evt",dsgrid.og$valuefrom))>0){
     dxgrid<-dsgrid<-dsgrid.og[grep("evt",dsgrid.og$valuefrom),]
     for (u in 1:length(dxgrid$name)) {
