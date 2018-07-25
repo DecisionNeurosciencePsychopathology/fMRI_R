@@ -313,7 +313,7 @@ do.all.subjs<-function(
   cfg<-cfg_info(cfgpath)
   
   #Prep the data into generally acceptable output object;
-  output<-do.call(what = do.prep.call,args = do.prep.arg,quote = T)
+  output<-do.call(what = do.prep.call,args = do.prep.arg,quote = T, envir=globalenv())
   
   dsgrid.og<-read.csv(gridpath,stringsAsFactors = F)
   if (length(grep("evt",dsgrid.og$valuefrom))>0){
