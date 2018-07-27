@@ -74,7 +74,7 @@ small.sub<-eapply(allsub.design, function(x) {
 require("parallel")
 if (is.null(argu$nprocess)){
   if (detectCores()>12){
-    num_cores<-8 #Use 8 cores to minimize burden; if on throndike 
+    num_cores<-12 #Use 8 cores to minimize burden; if on throndike 
     #Or if you are running this on laptop; whatever cores minus 2; I guess if it's a dual core...let's just don't do that (zero core will not paralle anything)
   } else {num_cores<-detectCores()-2} 
 } else {argu$nprocess->num_cores}
