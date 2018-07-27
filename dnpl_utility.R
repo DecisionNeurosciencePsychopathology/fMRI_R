@@ -324,12 +324,13 @@ do.all.subjs<-function(
   #  dsgrid<-dsgrid.og[-grep("evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
   #Generate signal with make signal with grid function (grid.csv need to be in working directory or specified otherwise)
   signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgrid = dsgrid)
-  if (length(grep("evt",dsgrid.og$valuefrom))>0){
-    dxgrid<-dsgrid<-dsgrid.og[grep("evt",dsgrid.og$valuefrom),]
-    for (u in 1:length(dxgrid$name)) {
-      signals[dxgrid$name[u]]<-signals[dxgrid$valuefrom[u]]
-    }
-  }  
+  
+  #if (length(grep("evt",dsgrid$valuefrom))>0){
+  #  dxgrid<-dsgrid[grep("evt",dsgrid$valuefrom),]
+  #  for (u in 1:length(dxgrid$name)) {
+  #    signals[dxgrid$name[u]]<-signals[dxgrid$valuefrom[u]]
+  #  }
+  #}  
   #Get nuissance regressor: 
   #Still concat nuisa regressor together
   nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),cfgfilepath = cfgpath,returnas = "data.frame") 
