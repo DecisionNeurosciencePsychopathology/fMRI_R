@@ -316,14 +316,14 @@ do.all.subjs<-function(
   cfg<-cfg_info(cfgpath)
   
   #Prep the data into generally acceptable output object;
-  output<-do.call(what = do.prep.call,args = do.prep.arg,envir=globalenv())
+  output<-do.call(what = do.prep.call,args = do.prep.arg)
   #assign("output",do.call(what = do.prep.call,args = do.prep.arg),envir=globalenv())
   
   dsgrid<-read.csv(gridpath,stringsAsFactors = F)
   #if (length(grep("evt",dsgrid.og$valuefrom))>0){
   #  dsgrid<-dsgrid.og[-grep("evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
   #Generate signal with make signal with grid function (grid.csv need to be in working directory or specified otherwise)
-  signals<-make_signal_with_grid(outputdata = do.call(what = do.prep.call,args = do.prep.arg),add_taskness = T,dsgrid = dsgrid)
+  signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgrid = dsgrid)
   if (length(grep("evt",dsgrid.og$valuefrom))>0){
     dxgrid<-dsgrid<-dsgrid.og[grep("evt",dsgrid.og$valuefrom),]
     for (u in 1:length(dxgrid$name)) {
