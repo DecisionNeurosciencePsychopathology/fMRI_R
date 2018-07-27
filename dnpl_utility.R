@@ -165,8 +165,11 @@ makesignal.single<-function(output,ename,norm="none",normargu=c("durmax_1","evtm
 make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NULL,nona=F, expectedtn=300,add_taskness=F) {
   if (is.null(dsgrid)) {dsgrid<-read.csv(dsgridpath, stringsAsFactors = FALSE)}
   if (is.null(outputdata)) {stop("NO DATA")}
+  dsgrid.og<-dsgrid
   allofthem<-new.env(parent = emptyenv())
   dsgrid[dsgrid=="NA"]<-NA
+  if (length(grep("evt",dsgrid.og$valuefrom))>0){
+  dsgrid<-dsgrid.og[-grep("evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
   for (i in 1:length(dsgrid$ename)) {
     print(paste("making...",dsgrid$valuefrom[i],sep=""))
     #could have totally do a do.call and make assignment within single function 
@@ -185,7 +188,7 @@ make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NU
   
   #change it to list:
   allofthemlist<-as.list(allofthem)
-  
+  dsgrid.og->dsgrid
   #Taskness varibale:
   if (add_taskness) {
   for (taskname in unique(dsgrid$ename)) {
@@ -316,9 +319,9 @@ do.all.subjs<-function(
   output<-do.call(what = do.prep.call,args = do.prep.arg,envir=globalenv())
   #assign("output",do.call(what = do.prep.call,args = do.prep.arg),envir=globalenv())
   
-  dsgrid.og<-read.csv(gridpath,stringsAsFactors = F)
-  if (length(grep("evt",dsgrid.og$valuefrom))>0){
-    dsgrid<-dsgrid.og[-grep("evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
+  dsgrid<-read.csv(gridpath,stringsAsFactors = F)
+  #if (length(grep("evt",dsgrid.og$valuefrom))>0){
+  #  dsgrid<-dsgrid.og[-grep("evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
   #Generate signal with make signal with grid function (grid.csv need to be in working directory or specified otherwise)
   signals<-make_signal_with_grid(outputdata = do.call(what = do.prep.call,args = do.prep.arg),add_taskness = T,dsgrid = dsgrid)
   if (length(grep("evt",dsgrid.og$valuefrom))>0){
