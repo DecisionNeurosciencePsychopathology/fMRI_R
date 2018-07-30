@@ -13,6 +13,14 @@ devtools::source_url("https://raw.githubusercontent.com/Jiazhouchen/pecina/maste
 require("devtools")
 if("dependlab" %in% installed.packages()){"GREAT, DEPENDLAB PACK IS INSTALLED"}else{devtools::install_github("PennStateDEPENdLab/dependlab")}
 fsl_2_sys_env()
+
+require("parallel")
+if (is.null(argu$nprocess)){
+  if (detectCores()>12){
+    num_cores<-12 #Use 8 cores to minimize burden; if on throndike 
+    #Or if you are running this on laptop; whatever cores minus 2; I guess if it's a dual core...let's just don't do that (zero core will not paralle anything)
+  } else {num_cores<-detectCores()-2} 
+} else {argu$nprocess->num_cores}
 #######STEP 1:
 #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
 stepnow<-1
@@ -71,13 +79,7 @@ small.sub<-eapply(allsub.design, function(x) {
 })
 
 #This part takes a long time...Let's paralle it:
-require("parallel")
-if (is.null(argu$nprocess)){
-  if (detectCores()>12){
-    num_cores<-12 #Use 8 cores to minimize burden; if on throndike 
-    #Or if you are running this on laptop; whatever cores minus 2; I guess if it's a dual core...let's just don't do that (zero core will not paralle anything)
-  } else {num_cores<-detectCores()-2} 
-} else {argu$nprocess->num_cores}
+
 clusterjobs<-makeCluster(num_cores,outfile="")
 clusterExport(clusterjobs,c("argu","gen_reg","small.sub","get_volume_run",
                             "cfg_info","change_fsl_template","fsl_2_sys_env",
@@ -136,7 +138,21 @@ prepmap<-son.prepare4secondlvl(
 #This starts averaging for each subject:
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
-
+  
+  if (!is.null(argu$onlyrun) & !stepnow %in% 2) {
+    if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
+      load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
+    } else {stop("No design rdata file found")}
+    small.sub<-eapply(allsub.design, function(x) {
+      list(
+        ID=x$ID,
+        run_volumes=x$run_volumes,
+        regpath=x$regpath,
+        preprocID=x$preprocID)
+    })
+  }
+  
+cfg<-cfg_info(cfgpath = argu$cfgpath)
 cfg$n_expected_funcruns->runnum
 featlist<-lapply(small.sub,function(x) {
   x$ID->idz
@@ -148,9 +164,8 @@ featlist<-lapply(small.sub,function(x) {
   assign("small.sub",small.sub,envir = globalenv())
   return(emp)
 })
-
 clusterjobs1<-makeCluster(num_cores,outfile="")
-clusterExport(clusterjobs1,c("argu","small.sub","get_volume_run","cfg_info","change_fsl_template","fsl_2_sys_env","feat_w_template"),envir = environment())
+clusterExport(clusterjobs1,c("cfg","argu","small.sub","get_volume_run","cfg_info","change_fsl_template","fsl_2_sys_env","feat_w_template"),envir = environment())
 
 NU<-parSapply(clusterjobs1,small.sub, function(y) {
   

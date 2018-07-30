@@ -369,9 +369,11 @@ do.all.subjs<-function(
 change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenvir=xarg) {
   for (tofind in grep(paste0(begin,"*"),fsltemplate) ){
     tryCatch(
-      {varixma<-substr(fsltemplate[tofind],regexpr(paste0(begin,"*"),fsltemplate[tofind])+nchar(begin),
+      {
+      varixma<-substr(fsltemplate[tofind],regexpr(paste0(begin,"*"),fsltemplate[tofind])+nchar(begin),
                        regexpr(paste0("*",end),fsltemplate[tofind])-1)
-      fsltemplate[tofind]<-gsub(paste0(begin,varixma,end),searchenvir[[varixma]],fsltemplate[tofind])},
+      fsltemplate[tofind]<-gsub(paste0(begin,varixma,end),searchenvir[[varixma]],fsltemplate[tofind])
+      },
       error=function(x){print("something went wrong...")})
   }
   return(fsltemplate)
