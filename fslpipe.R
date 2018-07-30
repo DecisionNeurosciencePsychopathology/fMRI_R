@@ -21,6 +21,8 @@ if (is.null(argu$nprocess)){
     #Or if you are running this on laptop; whatever cores minus 2; I guess if it's a dual core...let's just don't do that (zero core will not paralle anything)
   } else {num_cores<-detectCores()-2} 
 } else {argu$nprocess->num_cores}
+
+
 #######STEP 1:
 #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
 stepnow<-1
@@ -164,6 +166,7 @@ featlist<-lapply(small.sub,function(x) {
   assign("small.sub",small.sub,envir = globalenv())
   return(emp)
 })
+
 clusterjobs1<-makeCluster(num_cores,outfile="step4_log.txt",type = "FORK")
 clusterExport(clusterjobs1,c("cfg",
                              "argu",
@@ -180,7 +183,7 @@ NU<-parSapply(clusterjobs1,small.sub, function(y) {
   y$ID->larg$idx
   larg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,larg$idx,"average")
   larg<-list2env(y$featlist,envir = larg)
-  if (!file.exists(file.path(larg$outputpath,".gfeat"))) {
+  if (!file.exists(paste0(larg$outputpath,".gfeat"))) {
     feat_w_template(templatepath = argu$gsub_fsl_templatepath,
                     beg = "ARG_",
                     end = "_END",
