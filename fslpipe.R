@@ -83,9 +83,9 @@ small.sub<-eapply(allsub.design, function(x) {
 #This part takes a long time...Let's paralle it:
 
 clusterjobs<-makeCluster(num_cores,outfile="step2_log.txt",type = "FORK")
-clusterExport(clusterjobs,c("argu","gen_reg","small.sub","get_volume_run",
-                            "cfg_info","change_fsl_template","fsl_2_sys_env",
-                            "feat_w_template","info_to_sysenv"),envir = environment())
+#clusterExport(clusterjobs,c("argu","gen_reg","small.sub","get_volume_run",
+#                            "cfg_info","change_fsl_template","fsl_2_sys_env",
+#                            "feat_w_template","info_to_sysenv"),envir = environment())
 
 NU<-parSapply(clusterjobs,small.sub,function(x) {
   fsl_2_sys_env()
@@ -163,22 +163,22 @@ featlist<-lapply(small.sub,function(x) {
     emp[[paste0("feat",runnum)]]<-file.path(argu$ssub_outputroot,argu$model.name,idz,paste0("run",runnum,"_output.feat"))
   }
   small.sub[[idz]]$featlist<-emp
-  assign("small.sub",small.sub,envir = globalenv())
+  #assign("small.sub",small.sub,envir = globalenv())
+  small.sub<<-small.sub
   return(emp)
 })
 
 clusterjobs1<-makeCluster(num_cores,outfile="step4_log.txt",type = "FORK")
-clusterExport(clusterjobs1,c("cfg",
-                             "argu",
-                             "small.sub",
-                             "get_volume_run",
-                             "cfg_info",
-                             "change_fsl_template",
-                             "fsl_2_sys_env",
-                             "feat_w_template"),envir = environment())
+#clusterExport(clusterjobs1,c("cfg",
+#                             "argu",
+#                             "small.sub",
+#                             "get_volume_run",
+#                             "cfg_info",
+#                             "change_fsl_template",
+#                             "fsl_2_sys_env",
+#                             "feat_w_template"),envir = environment())
 
 NU<-parSapply(clusterjobs1,small.sub, function(y) {
-  fsl_2_sys_env()
   larg<-as.environment(list())
   y$ID->larg$idx
   larg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,larg$idx,"average")
