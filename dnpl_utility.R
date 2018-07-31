@@ -409,7 +409,9 @@ feat_w_template<-function(templatepath=NULL,
   subbyrunfeat<-change_fsl_template(fsltemplate = fsltemplate,begin = beg,end=end,searchenvir = envir)
   fsfpath<-fsf.path
   writeLines(subbyrunfeat,fsfpath)
+  message("starting to do feat...")
   system(paste0("feat ",fsfpath),intern = T)
+  message("feat completed")
 }
 
 plot_image_all<-function(rootpath=NULL,
