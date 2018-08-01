@@ -2,6 +2,7 @@
 ##
 ##
 devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/fslpipe.R")
+devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/prep_for_second_lvl.R")
 ##Here's all the functions that helps with the fsl pipe function;
 
 fsl_2_sys_env<-function(bashprofilepath=NULL){
