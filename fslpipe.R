@@ -96,6 +96,7 @@ NU<-parSapply(clusterjobs,small.sub,function(x) {
     xarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
     xarg$templatebrain<-argu$templatedir
     if (!file.exists(paste0(xarg$outputpath,".feat")) ) {
+      message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
       xarg$volumes<-x$run_volumes[runnum]
       xarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfgfilepath = argu$cfgpath,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
       xarg$nuisa<-file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
@@ -184,6 +185,7 @@ NU<-parSapply(clusterjobs1,small.sub, function(y) {
   larg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,larg$idx,"average")
   larg<-list2env(y$featlist,envir = larg)
   if (!file.exists(paste0(larg$outputpath,".gfeat"))) {
+    message(paste0("Initializing gfeat for participant: ",larg$idx))
     feat_w_template(templatepath = argu$gsub_fsl_templatepath,
                     beg = "ARG_",
                     end = "_END",
