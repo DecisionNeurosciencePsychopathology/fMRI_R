@@ -9,7 +9,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
 
 ###STEP 0: Source necessary scripts:
 devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/dnpl_utility.R")
-devtools::source_url("https://raw.githubusercontent.com/Jiazhouchen/pecina/master/prep_for_second_lvl.R")
+devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/prep_for_second_lvl.R")
 require("devtools")
 if("dependlab" %in% installed.packages()){"GREAT, DEPENDLAB PACK IS INSTALLED"}else{devtools::install_github("PennStateDEPENdLab/dependlab")}
 fsl_2_sys_env()
