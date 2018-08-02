@@ -27,7 +27,8 @@ if (is.null(argu$nprocess)){
 #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
 stepnow<-1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
-  
+#Create the directory if not existed
+dir.create(file.path(argu$ssub_outputroot,argu$model.name),showWarnings = FALSE)
 #load the design rdata file if exists;
 if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
   load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))

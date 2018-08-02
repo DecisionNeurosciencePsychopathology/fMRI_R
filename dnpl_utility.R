@@ -449,6 +449,8 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
 ) {
   if ( is.null(modelname) ) {stop("Must specify a model name other wise it will be hard to find all copes")}
 
+#Creating directory in case they are not there;
+dir.create(file.path(outputdir,modelname),showWarnings = FALSE)
 #Ensure fsl are in path:
 fsl_2_sys_env()
 
