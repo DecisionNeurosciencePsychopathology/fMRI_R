@@ -234,10 +234,14 @@ get_nuisance_preproc<-function(id=NULL,
   if (returnas=="path") {
   return(lpath)} else if (returnas=="data.frame") {
     ldf<-lapply(lpath,function(x) {
+      if ("nuisance" %in% dothese) {
       nui<-read.table(x$nuisance)
       names(nui)<-unlist(strsplit(cfg$preproc_call$nuisance_compute,split = ","))
+      } else {nui<-data.frame()}
+      if ("nuisance" %in% dothese) {
       mo<-read.table(x$motion)
       names(mo)<-paste0("motion_V",1:length(mo))
+      } else {mo<-data.frame()}
       combo<-cbind(nui,mo)
       return(combo)
     })
