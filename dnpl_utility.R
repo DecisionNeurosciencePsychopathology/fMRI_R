@@ -219,7 +219,8 @@ cfg_info<-function(cfgpath=NULL) {
 
 get_nuisance_preproc<-function(id=NULL,
                               cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
-                              returnas=c("path","data.frame")
+                              returnas=c("path","data.frame",
+                              dothese=c("nuisance","motion"))
 ) {
   cfg<-cfg_info(cfgpath = cfgfilepath)
   lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
