@@ -24,6 +24,18 @@ info_to_sysenv<-function(info=NULL) {
   }  
 }
 
+recondrop<-function(datax){
+  if (is.list(datax)){
+    lapply(datax, function(x) {
+      recondrop(x)
+    })
+  } else if (is.null(dim(datax))) {return(datax)
+  } else if (length(dim(datax))>2) {
+    drop(datax)->datay
+    recondrop(datay)
+  } 
+}
+
 
 recon.list<-function(mat.raw=NULL){
   mat.better<-sapply(mat.raw, function(x){
@@ -219,8 +231,8 @@ cfg_info<-function(cfgpath=NULL) {
 
 get_nuisance_preproc<-function(id=NULL,
                               cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
-                              returnas=c("path","data.frame",
-                              dothese=c("nuisance","motion"))
+                              returnas=c("path","data.frame"),
+                              dothese=c("nuisance","motion")
 ) {
   cfg<-cfg_info(cfgpath = cfgfilepath)
   lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
@@ -234,15 +246,17 @@ get_nuisance_preproc<-function(id=NULL,
   if (returnas=="path") {
   return(lpath)} else if (returnas=="data.frame") {
     ldf<-lapply(lpath,function(x) {
+      combo<-list()
       if ("nuisance" %in% dothese) {
       nui<-read.table(x$nuisance)
       names(nui)<-unlist(strsplit(cfg$preproc_call$nuisance_compute,split = ","))
       } else {nui<-data.frame()}
-      if ("nuisance" %in% dothese) {
+      if ("motion" %in% dothese) {
       mo<-read.table(x$motion)
       names(mo)<-paste0("motion_V",1:length(mo))
       } else {mo<-data.frame()}
-      combo<-cbind(nui,mo)
+      combo<-c(nui,mo)
+      combo<-as.data.frame(combo)
       return(combo)
     })
     
