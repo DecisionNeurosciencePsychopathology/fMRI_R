@@ -144,7 +144,7 @@ prepmap<-son.prepare4secondlvl(
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
   
-  if (!is.null(argu$onlyrun) & !stepnow %in% 2) {
+  if (!is.null(argu$onlyrun) & !argu$onlyrun %in% 2) {
     if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
       load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
     } else {stop("No design rdata file found")}
