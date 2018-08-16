@@ -108,7 +108,7 @@ small.sub<-eapply(allsub.design, function(x) {
 
 #This part takes a long time...Let's paralle it:
 
-clusterjobs<-makeCluster(num_cores,outfile="step2_log.txt",type = "FORK")
+clusterjobs<-makeCluster(num_cores,outfile=file.path(argu$ssub_outputroot,argu$model.name,"step2_log.txt"),type = "FORK")
 #clusterExport(clusterjobs,c("argu","gen_reg","small.sub","get_volume_run",
 #                            "cfg_info","change_fsl_template","fsl_2_sys_env",
 #                            "feat_w_template","info_to_sysenv"),envir = environment())
@@ -196,7 +196,7 @@ featlist<-lapply(small.sub,function(x) {
   return(emp)
 })
 
-clusterjobs1<-makeCluster(num_cores,outfile="step4_log.txt",type = "FORK")
+clusterjobs1<-makeCluster(num_cores,outfile=file.path(argu$ssub_outputroot,argu$model.name,"step4_log.txt"),type = "FORK")
 #clusterExport(clusterjobs1,c("cfg",
 #                             "argu",
 #                             "small.sub",

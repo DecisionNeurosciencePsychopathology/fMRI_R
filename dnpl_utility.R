@@ -504,7 +504,7 @@ cope.fslmerge<-lapply(copestorun,function(x) {
          "randomise -i ",outputroot,"/OneSamp4D -o ",outputroot,"/OneSampT -1 -T -x -c 3"
          )
   })
-sink(file="group_lvl_log.txt",split=TRUE)
+sink(file=file.path(outputdir,modelname,"glvl_log.txt"),split=TRUE)
 if (!is.null(paralleln)){
   cj1<-makeCluster(paralleln,outfile="")
   NU<-parSapply(cj1,cope.fslmerge,function(x) {
