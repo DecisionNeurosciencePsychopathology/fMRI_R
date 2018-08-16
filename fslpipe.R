@@ -31,8 +31,12 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 dir.create(file.path(argu$ssub_outputroot,argu$model.name),showWarnings = FALSE)
 #load the design rdata file if exists;
 if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
-  tryCatch({load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))},error=function(e) {paste0("load not successful, have to re-run step 1...message: ",e)}
-           assign('allsub.design',as.environment(list()),envir = globalenv()))
+  tryCatch({load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))},
+           error=function(e) {
+             message(paste0("load not successful, have to re-run step 1...message: ",e))
+             assign('allsub.design',as.environment(list()),envir = globalenv())
+    })
+         
 } else {allsub.design<-as.environment(list())}
 #Take out people who have already been processed;
 if (length(names(allsub.design))>0 & !argu$forcereg) {
