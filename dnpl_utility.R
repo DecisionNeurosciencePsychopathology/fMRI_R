@@ -155,6 +155,7 @@ makesignal.single<-function(output,ename,norm="none",normargu=c("durmax_1","evtm
     )
     
   }
+  #0->value.df$value[is.na(value.df$value)]
   jrz[["value"]]<-value.df
   return(jrz)
 }
@@ -328,7 +329,7 @@ do.all.subjs<-function(
   #if (length(grep("evt",dsgrid.og$valuefrom))>0){
   #  dsgrid<-dsgrid.og[-grep("evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
   #Generate signal with make signal with grid function (grid.csv need to be in working directory or specified otherwise)
-  signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgrid = dsgrid)
+  signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgrid = dsgrid,nona = T)
   
   if (length(grep("evt",dsgrid$valuefrom))>0){
     dxgrid<-dsgrid[grep("evt",dsgrid$valuefrom),]

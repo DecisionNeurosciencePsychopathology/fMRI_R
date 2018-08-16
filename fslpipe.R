@@ -31,7 +31,8 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 dir.create(file.path(argu$ssub_outputroot,argu$model.name),showWarnings = FALSE)
 #load the design rdata file if exists;
 if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
-  load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
+  tryCatch({load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))},error=function(e) {paste0("load not successful, have to re-run step 1...message: ",e)}
+           assign('allsub.design',as.environment(list()),envir = globalenv()))
 } else {allsub.design<-as.environment(list())}
 #Take out people who have already been processed;
 if (length(names(allsub.design))>0 & !argu$forcereg) {
@@ -57,6 +58,26 @@ if (length(idtodo)>0) {
           model.varinames=argu$model.varinames,
           add.nuisa=argu$ifnuisa,
           assigntoenvir=allsub.design)
+        
+# tid=xid
+# do.prep.call=prep.call.func
+# do.prep.arg=prep.call.list
+# cfgpath=argu$cfgpath
+# regpath=argu$regpath
+# gridpath=argu$gridpath
+# func.nii.name=argu$func.nii.name,
+# proc_id_subs=argu$proc_id_subs,    #Put "" for nothing.
+# wrt.timing=c("convolved", "FSL"),
+# model.name=argu$model.name,
+# func.nii.name=argu$func.nii.name
+# proc_id_subs=argu$proc_id_subs
+# wrt.timing=c("convolved", "FSL")
+# model.name=argu$model.name
+# model.varinames=argu$model.varinames
+# add.nuisa=argu$ifnuisa
+# assigntoenvir=allsub.design
+# allsub.design<-as.environment(list())
+
       },error=function(x) {paste0(xid,": This person failed regressor generation...go investigate")}
     )
   }
