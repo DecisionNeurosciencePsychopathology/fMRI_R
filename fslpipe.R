@@ -131,7 +131,7 @@ NU<-parSapply(clusterjobs,small.sub,function(x) {
       feat_w_template(templatepath = argu$ssub_fsl_templatepath,
                       beg = "ARG_",
                       end = "_END",
-                      fsf.path = file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_",argu$model.name,".fsf")),
+                      fsfpath = file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_",argu$model.name,".fsf")),
                       envir = xarg)
 
     } else {message(paste("ID:",idx,"RUN:",runnum,",already exists,","to re-run, remove the directory."))}
@@ -261,7 +261,7 @@ plot_image_all(rootpath=argu$glvl_outputroot,
                outputdir=file.path(argu$glvl_outputroot,argu$model.name),
                colour="red")
 write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)]))),
-           titlesx=gsub("\"","",gsub(pattern = "[0-9]*) \"",replacement = "",
+           title=gsub("\"","",gsub(pattern = "[0-9]*) \"",replacement = "",
                   x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
                            x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
                                     x = ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)+1],fixed = T),fixed = T),fixed = F))
