@@ -144,6 +144,8 @@ stopCluster(clusterjobs)
 #End of Step 2
 }
 
+
+
 #Step 3: 
 #Now we make the symbolic link for template matching...so they are not misaligned anymore...
 stepnow<-stepnow+1
@@ -181,7 +183,6 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
         preprocID=x$preprocID)
     })
   }
-  
 cfg<-cfg_info(cfgpath = argu$cfgpath)
 cfg$n_expected_funcruns->runnum
 featlist<-lapply(small.sub,function(x) {
@@ -197,26 +198,25 @@ featlist<-lapply(small.sub,function(x) {
 })
 
 clusterjobs1<-makeCluster(num_cores,outfile=file.path(argu$ssub_outputroot,argu$model.name,"step4_log.txt"),type = "FORK")
-#clusterExport(clusterjobs1,c("cfg",
-#                             "argu",
-#                             "small.sub",
-#                             "get_volume_run",
-#                             "cfg_info",
-#                             "change_fsl_template",
-#                             "fsl_2_sys_env",
-#                             "feat_w_template"),envir = environment())
-
 NU<-parSapply(clusterjobs1,small.sub, function(y) {
   larg<-as.environment(list())
   y$ID->larg$idx
   larg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,larg$idx,"average")
   larg<-list2env(y$featlist,envir = larg)
+  larg$templatedir<-argu$templatedir
+  if (argu$adaptive_gfeat) {
+    larg$maxrunnum<-length(y$featlist)
+    ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
+    larg$maxcopenum<-max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
+    #PUT NEW FUNCTION HERE
+    studyfsltemp<-adopt_gfeat(adptemplate_path = argu$gsub_fsl_templatepath,searenvir=larg)
+  } else {studyfsltemp<-readLines(argu$gsub_fsl_templatepath)}
   if (!file.exists(paste0(larg$outputpath,".gfeat"))) {
     message(paste0("Initializing gfeat for participant: ",larg$idx))
-    feat_w_template(templatepath = argu$gsub_fsl_templatepath,
+    feat_w_template(fsltemplate = studyfsltemp,
                     beg = "ARG_",
                     end = "_END",
-                    fsf.path = file.path(argu$regpath,argu$model.name,larg$idx,paste0("gfeat_temp",".fsf")),
+                    fsfpath = file.path(argu$regpath,argu$model.name,larg$idx,paste0("gfeat_temp",".fsf")),
                     envir = larg)
   } else {message("This person already got average done!")}
   
@@ -225,8 +225,12 @@ stopCluster(clusterjobs1)
 ################END of step 4
 }
 
-#Step 5: #PARALLEL by function
-#Do Group Level 
+
+###############################
+#Step 5: #PARALLEL by function#
+#######Do Group Level########## 
+###############################
+
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 #########Start step group lvl analysis
@@ -241,8 +245,11 @@ glvl_all_cope(rootdir=argu$ssub_outputroot,
 #End Step 5
 }
 
-#Step 6: 
-#simple graph
+###########################
+#Step 6: ##################
+#simple graph #############
+###########################
+
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 library(oro.nifti)
@@ -253,28 +260,27 @@ plot_image_all(rootpath=argu$glvl_outputroot,
                threshold=argu$graphic.threshold,
                outputdir=file.path(argu$glvl_outputroot,argu$model.name),
                colour="red")
-
+write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)]))),
+           titlesx=gsub("\"","",gsub(pattern = "[0-9]*) \"",replacement = "",
+                  x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
+                           x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
+                                    x = ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)+1],fixed = T),fixed = T),fixed = F))
+),file = file.path(argu$glvl_outputroot,argu$model.name,"cope_title_index.txt"),row.names = F)
 #End of Step 6
 }
 
-
+######################################################################
 #End of function 
 }
 
 
-
-
-
 #In development:
 if (FALSE) {
+  #Adaptive fsl cope;
   #To see if make sense to just create a new 
   splitAt <- function(x, pos) unname(split(x, cumsum(seq_along(x) %in% pos)))
   chuckofev<-fsltemplate[min(grep("EV [0-9]* title",fsltemplate)):grep("# Contrast & F-tests mode",fsltemplate,fixed = T)]
   byev<-splitAt(chuckofev,grep("EV [0-9]* title",chuckofev))
   length(byev)->nev
-  
-  
-  
-  
   
 }

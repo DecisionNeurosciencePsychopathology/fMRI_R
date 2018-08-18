@@ -5,6 +5,7 @@ devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsyc
 devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/prep_for_second_lvl.R")
 ##Here's all the functions that helps with the fsl pipe function;
 
+
 fsl_2_sys_env<-function(bashprofilepath=NULL){
   if (is.null(bashprofilepath)){bashprofilepath<-file.path(Sys.getenv("HOME"),".bash_profile")}
   if (length(system("env | grep 'fsl' ",intern = T))<1) {
@@ -406,7 +407,51 @@ gen_reg<-function(vmodel=NULL,regpath=NULL,idx=NULL,runnum=NULL,env=NULL,regtype
   NUP<-lapply(vmodel<-argu$model.varinames, function(x) {
     assign(paste0(x,"reg"),file.path(regpath,idx,paste0("run",runnum,"_",x,regtype)),envir = env)
   })
-}               
+} 
+
+
+populate_within<-function(chunk_within=NULL,xvnum=NULL,variname=NULL){
+  seq_lines<-lapply(1:xvnum,function(xjk){
+      temp<-as.environment(list())
+      assign(variname,xjk,envir = temp)
+      result<-change_fsl_template(fsltemplate = chunk_within,begin = "XG_",end = "_EX",searchenvir = temp)
+      rm(temp)
+      return(result)
+  })
+  re_within<-do.call(c,seq_lines)  
+  return(re_within)
+}
+
+
+adopt_gfeat<-function(adptemplate_path=NULL,searenvir=NULL) {
+  readLines(adptemplate_path)->adptemplate
+  #find the area that needs to be replaced:
+  #For real tho, the order should be fine but just to be 1000000 % sure, let's match them
+  while(length(grep("SEC_.*_START",adptemplate))>0) {
+  startnum<-grep("SEC_.*_START",adptemplate)[1]
+  name<-sapply(strsplit(adptemplate[startnum],split = "_"),"[[",2)
+  endnum<-grep(paste0("SEC_",name,"_END"),adptemplate)
+  #Let's not use lapply cuz combining them would be a headache..
+    print(as.character(name))
+    chunk_pre<-adptemplate[1:startnum-1]
+    chunk_post<-adptemplate[(endnum+1):length(adptemplate)]
+    #Okay now we constructure what's within.
+    chunk_within<-adptemplate[(startnum+1):(endnum-1)]
+    variname<-substr(chunk_within,regexpr(paste0("XG_","*"),chunk_within)+nchar("XG_"),
+                      regexpr(paste0("*","_EX"),chunk_within)-1)
+    unique(variname[variname!=""])->finavariname
+    get(finavariname,envir = searenvir)->xvnum
+    if (length(finavariname)==1) {
+      new_within<-populate_within(chunk_within = chunk_within,xvnum = xvnum,variname = finavariname)
+    } else {stop("Something Went Wrong! This is adopt_gfeat, first step")}
+    if (length(new_within)>0) {
+    adptemplate<-c(chunk_pre,new_within,chunk_post)
+    } else {stop(paste0("Something Went Wrong! This is adopt_gfeat, 2nd step"))}
+  } #End while 
+  return(adptemplate)
+}
+
+###############################
 #Use data.frame"
  #Name, Begining, Ending, alter = name, beg, dura
 
@@ -424,11 +469,10 @@ feat_w_template<-function(templatepath=NULL,
                           fsltemplate=NULL,
                           beg="ARG_",
                           end="_END",
-                          fsf.path=NULL,
+                          fsfpath=NULL,
                           envir=NULL) {
   if (is.null(fsltemplate)) {fsltemplate<-readLines(templatepath)}
   subbyrunfeat<-change_fsl_template(fsltemplate = fsltemplate,begin = beg,end=end,searchenvir = envir)
-  fsfpath<-fsf.path
   writeLines(subbyrunfeat,fsfpath)
   message("starting to do feat...")
   system(paste0("feat ",fsfpath),intern = T)
