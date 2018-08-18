@@ -1,5 +1,8 @@
 # fMRI_R REPOSITORY
 
+New feature: 
+- The fsl_pipe function now can use adaptive gfeat template that adjust based on run number and max cope number from differnt models and studys. It's now one less step to adjust before running a new study or model!
+
 This project is to utilize R to streamline some fMRI processing and offer flexibility of some degrees.
 
 There are 2 main scripts:
@@ -46,7 +49,8 @@ model.varinames=c("inf",                             #Model variable argument, i
 regtype=".1D",                                       #Regressor file to use, single col by volume use ".1D" and FSL style use "_FSL3col.txt"
 ifnuisa=FALSE,                                       #If to convolve with nuisance regressors with dependlab package
 ssub_fsl_templatepath="/Volumes/x/x/x/x/x.fsf",      #Single subject FSL template path
-gsub_fsl_templatepath="/Volumes/x/x/x/x/x/gx.fsf",   #Group level FSL template path
+adaptive_gfeat=TRUE,                                 #!NEW FEATURE! Adaptive gfeat template
+gsub_fsl_templatepath="/Volumes/x/x/x/x/x/adaptive_gx.fsf",   #Group level FSL template path, if adaptive_gfeat is true then needs adpative ones
 ssub_outputroot="/Volumes/x/x/x/x/x/x",              #Single Subject output root path (before model name folder)
 glvl_outputroot="/Volumes/x/x/x/x/x/x",              #Group level analysis output path (No Difference with next one)
 templatedir="x/x/MNI152_T1_xmm_brain.nii",           #Brain template path
