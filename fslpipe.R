@@ -209,7 +209,6 @@ NU<-parSapply(clusterjobs1,small.sub, function(y) {
     ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
     larg$maxcopenum<-max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
     #PUT NEW FUNCTION HERE
-    argu$maxcopenum<-larg$maxcopenum
     studyfsltemp<-adopt_gfeat(adptemplate_path = argu$gsub_fsl_templatepath,searenvir=larg)
   } else {studyfsltemp<-readLines(argu$gsub_fsl_templatepath)}
   if (!file.exists(paste0(larg$outputpath,".gfeat"))) {
@@ -235,12 +234,13 @@ stopCluster(clusterjobs1)
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 #########Start step group lvl analysis
-#fsltemplate.GL<-readLines(argu$gsub_fsl_templatepath)
+#sltemplate.GL<-readLines(argu$gsub_fsl_templatepath)
+ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
 #Start Group Level Analysis:
 glvl_all_cope(rootdir=argu$ssub_outputroot,
               outputdir=argu$glvl_outputroot,
               modelname=argu$model.name,
-              copestorun=1:argu$maxcopenum,
+              copestorun=1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)]))),
               paralleln = num_cores
 )
 #End Step 5
@@ -254,6 +254,7 @@ glvl_all_cope(rootdir=argu$ssub_outputroot,
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 library(oro.nifti)
+ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
 plot_image_all(rootpath=argu$glvl_outputroot,
                templatedir=argu$templatedir,
                model.name=argu$model.name,
