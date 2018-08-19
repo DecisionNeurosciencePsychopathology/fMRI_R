@@ -552,7 +552,7 @@ sink(file=file.path(outputdir,modelname,"glvl_log.txt"),split=TRUE)
 if (!is.null(paralleln)){
   cj1<-makeCluster(paralleln,outfile="")
   NU<-parSapply(cj1,cope.fslmerge,function(x) {
-    message(paste0("Now running ",cope.fslmerge))
+    message(paste0("Now running ",x))
     system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
   })
   stopCluster(cj1)
