@@ -2,6 +2,7 @@
 
 New feature: 
 - The fsl_pipe function now can use adaptive gfeat template that adjust based on run number and max cope number from differnt models and studys. It's now one less step to adjust before running a new study or model!
+- The fsl_pipe now recognize new argument that can be used to split subjects into groups and perform group analysis separately!
 
 This project is to utilize R to streamline some fMRI processing and offer flexibility of some degrees.
 
@@ -40,7 +41,8 @@ cfgpath="/Volumes/xx/xxxx/xxx/xxx.cfg",              #Where is the cfg config fi
 regpath="/Volumes/xx/xxx/xx/xxxx/xx/xxx_reg",        #Where to put/are the regressors 
 gridpath="grid.csv",                                 #Where is the grid to make signal
 func.nii.name="nfswudktm*[0-9].nii.gz",              #What pre-proc data to grab:
-proc_id_subs="_a",                                   #Does the ID have a tails, if NULL will not add anything
+proc_id_subs="_a",                                   #Does the ID have tails, if NULL will not add anything
+group_id_sep=c('Nalt','Plac'),                       #If the IDs needs to be split into groups
 model.name="PE_8C_reg_by_vol",                       #Now set up the model name, will be used as folder name
 model.varinames=c("inf",                             #Model variable argument, indicate what variable to grab, must be within grid
                   "noinf",
