@@ -692,12 +692,15 @@ sortid<-function(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu
 }
 
 
-commonid<-Reduce(intersect, lapply(names(idsep),function(xj){
-  idsep[[xj]]->xk
-  gsub(pattern = paste0("_",xj),replacement = "",x = xk)
-}))
 
 
+prep_paired_t<-function(idsep=NULL){
+  commonid<-Reduce(intersect, lapply(names(idsep),function(xj){
+    idsep[[xj]]->xk
+    gsub(pattern = paste0("_",xj),replacement = "",x = xk)
+  }))
+  
+}
 
 
 
