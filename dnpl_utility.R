@@ -579,7 +579,7 @@ feat_w_template<-function(templatepath=NULL,
                           envir=NULL) {
   if (is.null(fsltemplate)) {fsltemplate<-readLines(templatepath)}
   subbyrunfeat<-change_fsl_template(fsltemplate = fsltemplate,begin = beg,end=end,searchenvir = envir)
-  fsfpath<-fsf.path
+  #fsfpath<-fsf.path
   writeLines(subbyrunfeat,fsfpath)
   message("starting to do feat...")
   system(paste0("feat ",fsfpath),intern = T)
@@ -679,7 +679,7 @@ sortid<-function(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu
   system(paste0("find ",dix," -iname 'average.gfeat' -maxdepth 2"),intern = T)->dirxs
   alldirs<-sapply(strsplit(dirxs,split = .Platform$file.sep),function(x) {x[(length(x)-1)]})
   split_dirx<-lapply(idgrep,function(x){
-    j<-file.path(argu$ssub_outputroot,argu$model.name,alldirs[grep(x,alldirs)])
+    j<-alldirs[grep(x,alldirs)]
     if(dosymlink) {
       dir.create(file.path(argu$ssub_outputroot,argu$model.name,x),showWarnings = F)
       file.symlink(from = file.path(argu$ssub_outputroot,argu$model.name,alldirs[grep(x,alldirs)]),
@@ -690,5 +690,15 @@ sortid<-function(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu
   names(split_dirx)<-idgrep
   return(split_dirx)    
 }
+
+
+commonid<-Reduce(intersect, lapply(names(idsep),function(xj){
+  idsep[[xj]]->xk
+  gsub(pattern = paste0("_",xj),replacement = "",x = xk)
+}))
+
+
+
+
 
 
