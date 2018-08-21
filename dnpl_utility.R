@@ -640,10 +640,10 @@ if (max(aggregate(COPENUM~ID,data = df.ex,max)$COPENUM)<max(copestorun)) {stop("
 noIDpos<-which(aggregate(COPENUM~ID,data = df.ex,max)$COPENUM!=max(aggregate(COPENUM~ID,data = df.ex,max)$COPENUM) & aggregate(COPENUM~ID,data = df.ex,max)$COPENUM<max(copestorun))
 if (length(noIDpos)>0){
 noID<-aggregate(COPENUM~ID,data = df.ex,max)$ID[noIDpos]
-print(paste("This ID:",noID,"does not have enough COPES, will be removed from running...."))
+message(paste("This ID:",noID,"does not have enough COPES, will be removed from running...."))
 df.ex[which(!df.ex$ID %in% noID),]->df.ex
 } else {print("All Good!")}
-print("Now will run fslmerge and randomise, function will fail if FSL ENVIR is not set up. (Should not happen since it's guarded by func)")
+message("Now will run fslmerge and randomise, function will fail if FSL ENVIR is not set up. (Should not happen since it's guarded by func)")
 #Make Commands;
 cope.fslmerge<-lapply(copestorun,function(x) {
   outputroot<-file.path(outputdir,modelname,paste0("cope",x,"randomize_onesample_ttest"))
@@ -662,14 +662,16 @@ if (!is.null(paralleln)){
   NU<-parSapply(cj1,cope.fslmerge,function(x) {
     message(paste0("Now running ",x))
     system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
+    message("completed")
   })
   stopCluster(cj1)
 } else {lapply(cope.fslmerge,function(x) {
   message(paste0("Now running ",x))
   system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
+  message("completed")
 })
 }
-print("DONE")
+message("DONE")
 }
 
 
