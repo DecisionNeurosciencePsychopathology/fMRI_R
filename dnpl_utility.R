@@ -473,6 +473,7 @@ feat_w_template<-function(templatepath=NULL,
                           envir=NULL) {
   if (is.null(fsltemplate)) {fsltemplate<-readLines(templatepath)}
   subbyrunfeat<-change_fsl_template(fsltemplate = fsltemplate,begin = beg,end=end,searchenvir = envir)
+  fsfpath<-fsf.path
   writeLines(subbyrunfeat,fsfpath)
   message("starting to do feat...")
   system(paste0("feat ",fsfpath),intern = T)
@@ -537,7 +538,7 @@ print(paste("This ID:",noID,"does not have enough COPES, will be removed from ru
 df.ex[which(!df.ex$ID %in% noID),]->df.ex
 } else {print("All Good!")}
 print("Now will run fslmerge and randomise, function will fail if FSL ENVIR is not set up. (Should not happen since it's guarded by func)")
-
+#Make Commands;
 cope.fslmerge<-lapply(copestorun,function(x) {
   outputroot<-file.path(outputdir,modelname,paste0("cope",x,"randomize_onesample_ttest"))
   dir.create(outputroot, showWarnings = FALSE)
@@ -549,10 +550,11 @@ cope.fslmerge<-lapply(copestorun,function(x) {
          )
   })
 sink(file=file.path(outputdir,modelname,"glvl_log.txt"),split=TRUE)
+#Do Parallel or nah
 if (!is.null(paralleln)){
   cj1<-makeCluster(paralleln,outfile="")
   NU<-parSapply(cj1,cope.fslmerge,function(x) {
-    message(paste0("Now running ",x))
+    message(paste0("Now running ",cope.fslmerge))
     system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
   })
   stopCluster(cj1)
@@ -564,5 +566,21 @@ if (!is.null(paralleln)){
 print("DONE")
 }
 
+
+sortid<-function(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu$group_id_sep,dosymlink=ifdosymlink){
+  system(paste0("find ",dix," -iname 'average.gfeat' -maxdepth 2"),intern = T)->dirxs
+  alldirs<-sapply(strsplit(dirxs,split = .Platform$file.sep),function(x) {x[(length(x)-1)]})
+  split_dirx<-lapply(idgrep,function(x){
+    j<-file.path(argu$ssub_outputroot,argu$model.name,alldirs[grep(x,alldirs)])
+    if(dosymlink) {
+      dir.create(file.path(argu$ssub_outputroot,argu$model.name,x),showWarnings = F)
+      file.symlink(from = file.path(argu$ssub_outputroot,argu$model.name,alldirs[grep(x,alldirs)]),
+                   to = file.path(argu$ssub_outputroot,argu$model.name,x,alldirs[grep(x,alldirs)]))
+    }
+    return(j)
+  })
+  names(split_dirx)<-idgrep
+  return(split_dirx)    
+}
 
 

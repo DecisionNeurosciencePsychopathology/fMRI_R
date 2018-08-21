@@ -233,16 +233,37 @@ stopCluster(clusterjobs1)
 
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
-#########Start step group lvl analysis
-#sltemplate.GL<-readLines(argu$gsub_fsl_templatepath)
-ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
-#Start Group Level Analysis:
-glvl_all_cope(rootdir=argu$ssub_outputroot,
-              outputdir=argu$glvl_outputroot,
-              modelname=argu$model.name,
-              copestorun=1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)]))),
-              paralleln = num_cores
-)
+  
+  ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
+  
+if (is.null(argu$group_id_sep) | !exists('group_id_sep',envir = argu)) {
+  rgu$group_id_sep<-""
+  ifdosymlink<-FALSE
+  #Start Group Level Analysis:
+  glvl_all_cope(rootdir=argu$ssub_outputroot,
+                outputdir=argu$glvl_outputroot,
+                modelname=argu$model.name,
+                copestorun=1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)]))),
+                paralleln = num_cores)
+} else {
+idsep<-sortid(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu$group_id_sep,dosymlink=TRUE)
+#Need to create a overall model dir:
+dir.create(file.path(argu$glvl_outputroot,argu$model.name),showWarnings = FALSE)
+lapply(names(idsep),function(x) {
+  #Start Group Level Analysis:
+  glvl_all_cope(rootdir=argu$ssub_outputroot,
+                outputdir=argu$glvl_outputroot,
+                modelname=paste(argu$model.name,x,sep = .Platform$file.sep),
+                copestorun=1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)]))),
+                paralleln = num_cores)
+})
+}
+
+
+ 
+  
+
+
 #End Step 5
 }
 
@@ -255,6 +276,9 @@ stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 library(oro.nifti)
 ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
+
+if (is.null(argu$group_id_sep) | !exists('group_id_sep',envir = argu)) {
+
 plot_image_all(rootpath=argu$glvl_outputroot,
                templatedir=argu$templatedir,
                model.name=argu$model.name,
@@ -268,6 +292,28 @@ write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "
                            x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
                                     x = ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)+1],fixed = T),fixed = T),fixed = F))
 ),file = file.path(argu$glvl_outputroot,argu$model.name,"cope_title_index.txt"),row.names = F)
+
+} else {
+  idsep<-sortid(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu$group_id_sep,dosymlink=TRUE)
+  #Need to create a overall model dir:
+  #dir.create(file.path(argu$glvl_outputroot,argu$model.name),showWarnings = FALSE)
+  lapply(names(idsep), function(x){
+  plot_image_all(rootpath=argu$glvl_outputroot,
+                 templatedir=argu$templatedir,
+                 model.name=paste(argu$model.name,x,sep = .Platform$file.sep),
+                 patt="OneSampT_tfce_corrp_tstat1.nii.gz",
+                 threshold=argu$graphic.threshold,
+                 outputdir=file.path(argu$glvl_outputroot,paste(argu$model.name,x,sep = .Platform$file.sep)),
+                 colour="red")
+  write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)]))),
+                         title=gsub("\"","",gsub(pattern = "[0-9]*) \"",replacement = "",
+                                                 x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
+                                                          x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
+                                                                   x = ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)+1],fixed = T),fixed = T),fixed = F))
+  ),file = file.path(argu$glvl_outputroot,paste(argu$model.name,x,sep = .Platform$file.sep),"cope_title_index.txt"),row.names = F) 
+  })
+}
+
 #End of Step 6
 }
 
