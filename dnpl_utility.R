@@ -320,7 +320,7 @@ prepare4secondlvl<-function(ssana.path=NULL,
                                 #Logical Statement, if to overwirte existing link
                                 outputmap=FALSE,
                                 #Logical Statement, if true to return linkmap
-                                paralleln=NULL,
+                                paralleln=NULL
                                 #Number of parallel jobs on going
 ) {
   if (is.null(ssana.path) | is.null(preproc.path) | is.null(standardbarin.path) | is.null(proc.name) | is.null(taskname)){stop("not enough info to run")}
