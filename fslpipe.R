@@ -153,7 +153,7 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 
 #This one runs fast enough that it should be fine to not parallel it
 cfg<-cfg_info(cfgpath = argu$cfgpath)
-prepmap<-son.prepare4secondlvl(
+prepmap<-prepare4secondlvl(
   ssana.path=file.path(argu$ssub_outputroot,argu$model.name),            
   preproc.path=cfg$loc_mrproc_root,                                
   standardbarin.path=argu$templatedir, 
@@ -161,7 +161,8 @@ prepmap<-son.prepare4secondlvl(
   proc.name=cfg$paradigm_name,                                                                         
   taskname=cfg$preprocessed_dirname,                                                                   
   overwrite=argu$ifoverwrite_secondlvl,
-  outputmap=TRUE)           
+  outputmap=TRUE,
+  paralleln = num_cores)           
 ##End of Step 3
 }
 
