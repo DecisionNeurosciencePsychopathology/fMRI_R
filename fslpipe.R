@@ -257,10 +257,10 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
   #End Step 5
 }
 
-###########################
-#Step 6: ##################
-#simple graph #############
-###########################
+########################################
+#############Step 6: ###################
+######simple graph & extra Info ########
+########################################
 
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
