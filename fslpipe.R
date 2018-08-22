@@ -238,7 +238,7 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
   ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
   
 if (is.null(argu$group_id_sep) | !exists('group_id_sep',envir = argu)) {
-  rgu$group_id_sep<-""
+  argu$group_id_sep<-""
   ifdosymlink<-FALSE
   #Start Group Level Analysis:
   glvl_all_cope(rootdir=argu$ssub_outputroot,
