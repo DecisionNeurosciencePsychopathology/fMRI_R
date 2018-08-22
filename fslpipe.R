@@ -237,35 +237,24 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
   
   ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
   
-if (is.null(argu$group_id_sep) | !exists('group_id_sep',envir = argu)) {
-  argu$group_id_sep<-""
-  ifdosymlink<-FALSE
+  
+  
+  if (is.null(argu$group_id_sep) | !exists('group_id_sep',envir = argu)) {argu$group_id_sep<-""} 
+  if (is.null(argu$cluster_thresh) | !exists('cluster_thresh',envir = argu)) {argu$cluster_thresh<-3} 
+  if (is.null(argu$whichttest) | !exists('whichttest',envir = argu)) {argu$whichttest<-"onesample"}
+  if ("onesample" %in% argu$whichttest) {onesamplet_pergroup<-T}
+  if ("paired" %in% argu$whichttest) {pairedtest<-T}
   #Start Group Level Analysis:
   glvl_all_cope(rootdir=argu$ssub_outputroot,
                 outputdir=argu$glvl_outputroot,
                 modelname=argu$model.name,
+                grp_sep=argu$group_id_sep,
+                onesamplet_pergroup=onesamplet_pergroup,
+                pairedtest=pairedtest,
+                thresh_cluster_siz=argu$cluster_thresh,
                 copestorun=1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)]))),
                 paralleln = num_cores)
-} else {
-idsep<-sortid(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu$group_id_sep,dosymlink=TRUE)
-#Need to create a overall model dir:
-dir.create(file.path(argu$glvl_outputroot,argu$model.name),showWarnings = FALSE)
-lapply(names(idsep),function(x) {
-  #Start Group Level Analysis:
-  glvl_all_cope(rootdir=argu$ssub_outputroot,
-                outputdir=argu$glvl_outputroot,
-                modelname=paste(argu$model.name,x,sep = .Platform$file.sep),
-                copestorun=1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)]))),
-                paralleln = num_cores)
-})
-}
-
-
- 
-  
-
-
-#End Step 5
+  #End Step 5
 }
 
 ###########################
@@ -278,42 +267,20 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 library(oro.nifti)
 ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
 
-if (is.null(argu$group_id_sep) | !exists('group_id_sep',envir = argu)) {
-
 plot_image_all(rootpath=argu$glvl_outputroot,
                templatedir=argu$templatedir,
                model.name=argu$model.name,
-               patt="OneSampT_tfce_corrp_tstat1.nii.gz",
+               patt="*_tfce_corrp_tstat1.nii.gz",
                threshold=argu$graphic.threshold,
-               outputdir=file.path(argu$glvl_outputroot,argu$model.name),
                colour="red")
+
+#Create cope index; regardless of the paths and stuff, it should be fine...
 write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)]))),
            title=gsub("\"","",gsub(pattern = "[0-9]*) \"",replacement = "",
                   x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
                            x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
                                     x = ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)+1],fixed = T),fixed = T),fixed = F))
 ),file = file.path(argu$glvl_outputroot,argu$model.name,"cope_title_index.txt"),row.names = F)
-
-} else {
-  idsep<-sortid(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu$group_id_sep,dosymlink=TRUE)
-  #Need to create a overall model dir:
-  #dir.create(file.path(argu$glvl_outputroot,argu$model.name),showWarnings = FALSE)
-  lapply(names(idsep), function(x){
-  plot_image_all(rootpath=argu$glvl_outputroot,
-                 templatedir=argu$templatedir,
-                 model.name=paste(argu$model.name,x,sep = .Platform$file.sep),
-                 patt="OneSampT_tfce_corrp_tstat1.nii.gz",
-                 threshold=argu$graphic.threshold,
-                 outputdir=file.path(argu$glvl_outputroot,paste(argu$model.name,x,sep = .Platform$file.sep)),
-                 colour="red")
-  write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)]))),
-                         title=gsub("\"","",gsub(pattern = "[0-9]*) \"",replacement = "",
-                                                 x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
-                                                          x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
-                                                                   x = ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)+1],fixed = T),fixed = T),fixed = F))
-  ),file = file.path(argu$glvl_outputroot,paste(argu$model.name,x,sep = .Platform$file.sep),"cope_title_index.txt"),row.names = F) 
-  })
-}
 
 #End of Step 6
 }

@@ -591,12 +591,12 @@ plot_image_all<-function(rootpath=NULL,
                          model.name=NULL,
                          patt=NULL,
                          threshold=0.99,
-                         outputdir=getwd(),
                          colour="red") {
-  dirs<-system(paste0("find ",file.path(rootpath,model.name)," -iname '",patt,"' -maxdepth 3 -mindepth 1 -type f"),intern = T)
+  dirs<-system(paste0("find ",file.path(rootpath,model.name)," -iname '",patt,"' -maxdepth 4 -mindepth 1 -type f"),intern = T)
   for (sdir in dirs) {
     spdir<-strsplit(sdir,.Platform$file.sep) 
     spdir[[1]][sapply(spdir, function(x) {grep(patt,x)})-1]->filex
+    paste(spdir[[1]][-c(length(spdir[[1]]),length(spdir[[1]])-1)],collapse = .Platform$file.sep)->outputdir
     tep<-readNIfTI(templatedir)
     img<-readNIfTI(sdir)
     mask<-tep
@@ -613,65 +613,123 @@ plot_image_all<-function(rootpath=NULL,
 
 #####Group Lvl Func
 glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanalysis/fsl",
-                       outputdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl",
-                       modelname="PE_8C_old",
-                       copestorun=1:8,
-                       paralleln=NULL
+                        outputdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl",
+                        modelname="PE_8C_old",
+                        grp_sep=argu$group_id_sep,
+                        copestorun=1:8,
+                        paralleln=NULL,
+                        onesamplet_pergroup=T,
+                        pairedtest=T,
+                        thresh_cluster_siz=3
 ) {
   if ( is.null(modelname) ) {stop("Must specify a model name other wise it will be hard to find all copes")}
-
-#Creating directory in case they are not there;
-dir.create(file.path(outputdir,modelname),showWarnings = FALSE)
-#Ensure fsl are in path:
-fsl_2_sys_env()
-
-raw<-system(paste0("find ",file.path(rootdir,modelname,"*/average.gfeat")," -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
-strsplit(raw,split = "/") ->raw.split
-df.ex<-data.frame(ID=unlist(lapply(raw.split,function(x) {
-  x[grep("average.gfeat",x)-1]
-})),
-COPENUM=unlist(lapply(raw.split,function(x) {
-  x[grep("average.gfeat",x)+1]
-})),
-PATH=file.path(raw,"stats","cope1.nii.gz")
-)
-df.ex$COPENUM<-substr(df.ex$COPENUM,start=regexpr("[0-9]",df.ex$COPENUM),stop = regexpr(".feat",df.ex$COPENUM)-1)
-if (max(aggregate(COPENUM~ID,data = df.ex,max)$COPENUM)<max(copestorun)) {stop("HEY! There's not that many copes to run! Change argument!")}
-noIDpos<-which(aggregate(COPENUM~ID,data = df.ex,max)$COPENUM!=max(aggregate(COPENUM~ID,data = df.ex,max)$COPENUM) & aggregate(COPENUM~ID,data = df.ex,max)$COPENUM<max(copestorun))
-if (length(noIDpos)>0){
-noID<-aggregate(COPENUM~ID,data = df.ex,max)$ID[noIDpos]
-message(paste("This ID:",noID,"does not have enough COPES, will be removed from running...."))
-df.ex[which(!df.ex$ID %in% noID),]->df.ex
-} else {print("All Good!")}
-message("Now will run fslmerge and randomise, function will fail if FSL ENVIR is not set up. (Should not happen since it's guarded by func)")
-#Make Commands;
-cope.fslmerge<-lapply(copestorun,function(x) {
-  outputroot<-file.path(outputdir,modelname,paste0("cope",x,"randomize_onesample_ttest"))
-  dir.create(outputroot, showWarnings = FALSE)
-  copefileconcat<-paste(df.ex$PATH[which(df.ex$COPENUM==x)],collapse = " ")
-  paste0("fslmerge -t ",outputroot,"/OneSamp4D"," ",
-         copefileconcat
-         ," \n ",
-         "randomise -i ",outputroot,"/OneSamp4D -o ",outputroot,"/OneSampT -1 -T -x -c 3"
-         )
+  
+  #Creating directory in case they are not there;
+  dir.create(file.path(outputdir,modelname),showWarnings = FALSE,recursive = T)
+  #Ensure fsl are in path:
+  fsl_2_sys_env()
+  
+  raw<-system(paste0("find ",file.path(rootdir,modelname,"*/average.gfeat")," -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
+  strsplit(raw,split = "/") ->raw.split
+  df.ex<-data.frame(ID=unlist(lapply(raw.split,function(x) {
+    x[grep("average.gfeat",x)-1]
+  })),
+  COPENUM=unlist(lapply(raw.split,function(x) {
+    x[grep("average.gfeat",x)+1]
+  })),
+  PATH=file.path(raw,"stats","cope1.nii.gz")
+  )
+  df.ex$COPENUM<-substr(df.ex$COPENUM,start=regexpr("[0-9]",df.ex$COPENUM),stop = regexpr(".feat",df.ex$COPENUM)-1)
+  if (max(aggregate(COPENUM~ID,data = df.ex,max)$COPENUM)<max(copestorun)) {stop("HEY! There's not that many copes to run! Change argument!")}
+  noIDpos<-which(aggregate(COPENUM~ID,data = df.ex,max)$COPENUM!=max(aggregate(COPENUM~ID,data = df.ex,max)$COPENUM) & aggregate(COPENUM~ID,data = df.ex,max)$COPENUM<max(copestorun))
+  if (length(noIDpos)>0){
+    noID<-aggregate(COPENUM~ID,data = df.ex,max)$ID[noIDpos]
+    message(paste("This ID:",noID,"does not have enough COPES, will be removed from running...."))
+    df.ex[which(!df.ex$ID %in% noID),]->df.ex
+  } else {message("All Good!")}
+  message("Now will run fslmerge and randomise, function will fail if FSL ENVIR is not set up. (Should not happen since it's guarded by func)")
+  
+  #we now add in the group level stuff here, in hope that it will have more flexiblity;
+  if (length(grp_sep)>1) {
+    df.jx<-merge(df.ex,do.call(rbind,lapply(sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F),function(x) {data.frame(ID=x$ID,GROUP=x$name)})),by = "ID",all.x = T)
+  } else {df.ex$group<-"ONE"
+  df.jx<-df.ex}
+  
+  allcopecomx<-as.environment(list())
+  #Now we face this problem of runing bunch of them...
+  #One sample T test;
+  if (length(unique(df.jx$GROUP))==1){ 
+    #Make Commands;
+    cope.fslmerge<-lapply(copestorun,function(x) {
+      outputroot<-file.path(outputdir,modelname,paste0("cope",x,"randomize_onesample_ttest"))
+      dir.create(outputroot, showWarnings = FALSE,recursive = T)
+      copefileconcat<-paste(df.jx$PATH[which(df.jx$COPENUM==x)],collapse = " ")
+      paste0("fslmerge -t ",outputroot,"/OneSamp4D"," ",
+             copefileconcat
+             ," \n ",
+             "randomise -i ",outputroot,"/OneSamp4D -o ",outputroot,"/OneSampT -1 -T -x -c ",thresh_cluster_siz
+      )
+    })
+    assign(x = "onesamplet_onegroup",value = cope.fslmerge,envir = allcopecomx)
+  } else if (onesamplet_pergroup) {
+    #Make symoblic link first
+    NX<-sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F)
+    copexgroup<-do.call(c,lapply(copestorun,function(zt) {unlist(paste(zt,grp_sep,sep = "_"))}))
+    cope.fslmerge<-lapply(copexgroup,function(x) {
+      unlist(strsplit(x,split = "_"))->cope_group
+      outputroot<-file.path(outputdir,modelname,cope_group[2],paste0("cope",x,"randomize_onesample_ttest"))
+      dir.create(outputroot, showWarnings = FALSE,recursive = T)
+      copefileconcat<-paste(as.character(df.jx$PATH[which(df.jx$COPENUM==cope_group[1] & df.jx$GROUP==cope_group[2])]),collapse = " ")
+      paste0("fslmerge -t ",outputroot,"/OneSamp4D"," ",
+             copefileconcat
+             ," \n ",
+             "randomise -i ",outputroot,"/OneSamp4D -o ",outputroot,"/OneSampT -1 -T -x -c ",thresh_cluster_siz
+      )
+    })
+    assign(x = "onesamplet_pergroup",value = cope.fslmerge,envir = allcopecomx)
+  } else if (pairedtest) {
+    dir.create(file.path(outputdir,modelname),showWarnings = F,recursive = T)
+    commonid<-prep_paired_t(idsep = sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F), outpath = file.path(outputdir,modelname))
+    cidindex<-data.frame(ID=do.call(c,lapply(commonid,function(xm) {paste(xm,grp_sep,sep = "_")})),notag=do.call(c,lapply(commonid,function(xm) {paste(xm,c("",""),sep = "")})))
+    df.kh<-merge(df.jx,cidindex,all = T)
+    df.jk<-df.kh[which(!is.na(df.kh$notag)),]
+    cope.fslmerge<-lapply(copestorun,function(x) {
+      outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_paired_ttest"))
+      dir.create(outputroot, showWarnings = FALSE,recursive = T)
+      onecope<-df.jk[which(df.jk$COPENUM==x),]
+      onecope_re<-onecope[with(onecope,order(GROUP,notag)),]
+      copefileconcat<-paste(onecope_re$PATH,collapse = " ")
+      paste0("fslmerge -t ",outputroot,"/PairedT4D"," ",
+             copefileconcat
+             ," \n ",
+             "randomise -i ",outputroot,"/PairedT4D -o ",outputroot,"/PairedT -d ",
+             file.path(outputdir,modelname),"/design.mat -t ",
+             file.path(outputdir,modelname),"/design.con -e ",
+             file.path(outputdir,modelname),"/design.grp -1 -T -x -c ",thresh_cluster_siz
+      )
+    })
+    assign(x = "pairedtests",value = cope.fslmerge,envir = allcopecomx)
+  }
+  XNN<-eapply(env = allcopecomx, FUN = function(cope.fslmerge) {
+  sink(file=file.path(outputdir,modelname,"glvl_log.txt"),split=TRUE)
+  #Do Parallel or nah
+  if (!is.null(paralleln)){
+    cj1<-makeCluster(paralleln,outfile=file.path(outputdir,modelname,"glvl_log.txt"),type = "FORK")
+    NU<-parSapply(cj1,cope.fslmerge,function(x) {
+      message(paste0("Now running ",x))
+      system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
+      message("completed")
+    })
+    stopCluster(cj1)
+  } else {
+    lapply(cope.fslmerge,function(x) {
+      message(paste0("Now running ",x))
+      system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
+      message("completed")
+    })
+  }
   })
-sink(file=file.path(outputdir,modelname,"glvl_log.txt"),split=TRUE)
-#Do Parallel or nah
-if (!is.null(paralleln)){
-  cj1<-makeCluster(paralleln,outfile="")
-  NU<-parSapply(cj1,cope.fslmerge,function(x) {
-    message(paste0("Now running ",x))
-    system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
-    message("completed")
-  })
-  stopCluster(cj1)
-} else {lapply(cope.fslmerge,function(x) {
-  message(paste0("Now running ",x))
-  system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
-  message("completed")
-})
-}
-message("DONE")
+  message("DONE")
 }
 
 
@@ -685,7 +743,7 @@ sortid<-function(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu
       file.symlink(from = file.path(argu$ssub_outputroot,argu$model.name,alldirs[grep(x,alldirs)]),
                    to = file.path(argu$ssub_outputroot,argu$model.name,x,alldirs[grep(x,alldirs)]))
     }
-    return(j)
+    return(list(ID=j,name=x))
   })
   names(split_dirx)<-idgrep
   return(split_dirx)    
@@ -694,11 +752,30 @@ sortid<-function(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu
 
 
 
-prep_paired_t<-function(idsep=NULL){
+prep_paired_t<-function(idsep=NULL,outpath=NULL){
+  
   commonid<-Reduce(intersect, lapply(names(idsep),function(xj){
-    idsep[[xj]]->xk
+    idsep[[xj]]$ID->xk
     gsub(pattern = paste0("_",xj),replacement = "",x = xk)
   }))
+  
+ 
+  write.table(
+  do.call(rbind, lapply(c(-1,1,2:100)[1:length(idsep)], function(x){
+    cbind(matrix(nrow = length(commonid),ncol = 1,data = x),diag(x = 1,nrow = length(commonid),ncol = length(commonid)))
+  })),file = file.path(outpath,"design.mat.txt"),row.names = F,col.names = F)
+  
+  system(paste0("${FSLDIR}/bin/Text2Vest ",file.path(outpath,"design.mat.txt")," ",file.path(outpath,"design.mat")))
+  
+  write.table(
+    diag(x = 1,nrow = 1, ncol = length(commonid)+1),file = file.path(outpath,"design.con.txt"),row.names = F,col.names = F)
+  system(paste0("${FSLDIR}/bin/Text2Vest ",file.path(outpath,"design.con.txt")," ",file.path(outpath,"design.con")))
+  write.table(do.call(rbind, lapply(1:length(idsep), function(x){
+    matrix(nrow = length(commonid),ncol = 1,data = seq_along(commonid))
+  })),file = file.path(outpath,"design.grp.txt"),row.names = F,col.names = F)
+  system(paste0("${FSLDIR}/bin/Text2Vest ",file.path(outpath,"design.grp.txt")," ",file.path(outpath,"design.grp")))
+  
+  return(commonid)
   
 }
 
