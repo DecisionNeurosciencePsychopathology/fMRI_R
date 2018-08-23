@@ -237,8 +237,8 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
   
   ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
   
-  
-  
+  onesamplet_pergroup<-F
+  pairedtest<-F
   if (is.null(argu$group_id_sep) | !exists('group_id_sep',envir = argu)) {argu$group_id_sep<-""} 
   if (is.null(argu$cluster_thresh) | !exists('cluster_thresh',envir = argu)) {argu$cluster_thresh<-3} 
   if (is.null(argu$whichttest) | !exists('whichttest',envir = argu)) {argu$whichttest<-"onesample"}
