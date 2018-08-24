@@ -48,7 +48,7 @@ if (length(idtodo)>0) {
     prep.call.list<-prep.call.allsub[[xid]]
     tryCatch(
       {
-        do.all.subjs(
+        assign(as.character(xid),do.all.subjs(
           tid=xid,
           do.prep.call=prep.call.func,
           do.prep.arg=prep.call.list,
@@ -60,9 +60,8 @@ if (length(idtodo)>0) {
           wrt.timing=c("convolved", "FSL"),
           model.name=argu$model.name,
           model.varinames=argu$model.varinames,
-          add.nuisa=argu$ifnuisa,
-          assigntoenvir=allsub.design)
-        
+          add.nuisa=argu$ifnuisa),envir = allsub.design
+       )
 # tid=xid
 # do.prep.call=prep.call.func
 # do.prep.arg=prep.call.list
@@ -86,7 +85,7 @@ if (length(idtodo)>0) {
     )
   }
   
-  save(list = "allsub.design",file = file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
+  save("allsub.design",file = file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
 } else {message("NO NEW DATA NEEDED TO BE PROCESSED")}
 
 #End of Step 1
@@ -176,7 +175,7 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
     if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
       load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
     } else {stop("No design rdata file found")}
-    small.sub<-eapply(allsub.design, function(x) {
+    small.sub<-lapply(allsub.design, function(x) {
       list(
         ID=x$ID,
         run_volumes=x$run_volumes,
