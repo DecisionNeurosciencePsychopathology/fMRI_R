@@ -775,16 +775,19 @@ prep_paired_t<-function(idsep=NULL,outpath=NULL){
   do.call(rbind, lapply(c(-1,1,2:100)[1:length(idsep)], function(x){
     cbind(matrix(nrow = length(commonid),ncol = 1,data = x),diag(x = 1,nrow = length(commonid),ncol = length(commonid)))
   })),file = file.path(outpath,"design.mat.txt"),row.names = F,col.names = F)
-  
   system(paste0("${FSLDIR}/bin/Text2Vest ",file.path(outpath,"design.mat.txt")," ",file.path(outpath,"design.mat")))
+  file.remove(file.path(outpath,"design.mat.txt"))
   
   write.table(
     diag(x = 1,nrow = 1, ncol = length(commonid)+1),file = file.path(outpath,"design.con.txt"),row.names = F,col.names = F)
   system(paste0("${FSLDIR}/bin/Text2Vest ",file.path(outpath,"design.con.txt")," ",file.path(outpath,"design.con")))
+  file.remove(file.path(outpath,"design.con.txt"))
+  
   write.table(do.call(rbind, lapply(1:length(idsep), function(x){
     matrix(nrow = length(commonid),ncol = 1,data = seq_along(commonid))
   })),file = file.path(outpath,"design.grp.txt"),row.names = F,col.names = F)
   system(paste0("${FSLDIR}/bin/Text2Vest ",file.path(outpath,"design.grp.txt")," ",file.path(outpath,"design.grp")))
+  file.remove(file.path(outpath,"design.grp.txt"))
   
   return(commonid)
   
