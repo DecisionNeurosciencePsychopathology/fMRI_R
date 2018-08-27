@@ -253,6 +253,19 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
                 thresh_cluster_siz=argu$cluster_thresh,
                 copestorun=1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)]))),
                 paralleln = num_cores)
+  
+  
+  #Use for debugging:
+  # rootdir=argu$ssub_outputroot
+  # outputdir=argu$glvl_outputroot
+  # modelname=argu$model.name
+  # grp_sep=argu$group_id_sep
+  # onesamplet_pergroup=onesamplet_pergroup
+  # pairedtest=pairedtest
+  # thresh_cluster_siz=argu$cluster_thresh
+  # copestorun=1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
+  # paralleln = num_cores
+  
   #End Step 5
 }
 

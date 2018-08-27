@@ -653,7 +653,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   #we now add in the group level stuff here, in hope that it will have more flexiblity;
   if (length(grp_sep)>1) {
     df.jx<-merge(df.ex,do.call(rbind,lapply(sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F),function(x) {data.frame(ID=x$ID,GROUP=x$name)})),by = "ID",all.x = T)
-  } else {df.ex$group<-"ONE"
+  } else {df.ex$GROUP<-"ONE"
   df.jx<-df.ex}
   
   allcopecomx<-as.environment(list())
