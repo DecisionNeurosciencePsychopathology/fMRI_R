@@ -675,51 +675,54 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
     })
     cleanuplist(cope.fslmerge)->cope.fslmerge
     assign(x = "onesamplet_onegroup",value = cope.fslmerge,envir = allcopecomx)
-  } else if (onesamplet_pergroup) {
-    #Make symoblic link first
-    NX<-sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F)
-    copexgroup<-do.call(c,lapply(copestorun,function(zt) {unlist(paste(zt,grp_sep,sep = "_"))}))
-    cope.fslmerge<-lapply(copexgroup,function(x) {
-      unlist(strsplit(x,split = "_"))->cope_group
-      outputroot<-file.path(outputdir,modelname,cope_group[2],paste0("cope",x,"randomize_onesample_ttest"))
-      dir.create(outputroot, showWarnings = FALSE,recursive = T)
-      if (length(list.files(pattern = "*tfce_corrp_tstat1",path = outputroot,no.. = T))<1) {
-      copefileconcat<-paste(as.character(df.jx$PATH[which(df.jx$COPENUM==cope_group[1] & df.jx$GROUP==cope_group[2])]),collapse = " ")
-      return(paste0("fslmerge -t ",outputroot,"/OneSamp4D"," ",
-             copefileconcat
-             ," \n ",
-             "randomise -i ",outputroot,"/OneSamp4D -o ",outputroot,"/OneSampT -1 -T -x -c ",thresh_cluster_siz
-      ))
-      }else {return(NULL)}
-    })
-    cleanuplist(cope.fslmerge)->cope.fslmerge
-    assign(x = "onesamplet_pergroup",value = cope.fslmerge,envir = allcopecomx)
-  } else if (pairedtest) {
-    dir.create(file.path(outputdir,modelname),showWarnings = F,recursive = T)
-    commonid<-prep_paired_t(idsep = sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F), outpath = file.path(outputdir,modelname))
-    cidindex<-data.frame(ID=do.call(c,lapply(commonid,function(xm) {paste(xm,grp_sep,sep = "_")})),notag=do.call(c,lapply(commonid,function(xm) {paste(xm,c("",""),sep = "")})))
-    df.kh<-merge(df.jx,cidindex,all = T)
-    df.jk<-df.kh[which(!is.na(df.kh$notag)),]
-    cope.fslmerge<-lapply(copestorun,function(x) {
-      outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_paired_ttest"))
-      list.files(pattern = "*tfce_corrp_tstat1",path = outputroot)
-      dir.create(outputroot, showWarnings = FALSE,recursive = T)
-      if (length(list.files(pattern = "*tfce_corrp_tstat1",path = outputroot,no.. = T))<1) {
-      onecope<-df.jk[which(df.jk$COPENUM==x),]
-      onecope_re<-onecope[with(onecope,order(GROUP,notag)),]
-      copefileconcat<-paste(onecope_re$PATH,collapse = " ")
-      return(paste0("fslmerge -t ",outputroot,"/PairedT4D"," ",
-             copefileconcat
-             ," \n ",
-             "randomise -i ",outputroot,"/PairedT4D -o ",outputroot,"/PairedT -d ",
-             file.path(outputdir,modelname),"/design.mat -t ",
-             file.path(outputdir,modelname),"/design.con -e ",
-             file.path(outputdir,modelname),"/design.grp -1 -T -x -c ",thresh_cluster_siz
-      ))
-      }else {return(NULL)}
-    })
-    cleanuplist(cope.fslmerge)->cope.fslmerge
-    assign(x = "pairedtests",value = cope.fslmerge,envir = allcopecomx)
+  } else {
+    if (onesamplet_pergroup) {
+      #Make symoblic link first
+      NX<-sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F)
+      copexgroup<-do.call(c,lapply(copestorun,function(zt) {unlist(paste(zt,grp_sep,sep = "_"))}))
+      cope.fslmerge<-lapply(copexgroup,function(x) {
+        unlist(strsplit(x,split = "_"))->cope_group
+        outputroot<-file.path(outputdir,modelname,cope_group[2],paste0("cope",x,"randomize_onesample_ttest"))
+        dir.create(outputroot, showWarnings = FALSE,recursive = T)
+        if (length(list.files(pattern = "*tfce_corrp_tstat1",path = outputroot,no.. = T))<1) {
+          copefileconcat<-paste(as.character(df.jx$PATH[which(df.jx$COPENUM==cope_group[1] & df.jx$GROUP==cope_group[2])]),collapse = " ")
+          return(paste0("fslmerge -t ",outputroot,"/OneSamp4D"," ",
+                        copefileconcat
+                        ," \n ",
+                        "randomise -i ",outputroot,"/OneSamp4D -o ",outputroot,"/OneSampT -1 -T -x -c ",thresh_cluster_siz
+          ))
+        }else {return(NULL)}
+      })
+      cleanuplist(cope.fslmerge)->cope.fslmerge
+      assign(x = "onesamplet_pergroup",value = cope.fslmerge,envir = allcopecomx)
+    } 
+    if (pairedtest) {
+      dir.create(file.path(outputdir,modelname),showWarnings = F,recursive = T)
+      commonid<-prep_paired_t(idsep = sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F), outpath = file.path(outputdir,modelname))
+      cidindex<-data.frame(ID=do.call(c,lapply(commonid,function(xm) {paste(xm,grp_sep,sep = "_")})),notag=do.call(c,lapply(commonid,function(xm) {paste(xm,c("",""),sep = "")})))
+      df.kh<-merge(df.jx,cidindex,all = T)
+      df.jk<-df.kh[which(!is.na(df.kh$notag)),]
+      cope.fslmerge<-lapply(copestorun,function(x) {
+        outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_paired_ttest"))
+        list.files(pattern = "*tfce_corrp_tstat1",path = outputroot)
+        dir.create(outputroot, showWarnings = FALSE,recursive = T)
+        if (length(list.files(pattern = "*tfce_corrp_tstat1",path = outputroot,no.. = T))<1) {
+          onecope<-df.jk[which(df.jk$COPENUM==x),]
+          onecope_re<-onecope[with(onecope,order(GROUP,notag)),]
+          copefileconcat<-paste(onecope_re$PATH,collapse = " ")
+          return(paste0("fslmerge -t ",outputroot,"/PairedT4D"," ",
+                        copefileconcat
+                        ," \n ",
+                        "randomise -i ",outputroot,"/PairedT4D -o ",outputroot,"/PairedT -d ",
+                        file.path(outputdir,modelname),"/design.mat -t ",
+                        file.path(outputdir,modelname),"/design.con -e ",
+                        file.path(outputdir,modelname),"/design.grp -1 -T -x -c ",thresh_cluster_siz
+          ))
+        }else {return(NULL)}
+      })
+      cleanuplist(cope.fslmerge)->cope.fslmerge
+      assign(x = "pairedtests",value = cope.fslmerge,envir = allcopecomx)
+    }
   }
   XNN<-eapply(env = allcopecomx, FUN = function(cope.fslmerge) {
   sink(file=file.path(outputdir,modelname,"glvl_log.txt"),split=TRUE)
