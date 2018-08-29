@@ -6,8 +6,10 @@ devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsyc
 ##Here's all the functions that helps with the fsl pipe function;
 
 cleanuplist<-function(listx){
-  listx[sapply(listx, is.null)] <- NULL
-  return(listx)}
+  if (any(sapply(listx, is.null))){
+  listx[sapply(listx, is.null)] <- NULL}
+  return(listx)
+  }
 
 fsl_2_sys_env<-function(bashprofilepath=NULL){
   if (is.null(bashprofilepath)){bashprofilepath<-file.path(Sys.getenv("HOME"),".bash_profile")}
@@ -40,7 +42,6 @@ recondrop<-function(datax){
   } 
 }
 
-
 recon.list<-function(mat.raw=NULL){
   mat.better<-sapply(mat.raw, function(x){
     emp<-list()
@@ -54,6 +55,7 @@ recon.list<-function(mat.raw=NULL){
   names(mat.better)<-names(mat.raw)
   return(mat.better)
 }
+
 recon.array<-function(x=NULL) {
   emp<-list()
   for (i in 1:length(x)) {
@@ -68,7 +70,6 @@ recon.array<-function(x=NULL) {
 return(emp)
 }
 
-#TO DO: Try to make recursive
 recon.mat<-function(data.raw=NULL) {
   #do recurisive if class of x is list, if it's array then use 
   if (class(data.raw)=="list") {
@@ -80,7 +81,6 @@ recon.mat<-function(data.raw=NULL) {
   } else if (!lapply(huy$muX,class) %in% c("list","array")) {}
     
   }
-
 
 make_eprime_struct<-function(rawtext=file.choose(),
                            rawdf=NULL,
@@ -127,11 +127,6 @@ addcenterscaletolist<-function(list) {
   newlist<-c(list,test) 
   return(newlist)
 }
-
-#End
-
-#bandit specific functions:
-
 
 #Make single signal as a list:
 makesignal.single<-function(output,ename,norm="none",normargu=c("durmax_1","evtmax_1"),valuefrom,modifier=NA,style="subset",nonah=T) {
@@ -237,15 +232,29 @@ cfg_info<-function(cfgpath=NULL) {
 get_nuisance_preproc<-function(id=NULL,
                               cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
                               returnas=c("path","data.frame"),
-                              dothese=c("nuisance","motion")
+                              dothese=c("nuisance","motion_par","motion_outlier"),
+                              type="fd",
+                              threshold="default"
+                              
 ) {
+  if (type == "dvar") {
+    moutn<-"dvars.txt"
+    if (threshold == "default") {threshold<-20}
+  }
+  if (type == "fd") {
+    moutn<-"fd.txt"
+    if (threshold == "default") {threshold<-0.9}
+  }
+  
   cfg<-cfg_info(cfgpath = cfgfilepath)
   lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
     list(
     nuisance=
     file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""),cfg$preproc_call$nuisance_file),
-    motion=
-    file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""),"motion.par"))
+    motionpar=
+    file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""),"motion.par"),
+    motionoutlier=
+      file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""),"motion_info",moutn))
     })
   names(lpath)<-paste("run",1:cfg$n_expected_funcruns,sep = "")
   if (returnas=="path") {
@@ -256,11 +265,24 @@ get_nuisance_preproc<-function(id=NULL,
       nui<-read.table(x$nuisance)
       names(nui)<-unlist(strsplit(cfg$preproc_call$nuisance_compute,split = ","))
       } else {nui<-data.frame()}
-      if ("motion" %in% dothese) {
-      mo<-read.table(x$motion)
-      names(mo)<-paste0("motion_V",1:length(mo))
+      if ("motion_par" %in% dothese) {
+      mopar<-read.table(x$motionpar)
+      names(mopar)<-paste0("motion_V",1:length(mopar))
       } else {mo<-data.frame()}
-      combo<-c(nui,mo)
+      if ("motion_outlier" %in% dothese) {
+        moout<-read.table(x$motionoutlier)
+        moout$logi<-moout$V1>threshold
+        if (any(moout$logi)) {
+          xj<-matrix(data = 0,nrow = length(moout$logi),ncol = length(which(moout$logi)))
+          for (xn in 1:length(which(moout$logi))) {
+            xj[which(moout$logi)[xn],xn]<-1
+          }
+          moout<-as.data.frame(xj)
+          names(moout)<-paste0("motionoutlier_",1:length(moout))
+        } else {moout<-data.frame()}
+      } else {moout<-data.frame()}
+      
+      combo<-c(nui,mopar,moout)
       combo<-as.data.frame(combo)
       return(combo)
     })
@@ -268,7 +290,6 @@ get_nuisance_preproc<-function(id=NULL,
   }
 }
 
-####################
 get_volume_run<-function(id=NULL,
                          cfgfilepath=NULL,
                          reg.nii.name="swudktm*[0-9].nii.gz",
@@ -306,7 +327,6 @@ findbox<-function() {
   return(boxdir)
 }
 
-#############Make reg for second level:
 prepare4secondlvl<-function(ssana.path=NULL,    
                                 #Single Sub Analysis Folder, should contain ID/*.feat
                                 preproc.path=NULL,
@@ -410,8 +430,6 @@ prepare4secondlvl<-function(ssana.path=NULL,
   print("DONE")
 }
 
-#######################################
-
 ######General function for Single subject loop: (can be ready for lapply or do call)
 do.all.subjs<-function(
   tid=NULL,
@@ -425,7 +443,10 @@ do.all.subjs<-function(
   wrt.timing=c("convolved", "FSL","AFNI"),
   model.name=NULL,
   model.varinames=NULL,
-  add.nuisa=TRUE) {
+  nuisa_motion=c("nuisance","motion_par","motion_outlier"),
+  motion_type="fd",
+  motion_threshold="default",
+  convlv_nuisa=F) {
   
   #Read config file:
   cfg<-cfg_info(cfgpath)
@@ -448,8 +469,13 @@ do.all.subjs<-function(
   }  
   #Get nuissance regressor: 
   #Still concat nuisa regressor together
-  nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),cfgfilepath = cfgpath,returnas = "data.frame") 
-  if (add.nuisa) {
+  nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),
+                              cfgfilepath = cfgpath,
+                              returnas = "data.frame",
+                              dothese=nuisa_motion,
+                              type=motion_type,
+                              threshold=motion_threshold) 
+  if (convlv_nuisa) {
     nuisa.x<-nuisa
   } else {
     nuisa.x<-NULL
@@ -528,7 +554,6 @@ populate_within<-function(chunk_within=NULL,xvnum=NULL,variname=NULL){
   re_within<-do.call(c,seq_lines)  
   return(re_within)
 }
-
 
 adopt_gfeat<-function(adptemplate_path=NULL,searenvir=NULL) {
   readLines(adptemplate_path)->adptemplate
@@ -763,9 +788,6 @@ sortid<-function(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu
   names(split_dirx)<-idgrep
   return(split_dirx)    
 }
-
-
-
 
 prep_paired_t<-function(idsep=NULL,outpath=NULL){
   

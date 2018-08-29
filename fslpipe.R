@@ -42,7 +42,19 @@ if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata")))
 if (length(names(allsub.design))>0 & !argu$forcereg) {
   idtodo<-as.character(names(prep.call.allsub)[which(! names(prep.call.allsub) %in% names(allsub.design))])
 } else {idtodo<-names(prep.call.allsub)}
-
+  #Version upgrade safe keeping
+  if (exists("ifnuisa",envir = argu) & !exists("convlv_nuisa",envir = argu)) {
+    message("ifnuisa variable is now depreciated, please use convlv_nuisa to control if the pipeline should convolve nuissance regressor")
+    argu$convlv_nuisa<-argu$ifnuisa}
+  if (!exists("nuisa_motion",envir = argu)) {
+    message("argument nuisa_motion doesn't exist, using default options: include all")
+    argu$nuisa_motion<-c("nuisance","motion_par","motion_outlier")}
+  if (!exists("motion_type",envir = argu)) {
+    message("argument motion_type doesn't exist, using default options: fd")
+    argu$motion_type<-"fd"}
+  if (!exists("motion_threshold",envir = argu)) {
+    message("argument motion_threshold doesn't exist, using default options, (fd 0.9; dvar 20)")
+    argu$motion_threshold<-"default"}
 if (length(idtodo)>0) {
   for (xid in idtodo) {
     prep.call.list<-prep.call.allsub[[xid]]
@@ -60,7 +72,11 @@ if (length(idtodo)>0) {
           wrt.timing=c("convolved", "FSL"),
           model.name=argu$model.name,
           model.varinames=argu$model.varinames,
-          add.nuisa=argu$ifnuisa),envir = allsub.design
+          nuisa_motion=argu$nuisa_motion,
+          motion_type=argu$motion_type,
+          motion_threshold=argu$motion_threshold,
+          convlv_nuisa=argu$convlv_nuisa
+          ),envir = allsub.design
        )
 # tid=xid
 # do.prep.call=prep.call.func
