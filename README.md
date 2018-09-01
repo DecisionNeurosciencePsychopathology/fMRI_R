@@ -67,7 +67,9 @@ hig_lvl_path_filter=NULL,                            #If there's anyother folder
 graphic.threshold=0.95,                              #Threshold for graphic purposes
 whichttest = c("paired","onesample"),                #Which t-test to perform at the group level, support running both
 group_id_sep=c('a','b'),                             #What is the group identifier for the group separation !Be careful on using this along with the proc_id_subs argument
-nuisa_motion=c("nuisance","motion_par","motion_outlier") #What to include as additional ev regressors, all three possible can be include at once
+nuisa_motion=c("nuisance",                           #What to include as additional ev regressors, all three possible can be include at once
+               "motion_par",
+               "motion_outlier") 
 motion_type="fd",                                    #Which motion sensor evaluation criterion to use, default is 'fd', also support 'dvar'
 motion_threshold="default"                           #The threshold for motion sensor, default is fd-0.9; dvar-20 
 ))
