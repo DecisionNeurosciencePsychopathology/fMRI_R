@@ -602,14 +602,17 @@ feat_w_template<-function(templatepath=NULL,
                           beg="ARG_",
                           end="_END",
                           fsfpath=NULL,
-                          envir=NULL) {
+                          envir=NULL,
+                          outcommand=F) {
   if (is.null(fsltemplate)) {fsltemplate<-readLines(templatepath)}
   subbyrunfeat<-change_fsl_template(fsltemplate = fsltemplate,begin = beg,end=end,searchenvir = envir)
   #fsfpath<-fsf.path
   writeLines(subbyrunfeat,fsfpath)
+  if(!outcommand){
   message("starting to do feat...")
   system(paste0("feat ",fsfpath),intern = T)
   message("feat completed")
+  } else {return(paste0("feat ",fsfpath))}
 }
 
 plot_image_all<-function(rootpath=NULL,

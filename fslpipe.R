@@ -112,6 +112,12 @@ if (length(idtodo)>0) {
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 
+  if (!is.null(argu$onlyrun) & !1 %in% argu$onlyrun) {
+    if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
+      load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
+    } else {stop("No design rdata file found, must re-run step 1")}
+  }  
+  
 #let's subset this 
 small.sub<-eapply(allsub.design, function(x) {
   list(
@@ -121,17 +127,9 @@ small.sub<-eapply(allsub.design, function(x) {
     preprocID=x$preprocID)
 })
 
-#This part takes a long time...Let's paralle it:
-
-clusterjobs<-makeCluster(num_cores,outfile=file.path(argu$ssub_outputroot,argu$model.name,"step2_log.txt"),type = "FORK")
-#clusterExport(clusterjobs,c("argu","gen_reg","small.sub","get_volume_run",
-#                            "cfg_info","change_fsl_template","fsl_2_sys_env",
-#                            "feat_w_template","info_to_sysenv"),envir = environment())
-
-NU<-parSapply(clusterjobs,small.sub,function(x) {
-  fsl_2_sys_env()
+step2commands<-unlist(lapply(small.sub,function(x) {
   idx<-x$ID
-  for (runnum in 1:length(x$run_volumes)) {
+  cmmd<-unlist(lapply(1:length(x$run_volumes), function(runnum) {
     xarg<-as.environment(list())
     xarg$runnum<-runnum    
     xarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
@@ -143,17 +141,28 @@ NU<-parSapply(clusterjobs,small.sub,function(x) {
       xarg$nuisa<-file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
       if (any(unlist(eapply(xarg,is.na)))) {stop("NA exists in one of the arguments; please double check!")}
       gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
-      feat_w_template(templatepath = argu$ssub_fsl_templatepath,
-                      beg = "ARG_",
-                      end = "_END",
+      cmmd<-feat_w_template(templatepath = argu$ssub_fsl_templatepath,beg = "ARG_",end = "_END",
                       fsfpath = file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_",argu$model.name,".fsf")),
-                      envir = xarg)
+                      envir = xarg,outcommand = T)
+      return(cmmd)
+    } else {
+      message(paste("ID:",idx,"RUN:",runnum,",already exists,","to re-run, remove the directory."))
+      return(NULL)}
+  }))
+  return(cmmd)
+}))
 
-    } else {message(paste("ID:",idx,"RUN:",runnum,",already exists,","to re-run, remove the directory."))}
-  }
-  
-})
-
+cluster_step2<-makeCluster(num_cores,outfile=file.path(argu$ssub_outputroot,argu$model.name,"step2_log.txt"),type = "FORK")
+NX<-parSapply(cluster_step2,step2commands,function(yx) {
+          fsl_2_sys_env()
+          message(paste0("starting to run /n ",yx))
+          tryCatch(
+            {system(command = yx,intern = T)
+            message("done")
+              }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
+          )
+          
+  })
 stopCluster(clusterjobs)
 
 #End of Step 2
