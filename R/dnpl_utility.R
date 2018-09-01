@@ -1,7 +1,7 @@
 #######
 ##
 ##
-devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/fslpipe.R")
+#devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/fslpipe.R")
 #devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/prep_for_second_lvl.R")
 ##Here's all the functions that helps with the fsl pipe function;
 
@@ -310,7 +310,7 @@ get_volume_run<-function(id=NULL,
                 paste(cfg$paradigm_name,i,sep = ""),
                 "motion_info","fd.txt")
       ))
-      # file.path(,nii.name)
+      
     })
     return(unlist(lnum))
   }
