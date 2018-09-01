@@ -3,6 +3,12 @@
 New feature: 
 - The fsl_pipe function now can use adaptive gfeat template that adjust based on run number and max cope number from differnt models and studys. It's now one less step to adjust before running a new study or model!
 - The fsl_pipe now recognize new argument that can be used to split subjects into groups and perform group analysis separately!
+- The fsl_pipe now gain the ability to perform paired t-test at a group lvl (ANOVA support coming soon).
+- The fsl_pipe now gain the ability to perform motion sensoring at volume lvl. 
+
+Coming soon:
+- Generate motion sensor files using fsl if pipeline results are not available (low priority)
+- ANOVA support for group lvl stats
 
 This project is to utilize R to streamline some fMRI processing and offer flexibility of some degrees.
 
@@ -49,7 +55,7 @@ model.varinames=c("inf",                             #Model variable argument, i
                   "fb",
                   "nofb"),
 regtype=".1D",                                       #Regressor file to use, single col by volume use ".1D" and FSL style use "_FSL3col.txt"
-ifnuisa=FALSE,                                       #If to convolve with nuisance regressors with dependlab package
+convlv_nuisa=FALSE,                                  #If to convolve with nuisance regressors with dependlab package
 ssub_fsl_templatepath="/Volumes/x/x/x/x/x.fsf",      #Single subject FSL template path
 adaptive_gfeat=TRUE,                                 #!NEW FEATURE! Adaptive gfeat template
 gsub_fsl_templatepath="/Volumes/x/x/x/x/x/adaptive_gx.fsf",   #Group level FSL template path, if adaptive_gfeat is true then needs adpative ones
@@ -58,7 +64,12 @@ glvl_outputroot="/Volumes/x/x/x/x/x/x",              #Group level analysis outpu
 templatedir="x/x/MNI152_T1_xmm_brain.nii",           #Brain template path
 ifoverwrite_secondlvl=FALSE,                         #If to redo all the linking for 2nd level
 hig_lvl_path_filter=NULL,                            #If there's anyother folder within $output/$model.name that contains *.feat, please remove it from here
-graphic.threshold=0.95                               #Threshold for graphic purposes
+graphic.threshold=0.95,                              #Threshold for graphic purposes
+whichttest = c("paired","onesample"),                #Which t-test to perform at the group level, support running both
+group_id_sep=c('a','b'),                             #What is the group identifier for the group separation !Be careful on using this along with the proc_id_subs argument
+nuisa_motion=c("nuisance","motion_par","motion_outlier") #What to include as additional ev regressors, all three possible can be include at once
+motion_type="fd",                                    #Which motion sensor evaluation criterion to use, default is 'fd', also support 'dvar'
+motion_threshold="default"                           #The threshold for motion sensor, default is fd-0.9; dvar-20 
 ))
 ```
 - 2, Then you must modify the grid.csv and fsl templates to ensure that everything mataches
