@@ -357,7 +357,6 @@ prepare4secondlvl<-function(ssana.path=NULL,preproc.path=NULL,
   linkmap$originplace<-file.path(ssana.path,linkmap$id,linkmap$runword,"masktostandtransforms.mat")
   
   if (is.null(paralleln)) {
-  #Step 5, make symb.link for each subject and each directory pair:
   for (i in 1:length(linkmap$id)) {
     if (overwrite) {
       if (file.exists(linkmap$destination[i])) {file.remove(linkmap$destination[i])}
@@ -390,8 +389,6 @@ prepare4secondlvl<-function(ssana.path=NULL,preproc.path=NULL,
                       standardbarin.path," -out /Volumes/bek/neurofeedback/.temp.nii -omat ",linkmap$originplace[i],
                       " -bins 256 -cost corratio -searchrx -90 90 -searchry -90 90 -searchrz -90 90 -dof 12  -interp trilinear"))
       }
-      
-      #Make actual links now...
       if (!file.exists(file.path(linkmap$destination,"example_func2standard.mat")[i])){
         file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"example_func2standard.mat")[i])
         file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"standard2example_func.mat")[i])
@@ -399,6 +396,7 @@ prepare4secondlvl<-function(ssana.path=NULL,preproc.path=NULL,
       } else {message("meh,already there, if you want to overwirite, do overwrite...")}
   
       })
+    stopCluster(cluster_prep2ndlvl)
   }
     
   if(outputmap) {return(linkmap)}
