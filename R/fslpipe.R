@@ -163,7 +163,7 @@ NX<-parSapply(cluster_step2,step2commands,function(yx) {
           )
           
   })
-stopCluster(clusterjobs)
+stopCluster(cluster_step2)
 
 #End of Step 2
 }
