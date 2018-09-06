@@ -237,12 +237,9 @@ cfg_info<-function(cfgpath=NULL) {
   return(as.list(xout))
 }
 
-get_nuisance_preproc<-function(id=NULL,
-                              cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
-                              returnas=c("path","data.frame"),
-                              dothese=c("nuisance","motion_par","motion_outlier"),
-                              type="fd",
-                              threshold="default"
+get_nuisance_preproc<-function(id=NULL,cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
+                              returnas=c("path","data.frame"),dothese=c("nuisance","motion_par","motion_outlier"),
+                              type="fd",threshold="default"
                               
 ) {
   if (type == "dvar") {
@@ -276,7 +273,7 @@ get_nuisance_preproc<-function(id=NULL,
       if ("motion_par" %in% dothese) {
       mopar<-read.table(x$motionpar)
       names(mopar)<-paste0("motion_V",1:length(mopar))
-      } else {mo<-data.frame()}
+      } else {mopar<-data.frame()}
       if ("motion_outlier" %in% dothese) {
         moout<-read.table(x$motionoutlier)
         moout$logi<-moout$V1>threshold
@@ -298,10 +295,7 @@ get_nuisance_preproc<-function(id=NULL,
   }
 }
 
-get_volume_run<-function(id=NULL,
-                         cfgfilepath=NULL,
-                         reg.nii.name="swudktm*[0-9].nii.gz",
-                         returnas=c("path","numbers")){
+get_volume_run<-function(id=NULL,cfgfilepath=NULL,reg.nii.name="swudktm*[0-9].nii.gz",returnas=c("path","numbers")){
   cfg<-cfg_info(cfgpath = cfgfilepath)
   if (returnas=="path"){
   lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
@@ -412,22 +406,11 @@ prepare4secondlvl<-function(ssana.path=NULL,preproc.path=NULL,
 }
 
 ######General function for Single subject loop: (can be ready for lapply or do call)
-do.all.subjs<-function(
-  tid=NULL,
-  do.prep.call="prep.son1",
-  do.prep.arg=list(son1_single=son1_single),
-  cfgpath=NULL,
-  regpath=NULL,
-  gridpath="grid.csv",
-  func.nii.name="swudktm*[0-9].nii.gz",
-  proc_id_subs=NULL,    #Put "" for nothing.
-  wrt.timing=c("convolved", "FSL","AFNI"),
-  model.name=NULL,
-  model.varinames=NULL,
-  nuisa_motion=c("nuisance","motion_par","motion_outlier"),
-  motion_type="fd",
-  motion_threshold="default",
-  convlv_nuisa=F) {
+do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_single=son1_single),cfgpath=NULL,
+                       regpath=NULL,gridpath="grid.csv",func.nii.name="swudktm*[0-9].nii.gz",proc_id_subs=NULL, 
+                       wrt.timing=c("convolved", "FSL","AFNI"),model.name=NULL,model.varinames=NULL,
+                       nuisa_motion=c("nuisance","motion_par","motion_outlier"),motion_type="fd",
+                       motion_threshold="default",convlv_nuisa=F) {
   
   #Read config file:
   cfg<-cfg_info(cfgpath)
@@ -578,13 +561,8 @@ adopt_gfeat<-function(adptemplate_path=NULL,searenvir=NULL) {
 #                  PWD = rstudioapi::askForPassword("Database password"),
 #                  Port = 1433)
 
-feat_w_template<-function(templatepath=NULL,
-                          fsltemplate=NULL,
-                          beg="ARG_",
-                          end="_END",
-                          fsfpath=NULL,
-                          envir=NULL,
-                          outcommand=F) {
+feat_w_template<-function(templatepath=NULL,fsltemplate=NULL,beg="ARG_",end="_END",fsfpath=NULL,envir=NULL,outcommand=F
+                          ) {
   if (is.null(fsltemplate)) {fsltemplate<-readLines(templatepath)}
   subbyrunfeat<-change_fsl_template(fsltemplate = fsltemplate,begin = beg,end=end,searchenvir = envir)
   #fsfpath<-fsf.path
@@ -596,12 +574,8 @@ feat_w_template<-function(templatepath=NULL,
   } else {return(paste0("feat ",fsfpath))}
 }
 
-plot_image_all<-function(rootpath=NULL,
-                         templatedir=NULL,
-                         model.name=NULL,
-                         patt=NULL,
-                         threshold=0.99,
-                         colour="red") {
+plot_image_all<-function(rootpath=NULL,templatedir=NULL,model.name=NULL,patt=NULL,threshold=0.99,colour="red"
+                         ) {
   dirs<-system(paste0("find ",file.path(rootpath,model.name)," -iname '",patt,"' -maxdepth 4 -mindepth 1 -type f"),intern = T)
   for (sdir in dirs) {
     spdir<-strsplit(sdir,.Platform$file.sep) 
@@ -619,18 +593,11 @@ plot_image_all<-function(rootpath=NULL,
   }
 }
 
-
-
 #####Group Lvl Func
 glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanalysis/fsl",
                         outputdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl",
-                        modelname="PE_8C_old",
-                        grp_sep=argu$group_id_sep,
-                        copestorun=1:8,
-                        paralleln=NULL,
-                        onesamplet_pergroup=T,
-                        pairedtest=T,
-                        thresh_cluster_siz=3
+                        modelname="PE_8C_old",grp_sep=argu$group_id_sep,copestorun=1:8,
+                        paralleln=NULL,onesamplet_pergroup=T,pairedtest=T,thresh_cluster_siz=3
 ) {
   if ( is.null(modelname) ) {stop("Must specify a model name other wise it will be hard to find all copes")}
   
@@ -803,6 +770,31 @@ prep_paired_t<-function(idsep=NULL,outpath=NULL){
   
 }
 
-
-
+get_motion_info<-function(configpath=NULL,type="fd",threshold="default"){
+  if (!file.exists(configpath)){stop("Config File Does NOT Exist")}
+  cfg<-cfg_info(configpath)
+  idlist<-list.dirs(cfg$loc_mrproc_root,recursive = F,full.names = F)
+  NX<-lapply(idlist,function(X) {
+    tryCatch(
+      {return(get_nuisance_preproc(X,cfgfilepath=configpath,
+         returnas=c("data.frame"),
+         dothese=c("motion_outlier"),
+         type=type,
+         threshold=threshold))
+      },error=function(e) {return(NULL)})
+    })
+  names(NX)<-idlist
+  NX<-cleanuplist(NX)
+  NU<-lapply(1:length(NX),function(i){
+    yx<-suppressMessages(reshape2::melt(as.data.frame(lapply(NX[[i]],length))))
+    names(yx)<-c("run","outlier")
+    
+    IDx<-names(NX)[i]
+    yx$totalvol<-get_volume_run(IDx,cfgfilepath = configpath,returnas = "numbers")
+    yx$out_per<-yx$outlier / yx$totalvol
+    yx$ID<-IDx
+    return(yx)
+  })
+  return(do.call(rbind,NU))
+}
 

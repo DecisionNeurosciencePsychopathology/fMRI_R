@@ -49,13 +49,13 @@ if (length(names(allsub.design))>0 & !argu$forcereg) {
   if (!exists("nuisa_motion",envir = argu)) {
     message("argument nuisa_motion doesn't exist, using default options: nuisance and motion parameters")
     argu$nuisa_motion<-c("nuisance","motion_par")
-    if (!exists("motion_type",envir = argu)) {
-      message("argument motion_type doesn't exist, using default options: fd")
-      argu$motion_type<-"fd"}
-    if (!exists("motion_threshold",envir = argu)) {
-      message("argument motion_threshold doesn't exist, using default options, (fd 0.9; dvar 20)")
-      argu$motion_threshold<-"default"}
   }
+  if (!exists("motion_type",envir = argu)) {
+    message("argument motion_type doesn't exist, using default options: fd")
+    argu$motion_type<-"fd"}
+  if (!exists("motion_threshold",envir = argu)) {
+    message("argument motion_threshold doesn't exist, using default options, (fd 0.9; dvar 20)")
+    argu$motion_threshold<-"default"}
   
 if (length(idtodo)>0) {
   for (xid in idtodo) {
