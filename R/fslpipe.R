@@ -56,10 +56,6 @@ if (length(names(allsub.design))>0 & !argu$forcereg) {
       message("argument motion_threshold doesn't exist, using default options, (fd 0.9; dvar 20)")
       argu$motion_threshold<-"default"}
   }
-  if (!exists("motion_type",envir = argu)) {
-    argu$motion_type<-"fd"}
-  if (!exists("motion_threshold",envir = argu)) {
-    argu$motion_threshold<-"default"}
   
 if (length(idtodo)>0) {
   for (xid in idtodo) {
