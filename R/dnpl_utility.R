@@ -181,6 +181,14 @@ make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NU
                               modifier = dsgrid$modifier[i],
                               style = dsgrid$style[i],
                               nonah = nona)
+    # output = outputdata
+    # ename = dsgrid$ename[i]
+    # norm = dsgrid$norm[i]
+    # normargu = dsgrid$normargu[i]
+    # valuefrom = dsgrid$valuefrom[i]
+    # modifier = dsgrid$modifier[i]
+    # style = dsgrid$style[i]
+    # nonah = nona
     assign(dsgrid$name[i],result,envir = allofthem)
   }
   

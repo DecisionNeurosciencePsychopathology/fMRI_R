@@ -60,7 +60,8 @@ if (length(idtodo)>0) {
     prep.call.list<-prep.call.allsub[[xid]]
     tryCatch(
       {
-        assign(as.character(xid),do.all.subjs(
+        assign(as.character(xid),
+          do.all.subjs(
           tid=xid,
           do.prep.call=prep.call.func,
           do.prep.arg=prep.call.list,
@@ -78,24 +79,23 @@ if (length(idtodo)>0) {
           convlv_nuisa=argu$convlv_nuisa
           ),envir = allsub.design
        )
-# tid=xid
-# do.prep.call=prep.call.func
-# do.prep.arg=prep.call.list
-# cfgpath=argu$cfgpath
-# regpath=argu$regpath
-# gridpath=argu$gridpath
-# func.nii.name=argu$func.nii.name,
-# proc_id_subs=argu$proc_id_subs,    #Put "" for nothing.
-# wrt.timing=c("convolved", "FSL"),
-# model.name=argu$model.name,
-# func.nii.name=argu$func.nii.name
-# proc_id_subs=argu$proc_id_subs
-# wrt.timing=c("convolved", "FSL")
-# model.name=argu$model.name
-# model.varinames=argu$model.varinames
-# add.nuisa=argu$ifnuisa
-# assigntoenvir=allsub.design
-# allsub.design<-as.environment(list())
+        # tid=xid
+        # do.prep.call=prep.call.func
+        # do.prep.arg=prep.call.list
+        # cfgpath=argu$cfgpath
+        # regpath=argu$regpath
+        # gridpath=argu$gridpath
+        # func.nii.name=argu$func.nii.name
+        # proc_id_subs=argu$proc_id_subs   #Put "" for nothing.
+        # wrt.timing=c("convolved", "FSL")
+        # model.name=argu$model.name
+        # func.nii.name=argu$func.nii.name
+        # proc_id_subs=argu$proc_id_subs
+        # wrt.timing=c("convolved", "FSL")
+        # model.name=argu$model.name
+        # model.varinames=argu$model.varinames
+        # add.nuisa=argu$ifnuisa
+
 
       },error=function(x) {paste0(xid,": This person failed regressor generation...go investigate")}
     )
