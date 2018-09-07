@@ -99,7 +99,7 @@ if (length(idtodo)>0) {
         # add.nuisa=argu$ifnuisa
 
 
-      },error=function(x) {paste0(xid,": This person failed regressor generation...go investigate")}
+      },error=function(e) {message("failed regressor generation...go investigate: ",e)}
     )
   }
   
