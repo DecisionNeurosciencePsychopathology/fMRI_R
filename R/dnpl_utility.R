@@ -456,6 +456,7 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
   
   #Use Michael's package to generate design matrix and correlation graph;
   design<-dependlab::build_design_matrix(
+    center_values=FALSE,
     events = output$event.list$allconcat, #Load the task info
     signals = model,     #Load the Model
     write_timing_files = wrt.timing, #Output timing files to FSL style
