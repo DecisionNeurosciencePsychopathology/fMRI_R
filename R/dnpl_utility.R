@@ -788,7 +788,7 @@ get_motion_info<-function(configpath=NULL,type="fd",threshold="default"){
   NU<-lapply(1:length(NX),function(i){
     yx<-suppressMessages(reshape2::melt(as.data.frame(lapply(NX[[i]],length))))
     names(yx)<-c("run","outlier")
-    
+    yx$run<-as.numeric(gsub("[a-z]*[A-Z]*","",yx$run))
     IDx<-names(NX)[i]
     yx$totalvol<-get_volume_run(IDx,cfgfilepath = configpath,returnas = "numbers")
     yx$out_per<-yx$outlier / yx$totalvol
@@ -797,4 +797,11 @@ get_motion_info<-function(configpath=NULL,type="fd",threshold="default"){
   })
   return(do.call(rbind,NU))
 }
+
+amputate_run<-function(small.sub=NULL,cfgpath=NULL,type="fd",threshold="default") {
+  
+  
+  
+}
+
 
