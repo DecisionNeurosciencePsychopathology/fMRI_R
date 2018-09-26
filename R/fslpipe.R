@@ -93,7 +93,6 @@ if (length(idtodo)>0) {
         # model.name=argu$model.name
         # func.nii.name=argu$func.nii.name
         # proc_id_subs=argu$proc_id_subs
-        # wrt.timing=c("convolved", "FSL")
         # model.name=argu$model.name
         # model.varinames=argu$model.varinames
         # add.nuisa=argu$ifnuisa

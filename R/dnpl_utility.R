@@ -805,3 +805,40 @@ amputate_run<-function(small.sub=NULL,cfgpath=NULL,type="fd",threshold="default"
 }
 
 
+####
+creat_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="") {
+  
+  if (is.null(fsl_dir)) {fsl_2_sys_env(); fsl_dir=Sys.getenv("FSLDIR")}
+  atlas_dir<-file.path(fsl_dir,"data","atlases")    
+  
+  if (!grepl("/",atlas_xml)) {atlas_xml<-file.path(atlas_dir,atlas_xml)}
+  
+  if (is.null(atlas_xml)) {
+    if (is.null(atlas_name)) {
+      message("Below are the available atlases in fsl")
+      print(latlas<-gsub(".xml","",list.files(path = atlas_dir,pattern = "*.xml"))) 
+      wic<-readline(prompt = "Which atlas to use? Type in exact: ")
+      if (!wic %in% latlas) {stop(paste0("No atlas named ",wic," found in default fsl atlas directory. Try again"))
+      } else {atlas_name<-wic} 
+    }
+    atlas_xml<-file.path(atlas_dir,paste0(atlas_name,".xml"))
+  }
+  
+  atlas_info<-XML::xmlToList(XML::xmlParse(file = atlas_xml))
+  
+  
+  
+  names(lx)[which(names(lx)==names(lx)[which(duplicated(names(lx)))])]<-paste(names(lx)[which(names(lx)==names(lx)[which(duplicated(names(lx)))])],1:length(names(lx)[which(names(lx)==names(lx)[which(duplicated(names(lx)))])]),sep = "_")
+  
+  
+  
+  names(atlas_info)[which(duplicated(names(atlas_info$header)))]
+  
+  
+  
+}
+
+
+
+
+
