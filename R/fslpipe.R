@@ -96,7 +96,10 @@ if (length(idtodo)>0) {
         # model.name=argu$model.name
         # model.varinames=argu$model.varinames
         # add.nuisa=argu$ifnuisa
-
+        # nuisa_motion=argu$nuisa_motion
+        # motion_type=argu$motion_type
+        # motion_threshold=argu$motion_threshold
+        # convlv_nuisa=argu$convlv_nuisa
 
       },error=function(e) {message("failed regressor generation...go investigate: ",e)}
     )

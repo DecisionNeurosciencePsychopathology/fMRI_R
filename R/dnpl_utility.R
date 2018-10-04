@@ -805,14 +805,22 @@ amputate_run<-function(small.sub=NULL,cfgpath=NULL,type="fd",threshold="default"
   
 }
 
-
 ####
-creat_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="") {
+voxel_count<-function(cfile=NULL,mask=NULL,nonzero=T) {
+  if (!is.null(mask)) {maskargu=paste0("-k ",mask)}else{maskargu<-""}
+  if (nonzero) {ty<-"-V"} else {ty<-"-v"}
+  cmd<-paste("${FSLDIR}/bin/fslstats",cfile,maskargu,ty,sep = " ")
+  resultx<-system(cmd,intern = T)
+  lres<-as.numeric(strsplit(resultx,split = " ")[[1]])
+  names(lres)<-c("voxels","volumes")
+  return(lres)
+}
+###############
+create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),
+                               fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T) {
   
   if (is.null(fsl_dir)) {fsl_2_sys_env(); fsl_dir=Sys.getenv("FSLDIR")}
   atlas_dir<-file.path(fsl_dir,"data","atlases")    
-  
-  if (!grepl("/",atlas_xml)) {atlas_xml<-file.path(atlas_dir,atlas_xml)}
   
   if (is.null(atlas_xml)) {
     if (is.null(atlas_name)) {
@@ -823,21 +831,88 @@ creat_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,fsl_dir=Sys.getenv(
       } else {atlas_name<-wic} 
     }
     atlas_xml<-file.path(atlas_dir,paste0(atlas_name,".xml"))
-  }
+  } else if (!grepl("/",atlas_xml)) {atlas_xml<-file.path(atlas_dir,atlas_xml)}
   
   atlas_info<-XML::xmlToList(XML::xmlParse(file = atlas_xml))
   
+  images<-atlas_info$header[grep("images",names(atlas_info$header))]
+  imagex<-cleanuplist(lapply(images,function(img) {if(length(grep(volxsize,img$imagefile))>0) {return(img)} else {return(NULL)}}))
   
+  atrx<-do.call(rbind,lapply(atlas_info$data,function(dt) {return(cbind(data.frame(target=dt$text),data.frame(as.list(dt$.attrs),stringsAsFactors = F)))}))
+  atrx$index<-as.numeric(atrx$index)+1
+  atrx$maskdir<-NA
+  atrx$total_voxel<-NA
   
-  names(lx)[which(names(lx)==names(lx)[which(duplicated(names(lx)))])]<-paste(names(lx)[which(names(lx)==names(lx)[which(duplicated(names(lx)))])],1:length(names(lx)[which(names(lx)==names(lx)[which(duplicated(names(lx)))])]),sep = "_")
+  if (any(is.character(target))) {tarindxs<-atrx$index[grep(pattern = paste(target,collapse = "|"),x = atrx$target)]} else {tarindxs<-target}
+  for (tarindx in tarindxs) {
+  target_imag<-file.path(atlas_dir,imagex$images$summaryimagefile)
+  tartext<-gsub(" ","_",atrx$target[tarindx])
+  outfile<-file.path(outdir,paste(atlas_name,volxsize,tartext,"bin.nii",sep="_"))
+  opt<-paste0("-thr ",tarindx," -uthr ",tarindx," -bin \"",outfile,"\"")
+  cmd<-paste("fslmaths",target_imag,opt)
+  system(cmd,intern = F)
+  atrx$maskdir[tarindx]<-outfile
+  atrx$total_voxel[tarindx]<-voxel_count(cfile = outfile)[1]
+  }
+  if (singlemask && length(tarindxs)>1) {
+    singlemask<-file.path(outdir,paste(atlas_name,volxsize, gsub(" ","_",paste(atrx$target[tarindxs],collapse = "_")),"bin.nii",sep="_"))
+    cmd<-paste("${FSLDIR}/bin/fslmaths",paste(na.omit(atrx$maskdir),collapse = " -add "),singlemask)
+    system(cmd,intern = F)
+  } else {singlemask<-NULL}
+    
+  return(list(indexdf=atrx,singlemask=singlemask))
+}
+
+
+
+get_voxel_count<-function(cfile=NULL,stdsfile=NULL,intmat=NULL,mask=NULL,outdir=tempdir()) {
+cmd<-paste("${FSLDIR}/bin/flirt",
+           "-ref",stdsfile,
+           "-in",cfile,
+           "-out",file.path(outdir,"temp_1.nii"),
+           "-applyxfm","-init",intmat,"-interp","trilinear","-datatype","float")
+system(cmd,intern = F)
+resultx<-voxel_count(cfile = file.path(outdir,"temp_1.nii"),mask = mask)
+return(resultx)
+}
+
+qc_getinfo<-function(cfgpath=NULL,ssub_dir=file.path(argu$ssub_outputroot,argu$model.name),
+                  qc_var="PxH",ssub_template=argu$ssub_fsl_templatepath,stdspace=argu$templatedir,
+                  mask=roi_indx_df$singlemask,...){
+  cfg<-cfg_info(cfgpath = cfgpath)
+  tp<-readLines(ssub_template)
+  qc_evnum<-unique(as.numeric(gsub("^.*([0-9]+).*$", "\\1", tp[grep(qc_var,tp)])))
   
+  dirs<-list.dirs(path = ssub_dir,recursive = F)
+  voxlist<-lapply(dirs, function(dir){
+    strp<-unlist(strsplit(dir,split = .Platform$file.sep))
+    ID<-strp[length(strp)]
+    cfl<-lapply(1:cfg$n_expected_funcruns,function(runnum) {
+      if(file.exists(file.path(dir,paste0("run",runnum,"_output.feat")))){
+        blkdir<-file.path(dir,paste0("run",runnum,"_output.feat"))
+        voxvol<-get_voxel_count(cfile = file.path(blkdir,paste0("thresh_zstat",qc_evnum,".nii")),stdsfile = stdspace,
+                        intmat = file.path(blkdir,"masktostandtransforms.mat"),mask = mask)
+        data.frame(ID=ID,run=runnum,voxel_count=voxvol[1],volume_count=voxvol[2])
+      }else {data.frame(ID=ID,run=runnum,voxel_count=NA,volume_count=NA)}
+    })
+    cfvox<-do.call(rbind,cleanuplist(cfl))
+    rownames(cfvox)<-NULL
+    totalmaskvox<-voxel_count(cfile = mask)
+    cfvox$total_mask_voxel<-totalmaskvox[1]
+    cfvox$total_mask_volumes<-totalmaskvox[2]
+    return(cfvox)
+    })
   
-  
-  names(atlas_info)[which(duplicated(names(atlas_info$header)))]
-  
-  
+  voxdf<-do.call(rbind,voxlist)
+  voxdf$voxsuv_per<-voxdf$voxel_count / voxdf$total_mask_voxel
+  motiondf<-get_motion_info(configpath = cfgpath,...)
+
+  voxinfo<-merge(voxdf,motiondf,by = c("ID","run"),all=T)
+  return(voxinfo)
   
 }
+
+
 
 
 
