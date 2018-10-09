@@ -1,5 +1,5 @@
 #QC Clock
-2*pnorm(-abs(as.numeric(scale(voxinfo$voxel_count,center = T,scale = T)))) < 0.05
+#2*pnorm(-abs(as.numeric(scale(voxinfo$voxel_count,center = T,scale = T)))) < 0.05
 
 file_pattern<-"fMRIEmoClock_.*.txt"
 QC_func<-"clock_qc"
