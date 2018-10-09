@@ -22,7 +22,7 @@ QC_pipe<-function(cfg=NULL,cfgpath=NULL,QC_func=NULL,bhav_datapath=NULL,bhav_fil
                   QC_auxdir="/Volumes/bek/QC_fsl",nparalle=NULL,supplylist=NULL,preproc.nii.patt="nfswudktm*[0-9]_[0-9].nii.gz"){
   if(is.null(nparalle)) {nparalle<-4}
   if(is.null(cfg)) {cfg<-cfg_info(cfgpath = cfgpath)}
-  argu<-gen_qc_model(cfgpath=cfgpath,func.nii.name=preproc.nii.patt,mni_template=hdtemplate,QC_auxdir=QC_auxdir,
+  argu<-gen_model_arg(cfgpath=cfgpath,func.nii.name=preproc.nii.patt,mni_template=hdtemplate,QC_auxdir=QC_auxdir,fullmodel=F
                      QC_func=QC_func,cfg=cfg)
   if(is.null(supplylist)) {
   if(is.null(bhav_datapath)){stop("No way of generating the list for fsl_pipe, you can custom generate one outside QC_pipe if desires so")}

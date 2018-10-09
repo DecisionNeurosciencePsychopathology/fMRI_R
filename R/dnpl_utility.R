@@ -920,28 +920,38 @@ qc_getinfo<-function(cfgpath=NULL,ssub_dir=file.path(argu$ssub_outputroot,argu$m
   
 }
 
-gen_qc_model<-function(cfgpath=NULL,func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz",mni_template=NULL,QC_auxdir="/Volumes/bek/QC_fsl",parallen=4,...){
+gen_model_arg<-function(cfgpath=NULL,func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz",mni_template=NULL,QC_auxdir="/Volumes/bek/QC_fsl",parallen=4,fullmodel=F,...){
   cfg<-cfg_info(cfgpath = cfgpath)
-  npaths<-lapply(c("ssanalysis/fsl","regs"),function(xx) {file.path(cfg$loc_root,cfg$paradigm_name,xx)})
+  npaths<-lapply(c("ssanalysis/fsl","regs","grpanal/fsl"),function(xx) {file.path(cfg$loc_root,cfg$paradigm_name,xx)})
   NX<-lapply(npaths,dir.create,showWarnings = F,recursive = T)
+  if(fullmodel) {addarg<-list(adaptive_gfeat=TRUE,gsub_fsl_templatepath=file.path(QC_auxdir,"fsl_gfeat_general_adaptive_template.fsf"),
+                              glvl_output=npath[[3]],hig_lvl_path_filter=NULL,graphic.threshold=0.95,convlv_nuisa=F,
+                              nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default")} else {addarg=list()} 
   argu<-as.environment(list(nprocess=parallen,onlyrun=1:3,proc_id_subs=NULL,
                             regtype=".1D",ifnuisa=FALSE,ifoverwrite_secondlvl=F,cfgpath=cfgpath,
-                            forcereg=F,
-                            regpath=npaths[[2]],
-                            func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz",
-                            ssub_outputroot=npaths[[1]],
+                            forcereg=F,regpath=npaths[[2]],func.nii.name=func.nii.name,ssub_outputroot=npaths[[1]],
                             templatedir=mni_template,
                             nuisa_motion=c("nuisance","motion_par"),convlv_nuisa=F,
                             QC_auxdir=QC_auxdir,
                             gridpath=file.path(QC_auxdir,"qc_grid.csv"),
                             model.name="QC",
                             model.varinames=c("QC","QC_none"),
-                            ssub_fsl_templatepath=file.path(QC_auxdir,"qc_fsl_template.fsf"),
+                            ssub_fsl_templatepath=file.path(QC_auxdir,"qc_fsl_template.fsf"),addarg,
                             ...
                             
   ))
   return(argu)
 }
+
+
+
+#ADAPTIVE GROUP LEVEL GFEAT TEMPLATE;
+
+
+
+
+
+
 
 check_incomplete_preproc<-function(cfgpath=NULL,enforce=F,verbose=T) {
   cfg<-cfg_info(cfgpath)
