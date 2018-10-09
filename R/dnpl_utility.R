@@ -213,7 +213,7 @@ make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NU
   
 }
 
-cfg_info<-function(cfgpath=NULL) {
+cfg_info<-function(cfgpath=NULL,noproc=F) {
   if (is.null(cfgpath)) {stop("No cfg file supplied!")}
   pre.sym<-system("env",intern = T)
   sysm.temp<-system(paste("source",cfgpath,"\n","env"),intern = T)
@@ -222,7 +222,7 @@ cfg_info<-function(cfgpath=NULL) {
   xout<-as.environment(list())
   NULL.x<-lapply(larg,function(y) {
     if (length(y)>1) {
-      if (length(grep("-* ",y[2]))>0) {
+      if (length(grep("-* ",y[2]))>0 & !noproc) {
         tc<-strsplit(y[2],split = " -")[[1]]
         if (regexpr("-",tc[1])[[1]] > 0) {
           tc[1]<-substr(tc[1],start = 2,stop = nchar(tc[1]))}
@@ -887,7 +887,6 @@ qc_getinfo<-function(cfgpath=NULL,ssub_dir=file.path(argu$ssub_outputroot,argu$m
   cfg<-cfg_info(cfgpath = cfgpath)
   tp<-readLines(ssub_template)
   qc_evnum<-unique(as.numeric(gsub("^.*([0-9]+).*$", "\\1", tp[grep(qc_var,tp)])))
-  
   dirs<-list.dirs(path = ssub_dir,recursive = F)
   voxlist<-lapply(dirs, function(dir){
     strp<-unlist(strsplit(dir,split = .Platform$file.sep))

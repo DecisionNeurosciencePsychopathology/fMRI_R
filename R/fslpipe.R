@@ -41,6 +41,7 @@ if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata")))
 #Take out people who have already been processed;
 if (length(names(allsub.design))>0 & !argu$forcereg) {
   idtodo<-as.character(names(prep.call.allsub)[which(! names(prep.call.allsub) %in% names(allsub.design))])
+  message(paste0("These IDs already has regressors: ",names(allsub.design)))
 } else {idtodo<-names(prep.call.allsub)}
   #Version upgrade safe keeping
   if (exists("ifnuisa",envir = argu) & !exists("convlv_nuisa",envir = argu)) {

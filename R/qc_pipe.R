@@ -1,12 +1,11 @@
 #QC Clock
 2*pnorm(-abs(as.numeric(scale(voxinfo$voxel_count,center = T,scale = T)))) < 0.05
 
-datapath<-"/Users/jiazhouchen/Box Sync/skinner/data/matlab task data/bpd_clock"
 file_pattern<-"fMRIEmoClock_.*.txt"
-proc_func<-"clock_qc"
+QC_func<-"clock_qc"
 cfgpath="/Volumes/bek/autopreprocessing_pipeline/BPD_7341/clockBPD7341.cfg"
-func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz"
-mni_template="/Volumes/bek/Newtemplate_may18/fsl_mni152/MNI152_T1_2mm_brain.nii"
+preproc.nii.patt="nfswudktm*[0-9]_[0-9].nii.gz"
+hdtemplate="/Volumes/bek/Newtemplate_may18/fsl_mni152/MNI152_T1_2mm_brain.nii"
 # lapply(,function(dir){
 #   strp<-unlist(strsplit(dir,split = .Platform$file.sep))
 #   ID<-strp[length(strp)]
@@ -18,37 +17,29 @@ mni_template="/Volumes/bek/Newtemplate_may18/fsl_mni152/MNI152_T1_2mm_brain.nii"
 
 
 
-clock_qc<-function(x){
-  strp<-unlist(strsplit(x,split = .Platform$file.sep))
-  ID<-strp[length(strp)-1]
-  xf<-list.files(path = x,pattern = argu$file_pattern,full.names = T)
-  dt<-read.table(xf,header = T)
-  dt$Trial<-as.numeric(unlist(lapply(split(dt$Trial,dt$Run),seq_along)))
-  dt$duration<-as.numeric(dt$RT/1000)
-  dt$QC_OUT<-as.numeric(dt$Score)
-  finalist<-list(QC=data.frame(event="QC",
-                                     onset=dt[[argu$QC_onset]],
-                                     duration=dt[["duration"]],
-                                     run=dt[["Run"]],
-                                     trial=dt[["Trial"]]))
-  for (i in 1:length(finalist)) {
-    if (i==1) {ktz<-finalist[[i]]} else {
-      ktz<-rbind(ktz,finalist[[i]])}
-  }
-  
-  finalist[["allconcat"]]<-ktz
-  output<-list(event.list=finalist,output.df=dt,value=dt)
-}
 
-argu<-gen_qc_model(cfgpath=cfgpath,func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz",mni_template=mni_template,QC_auxdir="/Volumes/bek/QC_fsl",
-                   QC_onset="Clock_Onset",file_pattern="fMRIEmoClock_.*.txt")
-dirs<-as.list(list.files(path = datapath,recursive = F,include.dirs = T,full.names = T))
-names(dirs)<-sapply(dirs,function(n) {
-  strsplit(n,.Platform$file.sep)[[1]]->nx
-  nx[[length(nx)]]
+QC_pipe<-function(cfg=NULL,cfgpath=NULL,QC_func=NULL,bhav_datapath=NULL,bhav_file_patt=NULL,hdtemplate=NULL,
+                  QC_auxdir="/Volumes/bek/QC_fsl",nparalle=NULL,supplylist=NULL,preproc.nii.patt="nfswudktm*[0-9]_[0-9].nii.gz"){
+  if(is.null(nparalle)) {nparalle<-4}
+  if(is.null(cfg)) {cfg<-cfg_info(cfgpath = cfgpath)}
+  argu<-gen_qc_model(cfgpath=cfgpath,func.nii.name=preproc.nii.patt,mni_template=hdtemplate,QC_auxdir=QC_auxdir,
+                     QC_func=QC_func,cfg=cfg)
+  if(is.null(supplylist)) {
+  if(is.null(bhav_datapath)){stop("No way of generating the list for fsl_pipe, you can custom generate one outside QC_pipe if desires so")}
+  dirs<-as.list(list.files(path = bhav_datapath,recursive = F,include.dirs = T,full.names = T))
+  names(dirs)<-sapply(dirs,function(n) {
+    strsplit(n,.Platform$file.sep)[[1]]->nx
+    nx[[length(nx)]]
   })
-dirs<-lapply(dirs,as.list)
-#run it through fsl pipe step 1:3;
-
-fsl_pipe(argu = argu,prep.call.func = "clock_qc",prep.call.allsub = dirs)
+  dirs<-lapply(dirs,as.list)
+  }
+  #run it through fsl pipe step 1:3;
+  fsl_pipe(argu = argu,prep.call.func = QC_func,prep.call.allsub = dirs)
+  roi_indx_df<-create_roimask_atlas(atlas_name="MNI",target=c(5,6),outdir=argu$QC_auxdir,fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T) 
+  qc_info<-qc_getinfo(cfgpath=argu$cfgpath,ssub_dir=file.path(argu$ssub_outputroot,argu$model.name),qc_var="QC",
+                      ssub_template=argu$ssub_fsl_templatepath,stdspace=argu$templatedir,
+                      mask=roi_indx_df$singlemask,tempdir = F)
+  qc_info$paradigm<-cfg$paradigm_name
+  return(qc_info)
+}
 
