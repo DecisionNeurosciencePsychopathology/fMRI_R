@@ -925,7 +925,7 @@ gen_model_arg<-function(cfgpath=NULL,func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz
   npaths<-lapply(c("ssanalysis/fsl","regs","grpanal/fsl"),function(xx) {file.path(cfg$loc_root,cfg$paradigm_name,xx)})
   NX<-lapply(npaths,dir.create,showWarnings = F,recursive = T)
   if(fullmodel) {addarg<-list(adaptive_gfeat=TRUE,gsub_fsl_templatepath=file.path(QC_auxdir,"fsl_gfeat_general_adaptive_template.fsf"),
-                              glvl_output=npath[[3]],hig_lvl_path_filter=NULL,graphic.threshold=0.95,convlv_nuisa=F,
+                              glvl_output=npaths[[3]],hig_lvl_path_filter=NULL,graphic.threshold=0.95,convlv_nuisa=F,
                               nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default")} else {addarg=list()} 
   argu<-as.environment(list(nprocess=parallen,onlyrun=1:3,proc_id_subs=NULL,
                             regtype=".1D",ifnuisa=FALSE,ifoverwrite_secondlvl=F,cfgpath=cfgpath,
