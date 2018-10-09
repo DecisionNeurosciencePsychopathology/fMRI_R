@@ -166,8 +166,10 @@ make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NU
   dsgrid.og<-dsgrid
   allofthem<-new.env(parent = emptyenv())
   dsgrid[dsgrid=="NA"]<-NA
-  if (length(grep("evt",dsgrid.og$valuefrom))>0){
-  dsgrid<-dsgrid.og[-grep("evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
+  if (length(grep("_evt",dsgrid.og$valuefrom))>0){
+  dsgrid<-dsgrid.og[-grep("_evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
+ 
+  if (dim(dsgrid)[1]>0) {
   for (i in 1:length(dsgrid$ename)) {
     print(paste("making...",dsgrid$valuefrom[i],sep=""))
     #could have totally do a do.call and make assignment within single function 
@@ -191,7 +193,7 @@ make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NU
     # nonah = nona
     assign(dsgrid$name[i],result,envir = allofthem)
   }
-  
+  }
   #change it to list:
   allofthemlist<-as.list(allofthem)
   dsgrid.og->dsgrid
@@ -307,11 +309,13 @@ get_volume_run<-function(id=NULL,cfgfilepath=NULL,reg.nii.name="swudktm*[0-9].ni
   }
   if (returnas=="numbers"){
     lnum<-lapply(1:cfg$n_expected_funcruns, function(i) {
-      length(readLines(file.path(cfg$loc_mrproc_root,id,
+      fdpath<-file.path(cfg$loc_mrproc_root,id,
                 cfg$preprocessed_dirname,
                 paste(cfg$paradigm_name,i,sep = ""),
                 "motion_info","fd.txt")
-      ))
+      if (file.exists(fdpath)) {
+      length(readLines(fdpath))
+      } else return(NA)
       
     })
     return(unlist(lnum))
@@ -419,7 +423,7 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
   output<-do.call(what = do.prep.call,args = do.prep.arg)
   #assign("output",do.call(what = do.prep.call,args = do.prep.arg),envir=globalenv())
   
-  dsgrid<-read.csv(gridpath,stringsAsFactors = F)
+  dsgrid<-read.table(gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
   #if (length(grep("evt",dsgrid.og$valuefrom))>0){
   #  dsgrid<-dsgrid.og[-grep("evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
   #Generate signal with make signal with grid function (grid.csv need to be in working directory or specified otherwise)
@@ -450,7 +454,7 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
                             cfgfilepath = cfgpath,
                             returnas = "numbers",
                             reg.nii.name = func.nii.name)
-  
+  if(any(is.na(run_volum))) {stop("Can't get volume number from proc dirs")}
   #Create  models:
   model<-signals[model.varinames]
   
@@ -866,19 +870,20 @@ create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir
 
 
 get_voxel_count<-function(cfile=NULL,stdsfile=NULL,intmat=NULL,mask=NULL,outdir=tempdir()) {
-cmd<-paste("${FSLDIR}/bin/flirt",
-           "-ref",stdsfile,
-           "-in",cfile,
-           "-out",file.path(outdir,"temp_1.nii"),
-           "-applyxfm","-init",intmat,"-interp","trilinear","-datatype","float")
-system(cmd,intern = F)
+if (outdir==tempdir() | !file.exists(file.path(outdir,"temp_1.nii"))) {
+  cmd<-paste("${FSLDIR}/bin/flirt",
+             "-ref",stdsfile,
+             "-in",cfile,
+             "-out",file.path(outdir,"temp_1.nii"),
+             "-applyxfm","-init",intmat,"-interp","trilinear","-datatype","float")
+  system(cmd,intern = F)}
 resultx<-voxel_count(cfile = file.path(outdir,"temp_1.nii"),mask = mask)
 return(resultx)
 }
 
 qc_getinfo<-function(cfgpath=NULL,ssub_dir=file.path(argu$ssub_outputroot,argu$model.name),
                   qc_var="PxH",ssub_template=argu$ssub_fsl_templatepath,stdspace=argu$templatedir,
-                  mask=roi_indx_df$singlemask,...){
+                  mask=roi_indx_df$singlemask,tempdir=T,...){
   cfg<-cfg_info(cfgpath = cfgpath)
   tp<-readLines(ssub_template)
   qc_evnum<-unique(as.numeric(gsub("^.*([0-9]+).*$", "\\1", tp[grep(qc_var,tp)])))
@@ -890,8 +895,12 @@ qc_getinfo<-function(cfgpath=NULL,ssub_dir=file.path(argu$ssub_outputroot,argu$m
     cfl<-lapply(1:cfg$n_expected_funcruns,function(runnum) {
       if(file.exists(file.path(dir,paste0("run",runnum,"_output.feat")))){
         blkdir<-file.path(dir,paste0("run",runnum,"_output.feat"))
+        if (!tempdir) {
+        outdirx<-file.path(blkdir,"QC")
+        dir.create(path = outdirx,showWarnings = F,recursive = F)
+        } else {outdirx<-tempdir()}
         voxvol<-get_voxel_count(cfile = file.path(blkdir,paste0("thresh_zstat",qc_evnum,".nii")),stdsfile = stdspace,
-                        intmat = file.path(blkdir,"masktostandtransforms.mat"),mask = mask)
+                        intmat = file.path(blkdir,"masktostandtransforms.mat"),mask = mask,outdir = outdirx)
         data.frame(ID=ID,run=runnum,voxel_count=voxvol[1],volume_count=voxvol[2])
       }else {data.frame(ID=ID,run=runnum,voxel_count=NA,volume_count=NA)}
     })
@@ -912,9 +921,70 @@ qc_getinfo<-function(cfgpath=NULL,ssub_dir=file.path(argu$ssub_outputroot,argu$m
   
 }
 
+gen_qc_model<-function(cfgpath=NULL,func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz",mni_template=NULL,QC_auxdir="/Volumes/bek/QC_fsl",parallen=4,...){
+  cfg<-cfg_info(cfgpath = cfgpath)
+  npaths<-lapply(c("ssanalysis/fsl","regs"),function(xx) {file.path(cfg$loc_root,cfg$paradigm_name,xx)})
+  NX<-lapply(npaths,dir.create,showWarnings = F,recursive = T)
+  argu<-as.environment(list(nprocess=parallen,onlyrun=1:3,proc_id_subs=NULL,
+                            regtype=".1D",ifnuisa=FALSE,ifoverwrite_secondlvl=F,cfgpath=cfgpath,
+                            forcereg=F,
+                            regpath=npaths[[2]],
+                            func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz",
+                            ssub_outputroot=npaths[[1]],
+                            templatedir=mni_template,
+                            nuisa_motion=c("nuisance","motion_par"),convlv_nuisa=F,
+                            QC_auxdir=QC_auxdir,
+                            gridpath=file.path(QC_auxdir,"qc_grid.csv"),
+                            model.name="QC",
+                            model.varinames=c("QC","QC_none"),
+                            ssub_fsl_templatepath=file.path(QC_auxdir,"qc_fsl_template.fsf"),
+                            ...
+                            
+  ))
+  return(argu)
+}
 
-
-
+check_incomplete_preproc<-function(cfgpath=NULL,enforce=F,verbose=T) {
+  cfg<-cfg_info(cfgpath)
+  idstocheck<-list.files(cfg$loc_mrproc_root)
+  runnums<-as.numeric(cfg$n_expected_funcruns)
+  outerrors<-lapply(idstocheck,function(cid) {
+    #print(cid)
+    proc_num<-get_volume_run(id = cid,cfgfilepath = cfgpath,returnas = "numbers")
+    if (any(is.na(proc_num))) {proc_num[which(is.na(proc_num))]<-0}
+    func_dir_raw<-system(paste0("find ",file.path(cfg$loc_mrraw_root,cid)," -iname ",cfg$functional_dirpattern," -maxdepth 2 -mindepth 1"),intern = T)
+    TJ<-lapply(func_dir_raw,list.files,recursive=F)
+    raw_num<-sapply(TJ, length)
+    if(length(raw_num)>0) {
+      if(any(proc_num!=raw_num) & verbose) {
+        message("#################################################")
+        message(cid)
+        message(paste("run",which(proc_num!=raw_num)))
+        message(paste("Raw:",paste(raw_num,collapse = " ")))
+        message(paste("Proc:",paste(proc_num,collapse = " ")))
+        message("#################################################")
+      }
+      outerror<-data.frame(proc_num,raw_num)
+      outerror$Run<-1:length(raw_num)
+      outerror$ID<-cid
+      return(outerror)
+    } else {return(NULL)}
+  })
+  allerrors<-do.call(rbind,outerrors)
+  suballerrors<-allerrors[which(allerrors$proc_num != allerrors$raw_num),]
+  return(suballerrors)
+  if (enforce) {
+    extd<-suballerrors[suballerrors$proc_num!=0,]
+    print(extd)
+    ifrun<-as.logical(readline(prompt = "Review above info, please type T/TRUE to continue or F/FALSE to stop: "))
+    if (ifrun) {
+      for (o in 1:length(extd$ID)) {
+        cxtd<-extd[o,]
+        unlink(file.path(cfg$loc_mrproc_root,cxtd$ID,paste0(cfg$paradigm_name,"_proc"),paste0(cfg$paradigm_name,cxtd$Run)),recursive = T,force = T)
+      }
+    }
+  }
+}
 
 
 
