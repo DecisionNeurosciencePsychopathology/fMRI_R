@@ -710,9 +710,13 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   sink(file=file.path(outputdir,modelname,"glvl_log.txt"),split=TRUE)
   #Do Parallel or nah
   if (!is.null(paralleln)){
-    cj1<-makeCluster(paralleln,outfile=file.path(outputdir,modelname,"glvl_log.txt"),type = "FORK")
+    cj1<-makeCluster(paralleln,outfile="",type = "FORK")
     NU<-parSapply(cj1,cope.fslmerge,function(x) {
       message(paste0("Now running ",x))
+      pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
+      numdx<-which(x==cope.fslmerge)
+      indx<-suppressWarnings(split(1:length(cope.fslmerge),1:paralleln))
+      setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
       system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
       message("completed")
     })
@@ -720,7 +724,13 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   } else {
     lapply(cope.fslmerge,function(x) {
       message(paste0("Now running ",x))
+      pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
+      numdx<-which(x==cope.fslmerge)
+      indx<-suppressWarnings(split(1:length(cope.fslmerge),1))
+      setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
+      
       system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
+      
       message("completed")
     })
   }

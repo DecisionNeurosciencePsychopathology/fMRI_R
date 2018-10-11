@@ -159,13 +159,17 @@ step2commands<-unlist(lapply(small.sub,function(x) {
   return(cmmd)
 }))
 
-cluster_step2<-makeCluster(num_cores,outfile=file.path(argu$ssub_outputroot,argu$model.name,"step2_log.txt"),type = "FORK")
+cluster_step2<-makeCluster(num_cores,outfile="",type = "FORK")
 NX<-parSapply(cluster_step2,step2commands,function(yx) {
           fsl_2_sys_env()
           message(paste0("starting to run /n ",yx))
           tryCatch(
             {system(command = yx,intern = T)
-            message("done")
+            pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
+            numdx<-which(yx==step2commands)
+            indx<-suppressWarnings(split(1:length(step2commands),1:num_cores))
+            setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
+              message("DONE")
               }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
           )
           
@@ -228,8 +232,8 @@ featlist<-lapply(small.sub,function(x) {
   small.sub<<-small.sub
   return(emp)
 })
-
-clusterjobs1<-makeCluster(num_cores,outfile=file.path(argu$ssub_outputroot,argu$model.name,"step4_log.txt"),type = "FORK")
+IDs<-sapply(small.sub,function(j){j$ID})
+clusterjobs1<-makeCluster(num_cores,outfile="",type = "FORK")
 NU<-parSapply(clusterjobs1,small.sub, function(y) {
   larg<-as.environment(list())
   y$ID->larg$idx
@@ -250,6 +254,10 @@ NU<-parSapply(clusterjobs1,small.sub, function(y) {
                     end = "_END",
                     fsfpath = file.path(argu$regpath,argu$model.name,larg$idx,paste0("gfeat_temp",".fsf")),
                     envir = larg)
+    pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
+    numdx<-which(larg$idx==IDs)
+    indx<-suppressWarnings(split(1:length(IDs),1:num_cores))
+    setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
   } else {message("This person already got average done!")}
   
 })
