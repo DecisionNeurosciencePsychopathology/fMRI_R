@@ -79,7 +79,8 @@ if (length(idtodo)>0) {
           nuisa_motion=argu$nuisa_motion,
           motion_type=argu$motion_type,
           motion_threshold=argu$motion_threshold,
-          convlv_nuisa=argu$convlv_nuisa
+          convlv_nuisa=argu$convlv_nuisa,
+          argu=argu
           ),envir = allsub.design
        )
         # tid=xid
