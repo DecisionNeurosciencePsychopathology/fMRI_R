@@ -414,13 +414,13 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
                        regpath=NULL,gridpath="grid.csv",func.nii.name="swudktm*[0-9].nii.gz",proc_id_subs=NULL, 
                        wrt.timing=c("convolved", "FSL","AFNI"),model.name=NULL,model.varinames=NULL,
                        nuisa_motion=c("nuisance","motion_par","motion_outlier"),motion_type="fd",
-                       motion_threshold="default",convlv_nuisa=F) {
+                       motion_threshold="default",convlv_nuisa=F,argu=NULL) {
   
   #Read config file:
   cfg<-cfg_info(cfgpath)
   
   #Prep the data into generally acceptable output object;
-  output<-do.call(what = do.prep.call,args = do.prep.arg)
+  output<-do.call(what = do.prep.call,args = do.prep.arg,envir = argu)
   #assign("output",do.call(what = do.prep.call,args = do.prep.arg),envir=globalenv())
   
   dsgrid<-read.table(gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
@@ -994,6 +994,4 @@ check_incomplete_preproc<-function(cfgpath=NULL,enforce=F,verbose=T) {
     }
   }
 }
-
-
 

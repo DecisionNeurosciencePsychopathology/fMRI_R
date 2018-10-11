@@ -41,7 +41,7 @@ if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata")))
 #Take out people who have already been processed;
 if (length(names(allsub.design))>0 & !argu$forcereg) {
   idtodo<-as.character(names(prep.call.allsub)[which(! names(prep.call.allsub) %in% names(allsub.design))])
-  message(paste0("These IDs already has regressors: ",names(allsub.design)))
+  message(paste0("These IDs already has regressors: ",names(allsub.design),collapse = " "))
 } else {idtodo<-names(prep.call.allsub)}
   #Version upgrade safe keeping
   if (exists("ifnuisa",envir = argu) & !exists("convlv_nuisa",envir = argu)) {
@@ -57,12 +57,12 @@ if (length(names(allsub.design))>0 & !argu$forcereg) {
   if (!exists("motion_threshold",envir = argu)) {
     message("argument motion_threshold doesn't exist, using default options, (fd 0.9; dvar 20)")
     argu$motion_threshold<-"default"}
-  
+assign(prep.call.func,get(prep.call.func),envir = argu)
 if (length(idtodo)>0) {
   for (xid in idtodo) {
     prep.call.list<-prep.call.allsub[[xid]]
     tryCatch(
-      {
+      {message(xid)
         assign(as.character(xid),
           do.all.subjs(
           tid=xid,
@@ -140,6 +140,7 @@ step2commands<-unlist(lapply(small.sub,function(x) {
     xarg$runnum<-runnum    
     xarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
     xarg$templatebrain<-argu$templatedir
+    xarg$tr<-argu$cfg$preproc_call$tr
     if (!file.exists(paste0(xarg$outputpath,".feat")) ) {
       message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
       xarg$volumes<-x$run_volumes[runnum]
