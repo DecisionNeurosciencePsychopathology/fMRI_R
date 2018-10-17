@@ -168,6 +168,7 @@ NX<-parSapply(cluster_step2,step2commands,function(yx) {
             pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
             numdx<-which(yx==step2commands)
             indx<-suppressWarnings(split(1:length(step2commands),1:num_cores))
+            pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
             setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
               message("DONE")
               }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
@@ -257,6 +258,7 @@ NU<-parSapply(clusterjobs1,small.sub, function(y) {
     pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
     numdx<-which(larg$idx==IDs)
     indx<-suppressWarnings(split(1:length(IDs),1:num_cores))
+    pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
     setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
   } else {message("This person already got average done!")}
   

@@ -716,6 +716,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
       pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
       numdx<-which(x==cope.fslmerge)
       indx<-suppressWarnings(split(1:length(cope.fslmerge),1:paralleln))
+      pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
       setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
       system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
       message("completed")
@@ -727,6 +728,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
       pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
       numdx<-which(x==cope.fslmerge)
       indx<-suppressWarnings(split(1:length(cope.fslmerge),1))
+      pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
       setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
       
       system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
