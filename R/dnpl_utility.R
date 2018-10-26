@@ -558,11 +558,11 @@ adopt_feat<-function(adptemplate_path=NULL,searenvir=NULL,firstorder=F) {
     get(finavariname,envir = searenvir)->xvlist
     if (length(finavariname)==1) {
       new_within<-populate_within(chunk_within = chunk_within,xvlist = xvlist,variname = finavariname,firstorder=T)
-    } else {stop("Something Went Wrong! This is adopt_gfeat, first step")}
+    } else {stop("Something Went Wrong! This is adopt_feat, first step")}
     
     if (length(new_within)>0) {
     adptemplate<-c(chunk_pre,new_within,chunk_post)
-    } else {stop(paste0("Something Went Wrong! This is adopt_gfeat, 2nd step"))}
+    } else {stop(paste0("Something Went Wrong! This is adopt_feat, 2nd step"))}
   } #End while 
   return(adptemplate)
 }

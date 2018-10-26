@@ -22,6 +22,10 @@ if (is.null(argu$nprocess)){
   } else {num_cores<-detectCores()-2} 
 } else {argu$nprocess->num_cores}
 
+###Initializing argu;
+argu$cfg<-cfg_info(cfgpath)
+argu$dsgrid<-read.table(argu$gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
+if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
 
 #######STEP 1:
 #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
@@ -129,6 +133,7 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 #let's subset this 
 small.sub<-eapply(allsub.design, function(x) {
   list(
+    design=x$design,
     ID=x$ID,
     run_volumes=x$run_volumes,
     regpath=x$regpath,
@@ -143,7 +148,7 @@ step2commands<-unlist(lapply(small.sub,function(x) {
     xarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
     xarg$templatebrain<-argu$templatedir
     xarg$tr<-argu$cfg$preproc_call$tr
-
+    
     if(is.null(argu$ss_zthreshold)) {xarg$zthreshold<-3.2} else {xarg$zthreshold<-argu$ss_zthreshold}
     if(is.null(argu$ss_pthreshold)) {xarg$pthreshold<-0.05} else {xarg$pthreshold<-argu$ss_pthreshold}
     if (!file.exists(paste0(xarg$outputpath,".feat")) ) {
@@ -155,6 +160,7 @@ step2commands<-unlist(lapply(small.sub,function(x) {
       gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
       
       if(argu$adaptive_ssfeat){
+        argu$model.varinames<-colnames(x$design)
         xarg$evnum<-1:length(argu$model.varinames)
         xarg$maxevnum<-length(argu$model.varinames)
         argu$maxcopenum<-length(argu$model.varinames)
@@ -233,6 +239,7 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
     } else {stop("No design rdata file found")}
     small.sub<-lapply(allsub.design, function(x) {
       list(
+        design=x$design,
         ID=x$ID,
         run_volumes=x$run_volumes,
         regpath=x$regpath,
@@ -268,6 +275,9 @@ NU<-parSapply(clusterjobs1,small.sub, function(y) {
     }
     #PUT NEW FUNCTION HERE
     studyfsltemp<-adopt_feat(adptemplate_path = argu$gsub_fsl_templatepath,searenvir=larg,firstorder=F)
+    larg$maxrunnum<-max(larg$maxrunnum)
+    larg$maxcopenum<-max(larg$maxcopenum)
+    
   } else {studyfsltemp<-readLines(argu$gsub_fsl_templatepath)}
   if (!file.exists(paste0(larg$outputpath,".gfeat"))) {
     message(paste0("Initializing gfeat for participant: ",larg$idx))
