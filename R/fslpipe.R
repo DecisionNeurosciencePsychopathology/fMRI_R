@@ -158,7 +158,7 @@ step2commands<-unlist(lapply(small.sub,function(x) {
       xarg$nuisa<-file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
       if (any(unlist(eapply(xarg,is.na)))) {stop("NA exists in one of the arguments; please double check!")}
       gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
-      
+    
       if(argu$adaptive_ssfeat){
         argu$model.varinames<-colnames(x$design)
         xarg$evnum<-1:length(argu$model.varinames)
