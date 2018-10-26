@@ -143,6 +143,9 @@ step2commands<-unlist(lapply(small.sub,function(x) {
     xarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
     xarg$templatebrain<-argu$templatedir
     xarg$tr<-argu$cfg$preproc_call$tr
+
+    if(is.null(argu$ss_zthreshold)) {xarg$zthreshold<-3.2} else {xarg$zthreshold<-argu$ss_zthreshold}
+    if(is.null(argu$ss_pthreshold)) {xarg$pthreshold<-0.05} else {xarg$pthreshold<-argu$ss_pthreshold}
     if (!file.exists(paste0(xarg$outputpath,".feat")) ) {
       message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
       xarg$volumes<-x$run_volumes[runnum]
@@ -150,7 +153,20 @@ step2commands<-unlist(lapply(small.sub,function(x) {
       xarg$nuisa<-file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
       if (any(unlist(eapply(xarg,is.na)))) {stop("NA exists in one of the arguments; please double check!")}
       gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
-      cmmd<-feat_w_template(templatepath = argu$ssub_fsl_templatepath,beg = "ARG_",end = "_END",
+      
+      if(argu$adaptive_ssfeat){
+        xarg$evnum<-1:length(argu$model.varinames)
+        xarg$maxevnum<-length(argu$model.varinames)
+        for (mv in 1:length(argu$model.varinames)) {
+          assign(paste0("evtitle",mv),model.varinames[mv],envir = xarg)
+          assign(paste0("orthocombo",mv),paste(mv,(0:length(argu$model.varinames)),sep = "."),envir = xarg)
+          assign(paste0("ev_lessnum",mv),(1:length(argu$model.varinames))[-mv],envir = xarg)
+          assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model.name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = xarg)
+        }
+        #PUT NEW FUNCTION HERE
+        ssfsltemp<-adopt_feat(adptemplate_path = argu$ssub_fsl_templatepath,searenvir=xarg,firstorder=T)
+      } else {ssfsltemp<-readLines(argu$ssub_fsl_templatepath)}
+      cmmd<-feat_w_template(fsltemplate = ssfsltemp,beg = "ARG_",end = "_END",
                       fsfpath = file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_",argu$model.name,".fsf")),
                       envir = xarg,outcommand = T)
       return(cmmd)
@@ -244,11 +260,11 @@ NU<-parSapply(clusterjobs1,small.sub, function(y) {
   larg<-list2env(y$featlist,envir = larg)
   larg$templatedir<-argu$templatedir
   if (argu$adaptive_gfeat) {
-    larg$maxrunnum<-length(y$featlist)
+    larg$maxrunnum<-1:length(y$featlist)
     ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
-    larg$maxcopenum<-max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
+    larg$maxcopenum<-1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
     #PUT NEW FUNCTION HERE
-    studyfsltemp<-adopt_gfeat(adptemplate_path = argu$gsub_fsl_templatepath,searenvir=larg)
+    studyfsltemp<-adopt_feat(adptemplate_path = argu$gsub_fsl_templatepath,searenvir=larg,firstorder=F)
   } else {studyfsltemp<-readLines(argu$gsub_fsl_templatepath)}
   if (!file.exists(paste0(larg$outputpath,".gfeat"))) {
     message(paste0("Initializing gfeat for participant: ",larg$idx))
