@@ -157,8 +157,9 @@ step2commands<-unlist(lapply(small.sub,function(x) {
       if(argu$adaptive_ssfeat){
         xarg$evnum<-1:length(argu$model.varinames)
         xarg$maxevnum<-length(argu$model.varinames)
+        argu$maxcopenum<-length(argu$model.varinames)
         for (mv in 1:length(argu$model.varinames)) {
-          assign(paste0("evtitle",mv),model.varinames[mv],envir = xarg)
+          assign(paste0("evtitle",mv),argu$model.varinames[mv],envir = xarg)
           assign(paste0("orthocombo",mv),paste(mv,(0:length(argu$model.varinames)),sep = "."),envir = xarg)
           assign(paste0("ev_lessnum",mv),(1:length(argu$model.varinames))[-mv],envir = xarg)
           assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model.name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = xarg)
@@ -262,7 +263,9 @@ NU<-parSapply(clusterjobs1,small.sub, function(y) {
   if (argu$adaptive_gfeat) {
     larg$maxrunnum<-1:length(y$featlist)
     ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
+    if(argu$adaptive_ssfeat) {larg$maxcopenum<-1:length(argu$model.varinames)} else {
     larg$maxcopenum<-1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
+    }
     #PUT NEW FUNCTION HERE
     studyfsltemp<-adopt_feat(adptemplate_path = argu$gsub_fsl_templatepath,searenvir=larg,firstorder=F)
   } else {studyfsltemp<-readLines(argu$gsub_fsl_templatepath)}
