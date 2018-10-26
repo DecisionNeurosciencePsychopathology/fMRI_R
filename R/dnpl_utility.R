@@ -171,7 +171,7 @@ make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NU
  
   if (dim(dsgrid)[1]>0) {
   for (i in 1:length(dsgrid$ename)) {
-    print(paste("making...",dsgrid$valuefrom[i],sep=""))
+    message(paste("making...",dsgrid$name[i],sep=""))
     #could have totally do a do.call and make assignment within single function 
     #but that ONE datainput variable is hard to get by with do.call so......loop is fine
     #Forcing all arguments so it's kinda bad....
@@ -455,6 +455,9 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
                             returnas = "numbers",
                             reg.nii.name = func.nii.name)
   if(any(is.na(run_volum))) {stop("Can't get volume number from proc dirs")}
+  
+  
+  if(is.null(model.varinames)){model.varinames<-dsgrid$name}
   #Create  models:
   model<-signals[model.varinames]
   
@@ -498,7 +501,7 @@ change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenv
                        regexpr(paste0("*",end),fsltemplate[tofind])-1)
       fsltemplate[tofind]<-gsub(paste0(begin,varixma,end),searchenvir[[varixma]],fsltemplate[tofind])
       },
-      error=function(x){print("something went wrong...")})
+      error=function(e){print(paste0("something went wrong in ",varixma," :",e))})
   }
   return(fsltemplate)
 }

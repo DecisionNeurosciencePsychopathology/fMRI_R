@@ -31,7 +31,9 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 dir.create(file.path(argu$ssub_outputroot,argu$model.name),showWarnings = FALSE)
 #load the design rdata file if exists;
 if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
-  tryCatch({load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))},
+  tryCatch({
+    load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
+    },
            error=function(e) {
              message(paste0("load not successful, have to re-run step 1...message: ",e))
              assign('allsub.design',as.environment(list()),envir = globalenv())
@@ -41,7 +43,7 @@ if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata")))
 #Take out people who have already been processed;
 if (length(names(allsub.design))>0 & !argu$forcereg) {
   idtodo<-as.character(names(prep.call.allsub)[which(! names(prep.call.allsub) %in% names(allsub.design))])
-  message(paste0("These IDs already has regressors: ",names(allsub.design),collapse = " "))
+  message(paste("These IDs already has regressors: ",names(allsub.design),sep=" ",collapse = " "))
 } else {idtodo<-names(prep.call.allsub)}
   #Version upgrade safe keeping
   if (exists("ifnuisa",envir = argu) & !exists("convlv_nuisa",envir = argu)) {
