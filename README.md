@@ -1,20 +1,22 @@
 # fMRI_R REPOSITORY
 
 New feature: 
+- The fsl_pipe function now can use adaptive single subject template that adjust based on the design grid for models and studys. 
 - The fsl_pipe function now can use adaptive gfeat template that adjust based on run number and max cope number from differnt models and studys. It's now one less step to adjust before running a new study or model!
-- The fsl_pipe now recognize new argument that can be used to split subjects into groups and perform group analysis separately!
-- The fsl_pipe now gain the ability to perform paired t-test at a group lvl (ANOVA support coming soon).
-- The fsl_pipe now gain the ability to perform motion sensoring at volume lvl. 
+- The fsl_pipe function now can generate motion sensor files using fsl if pipeline results are not available (low priority)
+- Added new pack of tools related to ROI extraction
+- New QC_pipe function to quality check on runs and subjects. 
 
 Coming soon:
-- Generate motion sensor files using fsl if pipeline results are not available (low priority)
 - ANOVA support for group lvl stats
+- flame support on group level (phase roll out, might support non-adaptive template first)
+
 
 This project is to utilize R to streamline some fMRI processing and offer flexibility of some degrees.
-
 There are 2 main scripts:
   - dnpl_utility.R
       - The utility functions scripts consists of all the small component functions for the pipe to run. 
+      - Utility functions that assists fMRI data analysis and processing. 
   - fslpipe.R
       - The steamlined fsl pipeline
 
@@ -74,7 +76,7 @@ motion_type="fd",                                    #Which motion sensor evalua
 motion_threshold="default"                           #The threshold for motion sensor, default is fd-0.9; dvar-20 
 ))
 ```
-- 2, Then you must modify the grid.csv and fsl templates to ensure that everything mataches
+- 2, Then you must modify the grid.csv and fsl templates (not necessary anymore but possible if needed) to ensure that everything mataches
 (More specific examples and how-tos are coming soon)
 
 - 3, Make an preprocessing function and generate subject level behaviroal data
