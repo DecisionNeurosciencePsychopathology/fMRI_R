@@ -979,16 +979,6 @@ gen_model_arg<-function(cfgpath=NULL,func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz
   return(argu)
 }
 
-
-
-#ADAPTIVE GROUP LEVEL GFEAT TEMPLATE;
-
-
-
-
-
-
-
 check_incomplete_preproc<-function(cfgpath=NULL,enforce=F,verbose=T) {
   cfg<-cfg_info(cfgpath)
   idstocheck<-list.files(cfg$loc_mrproc_root)
