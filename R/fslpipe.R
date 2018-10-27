@@ -316,6 +316,10 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
   if (is.null(argu$whichttest) | !exists('whichttest',envir = argu)) {argu$whichttest<-"onesample"}
   if ("onesample" %in% argu$whichttest) {onesamplet_pergroup<-T}
   if ("paired" %in% argu$whichttest) {pairedtest<-T}
+  #To adopt the new chnages made in adaptive ss 
+  if(argu$adaptive_ssfeat) {maxcopenum<-1:length(argu$model.varinames)} else {
+    maxcopenum<-1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
+    }
   #Start Group Level Analysis:
   glvl_all_cope(rootdir=argu$ssub_outputroot,
                 outputdir=argu$glvl_outputroot,
@@ -324,7 +328,7 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
                 onesamplet_pergroup=onesamplet_pergroup,
                 pairedtest=pairedtest,
                 thresh_cluster_siz=argu$cluster_thresh,
-                copestorun=1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)]))),
+                copestorun=maxcopenum,
                 paralleln = num_cores)
   
   
