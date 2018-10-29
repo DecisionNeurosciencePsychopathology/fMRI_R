@@ -129,7 +129,7 @@ addcenterscaletolist<-function(list) {
 }
 
 #Make single signal as a list:
-makesignal.single<-function(output,ename,norm="none",normargu=c("durmax_1","evtmax_1"),valuefrom,modifier=NA,style="subset",nonah=T) {
+makesignal.single<-function(output,ename,norm=c("none","durmax_1","evtmax_1"),normargu="convmax_1",valuefrom,modifier=NA,style="subset",nonah=T) {
   jrz<-list()
   jrz[["event"]]<-ename
   jrz[["normalization"]]<-norm
