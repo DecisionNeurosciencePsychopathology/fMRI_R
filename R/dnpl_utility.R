@@ -1009,6 +1009,7 @@ return(resultx)
 ########################roi extraction;
 whichfile<-function(textx=NULL,dirx=NULL,fullnameq=T){
   if("tstat" %in% textx){fxj<-list.files(dirx,pattern = "*T_tstat.*nii.gz",full.names = fullnameq)}
+  if("voxel-based" %in% textx){fxj<-list.files(dirx,pattern = "*T_vox_corrp_tstat.*nii.gz",full.names = fullnameq)}
   if("tfce" %in% textx){fxj<-list.files(dirx,pattern = "*T_tfce_corrp_tstat.*nii.gz",full.names = fullnameq)}
   if("cluster-based-extent" %in% textx){fxj<-list.files(dirx,pattern = "*T_clustere_corrp_tstat.*nii.gz",full.names = fullnameq)}
   if("cluster-based-mass" %in% textx){fxj<-list.files(dirx,pattern = "*T_clusterm_corrp_tstat.*nii.gz",full.names = fullnameq)}
@@ -1018,50 +1019,57 @@ whichfile<-function(textx=NULL,dirx=NULL,fullnameq=T){
 gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl/alignment6/cope12_randomize_onesample_ttest",
                            outdir=NULL,VersionCode=NULL,base="tstat",corrp_mask="tstat",maskthresholdvalue=3.0,roimaskthreshold=0.0001,
                            overwrite=T,writecsv=T,savetempdir=NULL) {
-if(is.null(savetempdir)){tempdirx<-file.path(featdir,"Index_Mask")}else{tempdirx<-savetempdir}
-dir.create(tempdirx,showWarnings = F,recursive = F)
-step1path<-file.path(tempdirx,"signifi_thres.nii.gz")
-cmd1<-paste("fslmaths",whichfile(corrp_mask,featdir,T),"-thr",maskthresholdvalue,
-            "-bin","-mul",whichfile(base,featdir,T),step1path,sep = " ")
-system(cmd1)
-
-if(voxel_count(step1path)[1]<2) {
-  nullmask<-TRUE
-  message("This set up result in less than 2 voxels.")
-} else {nullmask<-FALSE}
-#Step 1; get only the 
-if (!nullmask){
-  step2path<-file.path(tempdirx,"cluster_index.nii.gz")
-  cmd2<-paste(sep = " ","cluster","-i",step1path,"-t",roimaskthreshold,"-o",step2path)
-  s2raw<-system(cmd2,intern = T)
-  s2df<-read.table(text = s2raw,sep = "\t",header = T,check.names = F)
-  s2df$name<-s2df$`Cluster Index` #Here's where you can do something about getting their indexs
   if(is.null(VersionCode)){versionCode<-""}else{versionCode<-paste0("_",VersionCode)}
   if(is.null(outdir)){outdir<-file.path(featdir,paste0("ROI_masks",versionCode))}
-  if(overwrite){unlink(outdir,recursive = T)}
-  dir.create(path = outdir,recursive = T,showWarnings = F)
-  outpaths<-lapply(s2df$`Cluster Index`,function(cix){
+  if(is.null(savetempdir)){tempdirx<-file.path(featdir,paste0("ROI_masks",versionCode))}else{tempdirx<-savetempdir}
+  #if(is.null(templatebrain)) {templatebrain<-file.path(Sys.getenv("FSLDIR"),"data","standard","MNI152_T1_2mm_brain_mask.nii.gz")}
+  dir.create(tempdirx,showWarnings = F,recursive = F)
+  step1path<-file.path(tempdirx,"signifi_thres.nii.gz")
+  cmd1<-paste("fslmaths",whichfile(corrp_mask,featdir,T),"-thr",maskthresholdvalue,
+              "-bin","-mul",whichfile(base,featdir,T),step1path,sep = " ")
+  system(cmd1)
+  
+  if(voxel_count(step1path)[1]<2) {
+    nullmask<-TRUE
+    message("This set up result in less than 2 voxels.")
+  } else {nullmask<-FALSE}
+  #Step 1; get only the 
+  if (!nullmask){
+    step2path<-file.path(tempdirx,"cluster_index.nii.gz")
+    cmd2<-paste(sep = " ","cluster","-i",step1path,"-t ",roimaskthreshold,"-o",step2path)
+    s2raw<-system(cmd2,intern = T)
+    s2df<-read.table(text = s2raw,sep = "\t",header = T,check.names = F)
+    s2df$name<-s2df$`Cluster Index` #Here's where you can do something about getting their indexs
+    if(overwrite){unlink(outdir,recursive = T)}
+    dir.create(path = outdir,recursive = T,showWarnings = F)
+    outpaths<-lapply(s2df$`Cluster Index`,function(cix){
       outfile<-file.path(outdir,paste0("cluster_mask_",cix,".nii.gz"))
       if(!file.exists(outfile)){
-      opt<-paste0("-thr ",cix," -uthr ",cix," -bin \"",outfile,"\"")
-      cmd<-paste("fslmaths",step2path,opt)
-      system(cmd,intern = F)}
+        opt<-paste0("-thr ",cix," -uthr ",cix," -bin \"",outfile,"\"")
+        cmd<-paste("fslmaths",step2path,opt)
+        system(cmd,intern = F)}
       return(outfile)
     })
-  names(outpaths)<-s2df$name
-  s2df$maskpath<-unlist(outpaths)
-  if(writecsv) {write.csv(s2df,file.path(outdir,"index.csv"),row.names = F)}
-  return(s2df)
-} else {return(NULL)}
-if(is.null(savetempdir)){unlink(tempdirx)}
+    names(outpaths)<-s2df$name
+    s2df$maskpath<-unlist(outpaths)
+    if(writecsv) {write.csv(s2df,file.path(outdir,"index.csv"),row.names = F)}
+    return(s2df)
+  } else {return(NULL)}
+  if(is.null(savetempdir)){unlink(tempdirx)}
 }
 
+#Right
+#paste0("fslmaths ",templatebrain," -roi 0 45 0 -1 -1 -1 -1 -1 righthem_standard.nii")
+#Left
+#paste0("fslmaths ",templatebrain," -roi 45 -1 0 -1 0 -1 0 -1 lefthem_standard.nii")
 
-roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot,modelname=argu$model.name,
+
+roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot,modelname=argu$model.name,grp_identif=NA,
                        basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,
-                       roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL,maxcore=4){
+                       roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL,maxcore=4,saverdata=T){
                        #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
 raw_avfeat<-system(paste0("find ",file.path(rootdir,modelname,"*/average.gfeat")," -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
+fsl_2_sys_env()
 strsplit(raw_avfeat,split = "/") ->raw.split
 df.ex<-data.frame(ID=unlist(lapply(raw.split,function(x) {
     x[grep("average.gfeat",x)-1]
@@ -1072,44 +1080,66 @@ df.ex<-data.frame(ID=unlist(lapply(raw.split,function(x) {
   PATH=file.path(raw_avfeat,"stats","cope1.nii.gz")
   )
 df.ex$COPENUM<-substr(df.ex$COPENUM,start=regexpr("[0-9]",df.ex$COPENUM),stop = regexpr(".feat",df.ex$COPENUM)-1)
-rnddirs<-list.dirs(path = file.path(grproot,modelname),recursive = F)
+if(!is.na(grp_identif)){
+  if(length(grp_identif)>1){stop("Function do not want to handle more than one grp_identifier at a time, do a lapply or loop.")}
+  truerootdir<-file.path(grproot,modelname,grp_identif)
+} else {truerootdir<-file.path(grproot,modelname)}
+
+rnddirs<-list.dirs(path = truerootdir,recursive = F)
 if(saveclustermap){cmoutdir<-NULL}else{cmoutdir<-base::tempdir()}
 if(is.null(copetoget)){copetoget<-unique(as.character(df.ex$COPENUM))}
 if(length(copetoget)<maxcore & length(copetoget)>1){coresx<-length(copetoget)}else{coresx<-4}
 sharedproc<-parallel::makeCluster(coresx,outfile="",type = "FORK")
 copes_roivalues<-parallel::parLapply(cl=sharedproc,X = copetoget,function(copenum){
+  #print(copenum)
   df.idx<-df.ex[df.ex$COPENUM==copenum,]
-  featdir<-list.files(path = file.path(grproot,modelname),pattern = paste0("cope",copenum,"_randomize"),full.names = T)
+  featdir<-list.files(path = truerootdir,pattern = paste0("cope",copenum,".*_randomize"),full.names = T)
   featdir<-featdir[-grep(".jpeg",featdir)]
   cmindx<-gen_cluster_mask(featdir=featdir,base=basemask,corrp_mask=corrp_mask,outdir = cmoutdir,VersionCode = Version,
                            maskthresholdvalue=corrmaskthreshold,roimaskthreshold=roimaskthreshold,
                            overwrite=!saveclustermap,...)
   cmindx<-cmindx[cmindx$Voxels>voxelnumthres,]
   clx<-clustertoget[[as.character(copenum)]]
-  clx<-clx[clx %in% cmindx$`Cluster Index`]
   if(is.null(clx)){clx<-cmindx$`Cluster Index`}
+  clx<-clx[clx %in% cmindx$`Cluster Index`]
   if (length(clx)>0) {
-
+  concatimg<-list.files(pattern = ".*4D.nii.gz$",path = featdir,full.names = T)
+  if(any(grepl("concat4D.nii.gz",concatimg))) {concatimg<-concatimg[grepl("concat4D.nii.gz",concatimg)]
+  }else if(length(concatimg)<1 | grepl("PairedT",concatimg) | !is.na(grp_identif)){
+    concatimg<-file.path(featdir,"concat4D.nii.gz")
+    concatcmd<-paste(sep=" ","fslmerge -t",concatimg,paste(df.idx$PATH,collapse = " "))
+    system(concatcmd,intern = F)
+  }
   roivalues<-as.data.frame(do.call(cbind,lapply(clx, function(clz){
-    roivalue<-sapply(1:length(df.idx$ID), function(iz){
-    cmdx<-paste(sep=" ","fslstats",as.character(df.idx$PATH[iz]),
-               "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
+    #print(clz)
+    # roivalue<-sapply(1:length(df.idx$ID), function(iz){
+    #   print(iz)
+    # cmdx<-paste(sep=" ","fslstats",as.character(df.idx$PATH[iz]),
+    #            "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
+    # system(cmdx,intern = T)})
+    #Use fslstat timeserires to calculate;
+    cmdx<-paste(sep=" ","fslstats -t",concatimg,
+                "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
     system(cmdx,intern = T)
-    })
   })))
-  parallel::stopCluster(sharedproc)
+
   names(roivalues)<-paste("cluster",clx,sep = "_")
   roivalues$ID<-df.idx$ID
-  return(list(roivalues=roivalues,index=cmindx[cmindx$`Cluster Index`%in% clx,-grep("maskpath",names(cmindx))]))
+  return(list(roivalues=roivalues,index=cmindx[cmindx$`Cluster Index`%in% clx,-grep("maskpath",names(cmindx))],corrthreshold=corrmaskthreshold))
   } else return(NULL)
 })
+parallel::stopCluster(sharedproc)
+names(copes_roivalues)<-paste("cope",copetoget,sep = "_")
+if(saverdata) {
+  tempenvir<-as.environment(list())
+  if(file.exists(file.path(truerootdir,"extracted_roi.rdata"))) {
+    load(file = file.path(truerootdir,"extracted_roi.rdata"),envir = tempenvir)}
+  assign(gsub("-","_",paste0(modelname,"_",corrp_mask,corrmaskthreshold,"_","roi")),copes_roivalues,envir = tempenvir)
+  save(list=objects(tempenvir),
+       file = file.path(truerootdir,"extracted_roi.rdata"),envir = tempenvir)
+}
 return(copes_roivalues)
 }
-
-
-
-
-
 
 
 

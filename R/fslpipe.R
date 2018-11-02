@@ -32,7 +32,7 @@ if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
 stepnow<-1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
 #Create the directory if not existed
-dir.create(file.path(argu$ssub_outputroot,argu$model.name),showWarnings = FALSE)
+dir.create(file.path(argu$ssub_outputroot,argu$model.name),showWarnings = FALSE,recursive = T)
 #load the design rdata file if exists;
 if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
   tryCatch({
