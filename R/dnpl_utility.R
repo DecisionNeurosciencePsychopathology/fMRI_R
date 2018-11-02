@@ -1059,7 +1059,7 @@ if(is.null(savetempdir)){unlink(tempdirx)}
 
 roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot,modelname=argu$model.name,
                        basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,
-                       roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL){
+                       roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL,maxcore=4){
                        #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
 raw_avfeat<-system(paste0("find ",file.path(rootdir,modelname,"*/average.gfeat")," -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
 strsplit(raw_avfeat,split = "/") ->raw.split
@@ -1074,8 +1074,10 @@ df.ex<-data.frame(ID=unlist(lapply(raw.split,function(x) {
 df.ex$COPENUM<-substr(df.ex$COPENUM,start=regexpr("[0-9]",df.ex$COPENUM),stop = regexpr(".feat",df.ex$COPENUM)-1)
 rnddirs<-list.dirs(path = file.path(grproot,modelname),recursive = F)
 if(saveclustermap){cmoutdir<-NULL}else{cmoutdir<-base::tempdir()}
-if(is.null(copetoget)){copetoget<-df.ex$COPENUM}
-copes_roivalues<-lapply(copetoget,function(copenum){
+if(is.null(copetoget)){copetoget<-unique(as.character(df.ex$COPENUM))}
+if(length(copetoget)<maxcore & length(copetoget)>1){coresx<-length(copetoget)}else{coresx<-4}
+sharedproc<-parallel::makeCluster(coresx,outfile="",type = "FORK")
+copes_roivalues<-parallel::parLapply(cl=sharedproc,X = copetoget,function(copenum){
   df.idx<-df.ex[df.ex$COPENUM==copenum,]
   featdir<-list.files(path = file.path(grproot,modelname),pattern = paste0("cope",copenum,"_randomize"),full.names = T)
   featdir<-featdir[-grep(".jpeg",featdir)]
@@ -1087,6 +1089,7 @@ copes_roivalues<-lapply(copetoget,function(copenum){
   clx<-clx[clx %in% cmindx$`Cluster Index`]
   if(is.null(clx)){clx<-cmindx$`Cluster Index`}
   if (length(clx)>0) {
+
   roivalues<-as.data.frame(do.call(cbind,lapply(clx, function(clz){
     roivalue<-sapply(1:length(df.idx$ID), function(iz){
     cmdx<-paste(sep=" ","fslstats",as.character(df.idx$PATH[iz]),
@@ -1094,6 +1097,7 @@ copes_roivalues<-lapply(copetoget,function(copenum){
     system(cmdx,intern = T)
     })
   })))
+  parallel::stopCluster(sharedproc)
   names(roivalues)<-paste("cluster",clx,sep = "_")
   roivalues$ID<-df.idx$ID
   return(list(roivalues=roivalues,index=cmindx[cmindx$`Cluster Index`%in% clx,-grep("maskpath",names(cmindx))]))
