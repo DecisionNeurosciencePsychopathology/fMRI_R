@@ -329,8 +329,11 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
                 pairedtest=pairedtest,
                 thresh_cluster_siz=argu$cluster_thresh,
                 copestorun=maxcopenum,
+                thresh_cluster_mass=argu$thresh_cluster_mass,thresh_cluster_extent=argu$thresh_cluster_extent,
+                pvalue=argu$randomize_p_threshold,
+                usethesetest=argu$randomize_thresholdingways,
+                ifDeMean=argu$randomize_demean,
                 paralleln = num_cores)
-  
   
   #Use for debugging:
   # rootdir=argu$ssub_outputroot
@@ -340,7 +343,12 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
   # onesamplet_pergroup=onesamplet_pergroup
   # pairedtest=pairedtest
   # thresh_cluster_siz=argu$cluster_thresh
-  # copestorun=1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
+  # copestorun = maxcopenum
+  # thresh_cluster_mass=argu$thresh_cluster_mass
+  # thresh_cluster_extent=argu$thresh_cluster_extent
+  # pvalue=argu$randomize_p_threshold
+  # usethesetest=argu$randomize_thresholdingways
+  # ifDeMean=argu$randomize_demean
   # paralleln = num_cores
   
   #End Step 5

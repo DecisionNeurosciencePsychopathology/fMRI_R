@@ -82,9 +82,7 @@ recon.mat<-function(data.raw=NULL) {
     
   }
 
-make_eprime_struct<-function(rawtext=file.choose(),
-                           rawdf=NULL,
-                           breakpointname="BreakProc") {
+make_eprime_struct<-function(rawtext=file.choose(),rawdf=NULL,breakpointname="BreakProc") {
   if (is.null(rawdf)){
     rawdf<-read.csv(rawtext,stringsAsFactors = F,sep = "\t")
   } 
@@ -241,9 +239,7 @@ cfg_info<-function(cfgpath=NULL,noproc=F) {
 
 get_nuisance_preproc<-function(id=NULL,cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
                               returnas=c("path","data.frame"),dothese=c("nuisance","motion_par","motion_outlier"),
-                              type="fd",threshold="default"
-                              
-) {
+                              type="fd",threshold="default") {
   if (type == "dvar") {
     moutn<-"dvars.txt"
     if (threshold == "default") {threshold<-20}
@@ -567,31 +563,7 @@ adopt_feat<-function(adptemplate_path=NULL,searenvir=NULL,firstorder=F) {
   return(adptemplate)
 }
 
-
-
-
-
-
-
-
-
-
-###############################
-#Use data.frame"
- #Name, Begining, Ending, alter = name, beg, dura
-
-#directory to nuisances
-# 
-# con <- dbConnect(odbc(),
-#                  Driver = "SQLServer",
-#                  Server = "OACDATA4",
-#                  Database = "crc",
-#                  UID = "chenj20",
-#                  PWD = rstudioapi::askForPassword("Database password"),
-#                  Port = 1433)
-
-feat_w_template<-function(templatepath=NULL,fsltemplate=NULL,beg="ARG_",end="_END",fsfpath=NULL,envir=NULL,outcommand=F
-                          ) {
+feat_w_template<-function(templatepath=NULL,fsltemplate=NULL,beg="ARG_",end="_END",fsfpath=NULL,envir=NULL,outcommand=F) {
   if (is.null(fsltemplate)) {fsltemplate<-readLines(templatepath)}
   subbyrunfeat<-change_fsl_template(fsltemplate = fsltemplate,begin = beg,end=end,searchenvir = envir)
   #fsfpath<-fsf.path
@@ -603,8 +575,7 @@ feat_w_template<-function(templatepath=NULL,fsltemplate=NULL,beg="ARG_",end="_EN
   } else {return(paste0("feat ",fsfpath))}
 }
 
-plot_image_all<-function(rootpath=NULL,templatedir=NULL,model.name=NULL,patt=NULL,threshold=0.99,colour="red"
-                         ) {
+plot_image_all<-function(rootpath=NULL,templatedir=NULL,model.name=NULL,patt=NULL,threshold=0.99,colour="red") {
   dirs<-system(paste0("find ",file.path(rootpath,model.name)," -iname '",patt,"' -maxdepth 4 -mindepth 1 -type f"),intern = T)
   for (sdir in dirs) {
     spdir<-strsplit(sdir,.Platform$file.sep) 
@@ -626,8 +597,9 @@ plot_image_all<-function(rootpath=NULL,templatedir=NULL,model.name=NULL,patt=NUL
 glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanalysis/fsl",
                         outputdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl",
                         modelname="PE_8C_old",grp_sep=argu$group_id_sep,copestorun=1:8,
-                        paralleln=NULL,onesamplet_pergroup=T,pairedtest=T,thresh_cluster_siz=3
-) {
+                        paralleln=NULL,onesamplet_pergroup=T,pairedtest=T,
+                        thresh_cluster_mass=NULL,thresh_cluster_extent=NULL,pvalue=0.001, ifDeMean=T,
+                        usethesetest=c("tfce","voxel-based","cluster-based-mass","cluster-based-extent")) {
   if ( is.null(modelname) ) {stop("Must specify a model name other wise it will be hard to find all copes")}
   
   #Creating directory in case they are not there;
@@ -662,6 +634,21 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   df.jx<-df.ex}
   
   allcopecomx<-as.environment(list())
+  
+  #DO the options:
+  option_grp<-""
+  if(ifDeMean) {option_grp<-paste0(option_grp," -D")}
+  if("tfce" %in% usethesetest){option_grp<-paste0(option_grp," -T")}
+  if("voxel-based" %in% usethesetest){option_grp<-paste0(option_grp," -x")}
+  if("cluster-based-extent" %in% usethesetest){
+    if(is.null(thresh_cluster_extent)) {thresh_cluster_extent<-round(abs(qt(p = pvalue,df = (length(unique(df.ex$ID))-1) )),4)}
+    option_grp<-paste0(option_grp," -c ",thresh_cluster_extent)
+  }
+  if("cluster-based-mass" %in% usethesetest){
+    if(is.null(thresh_cluster_mass)) {thresh_cluster_mass<-round(abs(qt(p = pvalue,df = (length(unique(df.ex$ID))-1) )),4)}
+    option_grp<-paste0(option_grp," -C ",thresh_cluster_mass)
+  }
+  
   #Now we face this problem of runing bunch of them...
   #One sample T test;
   if (length(unique(df.jx$GROUP))==1){ 
@@ -669,12 +656,12 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
     cope.fslmerge<-lapply(copestorun,function(x) {
       outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_onesample_ttest"))
       dir.create(outputroot, showWarnings = FALSE,recursive = T)
-      if (length(list.files(pattern = "*tfce_corrp_tstat1",path = outputroot,no.. = T))<1) {
+      if (length(list.files(pattern = "*_tstat1",path = outputroot,no.. = T))<1) {
       copefileconcat<-paste(df.jx$PATH[which(df.jx$COPENUM==x)],collapse = " ")
       return(paste0("fslmerge -t ",outputroot,"/OneSamp4D"," ",
              copefileconcat
              ," \n ",
-             "randomise -i ",outputroot,"/OneSamp4D -o ",outputroot,"/OneSampT -1 -T -x -c ",thresh_cluster_siz
+             "randomise -i ",outputroot,"/OneSamp4D -o ",outputroot,"/OneSampT -1",option_grp
       ))
       }else {return(NULL)}
     })
@@ -689,12 +676,12 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
         unlist(strsplit(x,split = "_"))->cope_group
         outputroot<-file.path(outputdir,modelname,cope_group[2],paste0("cope",x,"_randomize_onesample_ttest"))
         dir.create(outputroot, showWarnings = FALSE,recursive = T)
-        if (length(list.files(pattern = "*tfce_corrp_tstat1",path = outputroot,no.. = T))<1) {
+        if (length(list.files(pattern = "*_tstat1",path = outputroot,no.. = T))<1) {
           copefileconcat<-paste(as.character(df.jx$PATH[which(df.jx$COPENUM==cope_group[1] & df.jx$GROUP==cope_group[2])]),collapse = " ")
           return(paste0("fslmerge -t ",outputroot,"/OneSamp4D"," ",
                         copefileconcat
                         ," \n ",
-                        "randomise -i ",outputroot,"/OneSamp4D -o ",outputroot,"/OneSampT -1 -T -x -c ",thresh_cluster_siz
+                        "randomise -i ",outputroot,"/OneSamp4D -o ",outputroot,"/OneSampT -1",option_grp
           ))
         }else {return(NULL)}
       })
@@ -721,7 +708,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
                         "randomise -i ",outputroot,"/PairedT4D -o ",outputroot,"/PairedT -d ",
                         file.path(outputdir,modelname),"/design.mat -t ",
                         file.path(outputdir,modelname),"/design.con -e ",
-                        file.path(outputdir,modelname),"/design.grp -1 -T -x -c ",thresh_cluster_siz
+                        file.path(outputdir,modelname),"/design.grp",option_grp
           ))
         }else {return(NULL)}
       })
@@ -845,15 +832,109 @@ amputate_run<-function(small.sub=NULL,cfgpath=NULL,type="fd",threshold="default"
   
 }
 
-####
-voxel_count<-function(cfile=NULL,mask=NULL,nonzero=T) {
-  if (!is.null(mask)) {maskargu=paste0("-k ",mask)}else{maskargu<-""}
-  if (nonzero) {ty<-"-V"} else {ty<-"-v"}
-  cmd<-paste("${FSLDIR}/bin/fslstats",cfile,maskargu,ty,sep = " ")
-  resultx<-system(cmd,intern = T)
-  lres<-as.numeric(strsplit(resultx,split = " ")[[1]])
-  names(lres)<-c("voxels","volumes")
-  return(lres)
+####QC
+qc_getinfo<-function(cfgpath=NULL,ssub_dir=file.path(argu$ssub_outputroot,argu$model.name),
+                     qc_var="PxH",ssub_template=argu$ssub_fsl_templatepath,stdspace=argu$templatedir,
+                     mask=roi_indx_df$singlemask,tempdir=T,...){
+  cfg<-cfg_info(cfgpath = cfgpath)
+  tp<-readLines(ssub_template)
+  qc_evnum<-unique(as.numeric(gsub("^.*([0-9]+).*$", "\\1", tp[grep(qc_var,tp)])))
+  dirs<-list.dirs(path = ssub_dir,recursive = F)
+  voxlist<-lapply(dirs, function(dir){
+    strp<-unlist(strsplit(dir,split = .Platform$file.sep))
+    ID<-strp[length(strp)]
+    cfl<-lapply(1:cfg$n_expected_funcruns,function(runnum) {
+      if(file.exists(file.path(dir,paste0("run",runnum,"_output.feat")))){
+        blkdir<-file.path(dir,paste0("run",runnum,"_output.feat"))
+        if (!tempdir) {
+          outdirx<-file.path(blkdir,"QC")
+          dir.create(path = outdirx,showWarnings = F,recursive = F)
+        } else {outdirx<-tempdir()}
+        voxvol<-get_voxel_count(cfile = file.path(blkdir,paste0("thresh_zstat",qc_evnum,".nii")),stdsfile = stdspace,
+                                intmat = file.path(blkdir,"masktostandtransforms.mat"),mask = mask,outdir = outdirx)
+        data.frame(ID=ID,run=runnum,voxel_count=voxvol[1],volume_count=voxvol[2])
+      }else {data.frame(ID=ID,run=runnum,voxel_count=NA,volume_count=NA)}
+    })
+    cfvox<-do.call(rbind,cleanuplist(cfl))
+    rownames(cfvox)<-NULL
+    totalmaskvox<-voxel_count(cfile = mask)
+    cfvox$total_mask_voxel<-totalmaskvox[1]
+    cfvox$total_mask_volumes<-totalmaskvox[2]
+    return(cfvox)
+  })
+  
+  voxdf<-do.call(rbind,voxlist)
+  voxdf$voxsuv_per<-voxdf$voxel_count / voxdf$total_mask_voxel
+  motiondf<-get_motion_info(configpath = cfgpath,...)
+  
+  voxinfo<-merge(voxdf,motiondf,by = c("ID","run"),all=T)
+  return(voxinfo)
+  
+}
+
+gen_model_arg<-function(cfgpath=NULL,func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz",mni_template=NULL,QC_auxdir="/Volumes/bek/QC_fsl",parallen=4,fullmodel=F,...){
+  cfg<-cfg_info(cfgpath = cfgpath)
+  npaths<-lapply(c("ssanalysis/fsl","regs","grpanal/fsl"),function(xx) {file.path(cfg$loc_root,cfg$paradigm_name,xx)})
+  NX<-lapply(npaths,dir.create,showWarnings = F,recursive = T)
+  if(fullmodel) {addarg<-list(adaptive_gfeat=TRUE,gsub_fsl_templatepath=file.path(QC_auxdir,"fsl_gfeat_general_adaptive_template.fsf"),
+                              glvl_output=npaths[[3]],hig_lvl_path_filter=NULL,graphic.threshold=0.95,convlv_nuisa=F,
+                              nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default")} else {addarg=list()} 
+  argu<-as.environment(c(addarg,list(nprocess=parallen,onlyrun=1:3,proc_id_subs=NULL,
+                                     regtype=".1D",ifnuisa=FALSE,ifoverwrite_secondlvl=F,cfgpath=cfgpath,
+                                     forcereg=F,regpath=npaths[[2]],func.nii.name=func.nii.name,ssub_outputroot=npaths[[1]],
+                                     templatedir=mni_template,
+                                     nuisa_motion=c("nuisance","motion_par"),convlv_nuisa=F,
+                                     QC_auxdir=QC_auxdir,
+                                     gridpath=file.path(QC_auxdir,"qc_grid.csv"),
+                                     model.name="QC",
+                                     model.varinames=c("QC","QC_none"),
+                                     ssub_fsl_templatepath=file.path(QC_auxdir,"qc_fsl_template.fsf"),
+                                     ...
+                                     
+  )))
+  return(argu)
+}
+
+check_incomplete_preproc<-function(cfgpath=NULL,enforce=F,verbose=T) {
+  cfg<-cfg_info(cfgpath)
+  idstocheck<-list.files(cfg$loc_mrproc_root)
+  runnums<-as.numeric(cfg$n_expected_funcruns)
+  outerrors<-lapply(idstocheck,function(cid) {
+    #print(cid)
+    proc_num<-get_volume_run(id = cid,cfgfilepath = cfgpath,returnas = "numbers")
+    if (any(is.na(proc_num))) {proc_num[which(is.na(proc_num))]<-0}
+    func_dir_raw<-system(paste0("find ",file.path(cfg$loc_mrraw_root,cid)," -iname ",cfg$functional_dirpattern," -maxdepth 2 -mindepth 1"),intern = T)
+    TJ<-lapply(func_dir_raw,list.files,recursive=F)
+    raw_num<-sapply(TJ, length)
+    if(length(raw_num)>0) {
+      if(any(proc_num!=raw_num) & verbose) {
+        message("#################################################")
+        message(cid)
+        message(paste("run",which(proc_num!=raw_num)))
+        message(paste("Raw:",paste(raw_num,collapse = " ")))
+        message(paste("Proc:",paste(proc_num,collapse = " ")))
+        message("#################################################")
+      }
+      outerror<-data.frame(proc_num,raw_num)
+      outerror$Run<-1:length(raw_num)
+      outerror$ID<-cid
+      return(outerror)
+    } else {return(NULL)}
+  })
+  allerrors<-do.call(rbind,outerrors)
+  suballerrors<-allerrors[which(allerrors$proc_num != allerrors$raw_num),]
+  return(suballerrors)
+  if (enforce) {
+    extd<-suballerrors[suballerrors$proc_num!=0,]
+    print(extd)
+    ifrun<-as.logical(readline(prompt = "Review above info, please type T/TRUE to continue or F/FALSE to stop: "))
+    if (ifrun) {
+      for (o in 1:length(extd$ID)) {
+        cxtd<-extd[o,]
+        unlink(file.path(cfg$loc_mrproc_root,cxtd$ID,paste0(cfg$paradigm_name,"_proc"),paste0(cfg$paradigm_name,cxtd$Run)),recursive = T,force = T)
+      }
+    }
+  }
 }
 ###############
 create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),
@@ -903,7 +984,15 @@ create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir
   return(list(indexdf=atrx,singlemask=singlemask))
 }
 
-
+voxel_count<-function(cfile=NULL,mask=NULL,nonzero=T) {
+  if (!is.null(mask)) {maskargu=paste0("-k ",mask)}else{maskargu<-""}
+  if (nonzero) {ty<-"-V"} else {ty<-"-v"}
+  cmd<-paste("${FSLDIR}/bin/fslstats",cfile,maskargu,ty,sep = " ")
+  resultx<-system(cmd,intern = T)
+  lres<-as.numeric(strsplit(resultx,split = " ")[[1]])
+  names(lres)<-c("voxels","volumes")
+  return(lres)
+}
 
 get_voxel_count<-function(cfile=NULL,stdsfile=NULL,intmat=NULL,mask=NULL,outdir=tempdir()) {
 if (outdir==tempdir() | !file.exists(file.path(outdir,"temp_1.nii"))) {
@@ -917,107 +1006,112 @@ resultx<-voxel_count(cfile = file.path(outdir,"temp_1.nii"),mask = mask)
 return(resultx)
 }
 
-qc_getinfo<-function(cfgpath=NULL,ssub_dir=file.path(argu$ssub_outputroot,argu$model.name),
-                  qc_var="PxH",ssub_template=argu$ssub_fsl_templatepath,stdspace=argu$templatedir,
-                  mask=roi_indx_df$singlemask,tempdir=T,...){
-  cfg<-cfg_info(cfgpath = cfgpath)
-  tp<-readLines(ssub_template)
-  qc_evnum<-unique(as.numeric(gsub("^.*([0-9]+).*$", "\\1", tp[grep(qc_var,tp)])))
-  dirs<-list.dirs(path = ssub_dir,recursive = F)
-  voxlist<-lapply(dirs, function(dir){
-    strp<-unlist(strsplit(dir,split = .Platform$file.sep))
-    ID<-strp[length(strp)]
-    cfl<-lapply(1:cfg$n_expected_funcruns,function(runnum) {
-      if(file.exists(file.path(dir,paste0("run",runnum,"_output.feat")))){
-        blkdir<-file.path(dir,paste0("run",runnum,"_output.feat"))
-        if (!tempdir) {
-        outdirx<-file.path(blkdir,"QC")
-        dir.create(path = outdirx,showWarnings = F,recursive = F)
-        } else {outdirx<-tempdir()}
-        voxvol<-get_voxel_count(cfile = file.path(blkdir,paste0("thresh_zstat",qc_evnum,".nii")),stdsfile = stdspace,
-                        intmat = file.path(blkdir,"masktostandtransforms.mat"),mask = mask,outdir = outdirx)
-        data.frame(ID=ID,run=runnum,voxel_count=voxvol[1],volume_count=voxvol[2])
-      }else {data.frame(ID=ID,run=runnum,voxel_count=NA,volume_count=NA)}
+########################roi extraction;
+whichfile<-function(textx=NULL,dirx=NULL,fullnameq=T){
+  if("tstat" %in% textx){fxj<-list.files(dirx,pattern = "*T_tstat.*nii.gz",full.names = fullnameq)}
+  if("tfce" %in% textx){fxj<-list.files(dirx,pattern = "*T_tfce_corrp_tstat.*nii.gz",full.names = fullnameq)}
+  if("cluster-based-extent" %in% textx){fxj<-list.files(dirx,pattern = "*T_clustere_corrp_tstat.*nii.gz",full.names = fullnameq)}
+  if("cluster-based-mass" %in% textx){fxj<-list.files(dirx,pattern = "*T_clusterm_corrp_tstat.*nii.gz",full.names = fullnameq)}
+  return(fxj)
+}  
+
+gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl/alignment6/cope12_randomize_onesample_ttest",
+                           outdir=NULL,VersionCode=NULL,base="tstat",corrp_mask="tstat",maskthresholdvalue=3.0,roimaskthreshold=0.0001,
+                           overwrite=T,writecsv=T,savetempdir=NULL) {
+if(is.null(savetempdir)){tempdirx<-file.path(featdir,"Index_Mask")}else{tempdirx<-savetempdir}
+dir.create(tempdirx,showWarnings = F,recursive = F)
+step1path<-file.path(tempdirx,"signifi_thres.nii.gz")
+cmd1<-paste("fslmaths",whichfile(corrp_mask,featdir,T),"-thr",maskthresholdvalue,
+            "-bin","-mul",whichfile(base,featdir,T),step1path,sep = " ")
+system(cmd1)
+
+if(voxel_count(step1path)[1]<2) {
+  nullmask<-TRUE
+  message("This set up result in less than 2 voxels.")
+} else {nullmask<-FALSE}
+#Step 1; get only the 
+if (!nullmask){
+  step2path<-file.path(tempdirx,"cluster_index.nii.gz")
+  cmd2<-paste(sep = " ","cluster","-i",step1path,"-t",roimaskthreshold,"-o",step2path)
+  s2raw<-system(cmd2,intern = T)
+  s2df<-read.table(text = s2raw,sep = "\t",header = T,check.names = F)
+  s2df$name<-s2df$`Cluster Index` #Here's where you can do something about getting their indexs
+  if(is.null(VersionCode)){versionCode<-""}else{versionCode<-paste0("_",VersionCode)}
+  if(is.null(outdir)){outdir<-file.path(featdir,paste0("ROI_masks",versionCode))}
+  if(overwrite){unlink(outdir,recursive = T)}
+  dir.create(path = outdir,recursive = T,showWarnings = F)
+  outpaths<-lapply(s2df$`Cluster Index`,function(cix){
+      outfile<-file.path(outdir,paste0("cluster_mask_",cix,".nii.gz"))
+      if(!file.exists(outfile)){
+      opt<-paste0("-thr ",cix," -uthr ",cix," -bin \"",outfile,"\"")
+      cmd<-paste("fslmaths",step2path,opt)
+      system(cmd,intern = F)}
+      return(outfile)
     })
-    cfvox<-do.call(rbind,cleanuplist(cfl))
-    rownames(cfvox)<-NULL
-    totalmaskvox<-voxel_count(cfile = mask)
-    cfvox$total_mask_voxel<-totalmaskvox[1]
-    cfvox$total_mask_volumes<-totalmaskvox[2]
-    return(cfvox)
+  names(outpaths)<-s2df$name
+  s2df$maskpath<-unlist(outpaths)
+  if(writecsv) {write.csv(s2df,file.path(outdir,"index.csv"),row.names = F)}
+  return(s2df)
+} else {return(NULL)}
+if(is.null(savetempdir)){unlink(tempdirx)}
+}
+
+
+roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot,modelname=argu$model.name,
+                       basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,
+                       roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL){
+                       #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
+raw_avfeat<-system(paste0("find ",file.path(rootdir,modelname,"*/average.gfeat")," -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
+strsplit(raw_avfeat,split = "/") ->raw.split
+df.ex<-data.frame(ID=unlist(lapply(raw.split,function(x) {
+    x[grep("average.gfeat",x)-1]
+  })),
+  COPENUM=unlist(lapply(raw.split,function(x) {
+    x[grep("average.gfeat",x)+1]
+  })),
+  PATH=file.path(raw_avfeat,"stats","cope1.nii.gz")
+  )
+df.ex$COPENUM<-substr(df.ex$COPENUM,start=regexpr("[0-9]",df.ex$COPENUM),stop = regexpr(".feat",df.ex$COPENUM)-1)
+rnddirs<-list.dirs(path = file.path(grproot,modelname),recursive = F)
+if(saveclustermap){cmoutdir<-NULL}else{cmoutdir<-base::tempdir()}
+if(is.null(copetoget)){copetoget<-df.ex$COPENUM}
+copes_roivalues<-lapply(copetoget,function(copenum){
+  df.idx<-df.ex[df.ex$COPENUM==copenum,]
+  featdir<-list.files(path = file.path(grproot,modelname),pattern = paste0("cope",copenum,"_randomize"),full.names = T)
+  featdir<-featdir[-grep(".jpeg",featdir)]
+  cmindx<-gen_cluster_mask(featdir=featdir,base=basemask,corrp_mask=corrp_mask,outdir = cmoutdir,VersionCode = Version,
+                           maskthresholdvalue=corrmaskthreshold,roimaskthreshold=roimaskthreshold,
+                           overwrite=!saveclustermap,...)
+  cmindx<-cmindx[cmindx$Voxels>voxelnumthres,]
+  clx<-clustertoget[[as.character(copenum)]]
+  clx<-clx[clx %in% cmindx$`Cluster Index`]
+  if(is.null(clx)){clx<-cmindx$`Cluster Index`}
+  if (length(clx)>0) {
+  roivalues<-as.data.frame(do.call(cbind,lapply(clx, function(clz){
+    roivalue<-sapply(1:length(df.idx$ID), function(iz){
+    cmdx<-paste(sep=" ","fslstats",as.character(df.idx$PATH[iz]),
+               "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
+    system(cmdx,intern = T)
     })
-  
-  voxdf<-do.call(rbind,voxlist)
-  voxdf$voxsuv_per<-voxdf$voxel_count / voxdf$total_mask_voxel
-  motiondf<-get_motion_info(configpath = cfgpath,...)
-
-  voxinfo<-merge(voxdf,motiondf,by = c("ID","run"),all=T)
-  return(voxinfo)
-  
+  })))
+  names(roivalues)<-paste("cluster",clx,sep = "_")
+  roivalues$ID<-df.idx$ID
+  return(list(roivalues=roivalues,index=cmindx[cmindx$`Cluster Index`%in% clx,-grep("maskpath",names(cmindx))]))
+  } else return(NULL)
+})
+return(copes_roivalues)
 }
 
-gen_model_arg<-function(cfgpath=NULL,func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz",mni_template=NULL,QC_auxdir="/Volumes/bek/QC_fsl",parallen=4,fullmodel=F,...){
-  cfg<-cfg_info(cfgpath = cfgpath)
-  npaths<-lapply(c("ssanalysis/fsl","regs","grpanal/fsl"),function(xx) {file.path(cfg$loc_root,cfg$paradigm_name,xx)})
-  NX<-lapply(npaths,dir.create,showWarnings = F,recursive = T)
-  if(fullmodel) {addarg<-list(adaptive_gfeat=TRUE,gsub_fsl_templatepath=file.path(QC_auxdir,"fsl_gfeat_general_adaptive_template.fsf"),
-                              glvl_output=npaths[[3]],hig_lvl_path_filter=NULL,graphic.threshold=0.95,convlv_nuisa=F,
-                              nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default")} else {addarg=list()} 
-  argu<-as.environment(c(addarg,list(nprocess=parallen,onlyrun=1:3,proc_id_subs=NULL,
-                            regtype=".1D",ifnuisa=FALSE,ifoverwrite_secondlvl=F,cfgpath=cfgpath,
-                            forcereg=F,regpath=npaths[[2]],func.nii.name=func.nii.name,ssub_outputroot=npaths[[1]],
-                            templatedir=mni_template,
-                            nuisa_motion=c("nuisance","motion_par"),convlv_nuisa=F,
-                            QC_auxdir=QC_auxdir,
-                            gridpath=file.path(QC_auxdir,"qc_grid.csv"),
-                            model.name="QC",
-                            model.varinames=c("QC","QC_none"),
-                            ssub_fsl_templatepath=file.path(QC_auxdir,"qc_fsl_template.fsf"),
-                            ...
-                            
-  )))
-  return(argu)
-}
 
-check_incomplete_preproc<-function(cfgpath=NULL,enforce=F,verbose=T) {
-  cfg<-cfg_info(cfgpath)
-  idstocheck<-list.files(cfg$loc_mrproc_root)
-  runnums<-as.numeric(cfg$n_expected_funcruns)
-  outerrors<-lapply(idstocheck,function(cid) {
-    #print(cid)
-    proc_num<-get_volume_run(id = cid,cfgfilepath = cfgpath,returnas = "numbers")
-    if (any(is.na(proc_num))) {proc_num[which(is.na(proc_num))]<-0}
-    func_dir_raw<-system(paste0("find ",file.path(cfg$loc_mrraw_root,cid)," -iname ",cfg$functional_dirpattern," -maxdepth 2 -mindepth 1"),intern = T)
-    TJ<-lapply(func_dir_raw,list.files,recursive=F)
-    raw_num<-sapply(TJ, length)
-    if(length(raw_num)>0) {
-      if(any(proc_num!=raw_num) & verbose) {
-        message("#################################################")
-        message(cid)
-        message(paste("run",which(proc_num!=raw_num)))
-        message(paste("Raw:",paste(raw_num,collapse = " ")))
-        message(paste("Proc:",paste(proc_num,collapse = " ")))
-        message("#################################################")
-      }
-      outerror<-data.frame(proc_num,raw_num)
-      outerror$Run<-1:length(raw_num)
-      outerror$ID<-cid
-      return(outerror)
-    } else {return(NULL)}
-  })
-  allerrors<-do.call(rbind,outerrors)
-  suballerrors<-allerrors[which(allerrors$proc_num != allerrors$raw_num),]
-  return(suballerrors)
-  if (enforce) {
-    extd<-suballerrors[suballerrors$proc_num!=0,]
-    print(extd)
-    ifrun<-as.logical(readline(prompt = "Review above info, please type T/TRUE to continue or F/FALSE to stop: "))
-    if (ifrun) {
-      for (o in 1:length(extd$ID)) {
-        cxtd<-extd[o,]
-        unlink(file.path(cfg$loc_mrproc_root,cxtd$ID,paste0(cfg$paradigm_name,"_proc"),paste0(cfg$paradigm_name,cxtd$Run)),recursive = T,force = T)
-      }
-    }
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
 
