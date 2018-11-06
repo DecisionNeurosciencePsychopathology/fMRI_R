@@ -327,7 +327,7 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
                 grp_sep=argu$group_id_sep,
                 onesamplet_pergroup=onesamplet_pergroup,
                 pairedtest=pairedtest,
-                thresh_cluster_siz=argu$cluster_thresh,
+                #thresh_cluster_siz=argu$cluster_thresh, #appears to be an old argument, unused
                 copestorun=maxcopenum,
                 thresh_cluster_mass=argu$thresh_cluster_mass,thresh_cluster_extent=argu$thresh_cluster_extent,
                 pvalue=argu$randomize_p_threshold,
@@ -350,7 +350,7 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
   # usethesetest=argu$randomize_thresholdingways
   # ifDeMean=argu$randomize_demean
   # paralleln = num_cores
-  
+
   #End Step 5
 }
 
