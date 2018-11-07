@@ -1070,6 +1070,7 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot
                        #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
 raw_avfeat<-system(paste0("find ",file.path(rootdir,modelname,"*/average.gfeat")," -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
 fsl_2_sys_env()
+if(is.null(Version)){Version<-paste0(corrp_mask,corrmaskthreshold)}
 strsplit(raw_avfeat,split = "/") ->raw.split
 df.ex<-data.frame(ID=unlist(lapply(raw.split,function(x) {
     x[grep("average.gfeat",x)-1]
@@ -1091,9 +1092,9 @@ if(is.null(copetoget)){copetoget<-unique(as.character(df.ex$COPENUM))}
 if(length(copetoget)<maxcore & length(copetoget)>1){coresx<-length(copetoget)}else{coresx<-4}
 sharedproc<-parallel::makeCluster(coresx,outfile="",type = "FORK")
 copes_roivalues<-parallel::parLapply(cl=sharedproc,X = copetoget,function(copenum){
-  #print(copenum)
+  message(copenum)
   df.idx<-df.ex[df.ex$COPENUM==copenum,]
-  featdir<-list.files(path = truerootdir,pattern = paste0("cope",copenum,".*_randomize"),full.names = T)
+  featdir<-list.files(path = truerootdir,pattern = paste0("cope",paste0(copenum,"_"),".*randomize"),full.names = T)
   featdir<-featdir[-grep(".jpeg",featdir)]
   cmindx<-gen_cluster_mask(featdir=featdir,base=basemask,corrp_mask=corrp_mask,outdir = cmoutdir,VersionCode = Version,
                            maskthresholdvalue=corrmaskthreshold,roimaskthreshold=roimaskthreshold,
