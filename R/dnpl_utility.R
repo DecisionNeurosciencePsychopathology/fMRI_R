@@ -409,7 +409,7 @@ prepare4secondlvl<-function(ssana.path=NULL,preproc.path=NULL,
 do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_single=son1_single),cfgpath=NULL,
                        regpath=NULL,gridpath="grid.csv",func.nii.name="swudktm*[0-9].nii.gz",proc_id_subs=NULL, 
                        wrt.timing=c("convolved", "FSL","AFNI"),model.name=NULL,model.varinames=NULL,
-                       nuisa_motion=c("nuisance","motion_par","motion_outlier"),motion_type="fd",
+                       nuisa_motion=c("nuisance","motion_par","motion_outlier"),motion_type="fd",centerscaleall=FALSE,
                        motion_threshold="default",convlv_nuisa=F,argu=NULL) {
   
   #Read config file:
@@ -461,14 +461,13 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
   
   #Use Michael's package to generate design matrix and correlation graph;
   design<-dependlab::build_design_matrix(
-    center_values=FALSE,
+    center_values=centerscaleall,
     events = output$event.list$allconcat, #Load the task info
     signals = model,     #Load the Model
     write_timing_files = wrt.timing, #Output timing files to FSL style
     tr=as.numeric(cfg$preproc_call$tr), #Grab the tr from cfg instead of hard coding it...
     plot = F,
     run_volumes = run_volum,
-    #tr=1 second, maybe need to double check, I'm kinda sure....
     output_directory = file.path(regpath,model.name,tid), #Where to output the timing files, default is the working directory
     nuisance_regressors = nuisa.x #Maybe could add in nuisance_regressors from pre-proc
   )
@@ -937,11 +936,22 @@ check_incomplete_preproc<-function(cfgpath=NULL,enforce=F,verbose=T) {
   }
 }
 ###############
-create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),
-                               fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T) {
-  
-  if (is.null(fsl_dir)) {fsl_2_sys_env(); fsl_dir=Sys.getenv("FSLDIR")}
+
+create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),atlas_root=NULL,
+                               fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T)
+
+create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),atlas_root=NULL,
+                               fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T,atlas_readtype=c("fsl","spm")) {
+  if (is.null(atlas_root)){
+  if (is.null(fsl_dir)) {
+  fsl_2_sys_env(); fsl_dir=Sys.getenv("FSLDIR")}
   atlas_dir<-file.path(fsl_dir,"data","atlases")    
+  maybefsl<-TRUE
+  } else {atlas_dir<-atlas_root}
+  
+  if(is.null(atlas_readtype)){if(maybefsl){source_type<-"fsl"}else{source_type<-"spm"}}else{
+  if(length(atlas_readtype)==1 & c("fsl" %in% atlas_readtype)){source_type<-"fsl"}
+  if(length(atlas_readtype)==1 & c("spm" %in% atlas_readtype)){source_type<-"spm"}}
   
   if (is.null(atlas_xml)) {
     if (is.null(atlas_name)) {
@@ -953,28 +963,42 @@ create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir
     }
     atlas_xml<-file.path(atlas_dir,paste0(atlas_name,".xml"))
   } else if (!grepl("/",atlas_xml)) {atlas_xml<-file.path(atlas_dir,atlas_xml)}
-  
   atlas_info<-XML::xmlToList(XML::xmlParse(file = atlas_xml))
-  
   images<-atlas_info$header[grep("images",names(atlas_info$header))]
   imagex<-cleanuplist(lapply(images,function(img) {if(length(grep(volxsize,img$imagefile))>0) {return(img)} else {return(NULL)}}))
-  
+  #fsl
   atrx<-do.call(rbind,lapply(atlas_info$data,function(dt) {return(cbind(data.frame(target=dt$text),data.frame(as.list(dt$.attrs),stringsAsFactors = F)))}))
   atrx$index<-as.numeric(atrx$index)+1
+  target_imag<-file.path(atlas_dir,imagex$images$summaryimagefile)
+  #spm
+  atrx<-do.call(rbind,lapply(atlas_info$data,function(dt) {
+    return(data.frame(index=dt$index,target=dt$name,stringsAsFactors = F))
+    }))
+  target_imag<-file.path(atlas_dir,imagex$images$imagefile)
+  
   atrx$maskdir<-NA
   atrx$total_voxel<-NA
   
-  if (any(is.character(target))) {tarindxs<-atrx$index[grep(pattern = paste(target,collapse = "|"),x = atrx$target)]} else {tarindxs<-target}
-  for (tarindx in tarindxs) {
-  target_imag<-file.path(atlas_dir,imagex$images$summaryimagefile)
-  tartext<-gsub(" ","_",atrx$target[tarindx])
-  outfile<-file.path(outdir,paste(atlas_name,volxsize,tartext,"bin.nii",sep="_"))
-  opt<-paste0("-thr ",tarindx," -uthr ",tarindx," -bin \"",outfile,"\"")
-  cmd<-paste("fslmaths",target_imag,opt)
-  system(cmd,intern = F)
-  atrx$maskdir[tarindx]<-outfile
-  atrx$total_voxel[tarindx]<-voxel_count(cfile = outfile)[1]
+  target<-NULL
+  if (is.null(target)){target<-as.numeric(atrx$index)}
+  if (any(is.character(target))) {
+    tarindxs<-as.character(atrx$index[grep(pattern = paste(target,collapse = "|"),x = atrx$target)])
+    } else {tarindxs<-as.character(target)}
+  
+  
+  for (sindsk in tarindxs) {
+    tarindx <- which(atrx$index==sindsk)
+    tartext<-gsub(" ","_",atrx$target[tarindx])
+    outfile<-file.path(outdir,paste(atlas_name,volxsize,tartext,"bin.nii.gz",sep="_"))
+    if(!file.exists(outfile)){
+    opt<-paste0("-thr ",tarindx," -uthr ",tarindx," -bin \"",outfile,"\"")
+    cmd<-paste("fslmaths",target_imag,opt)
+    system(cmd,intern = F)
+    }
+    atrx$maskdir[tarindx]<-outfile
+    atrx$total_voxel[tarindx]<-voxel_count(cfile = outfile)[1]
   }
+  
   if (singlemask && length(tarindxs)>1) {
     singlemask<-file.path(outdir,paste(atlas_name,volxsize, gsub(" ","_",paste(atrx$target[tarindxs],collapse = "_")),"bin.nii",sep="_"))
     cmd<-paste("${FSLDIR}/bin/fslmaths",paste(na.omit(atrx$maskdir),collapse = " -add "),singlemask)

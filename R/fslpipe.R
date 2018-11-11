@@ -50,6 +50,9 @@ if (length(names(allsub.design))>0 & !argu$forcereg) {
   message(paste("These IDs already has regressors: ",paste(names(allsub.design),collapse=" "),sep=" ",collapse = " "))
 } else {idtodo<-names(prep.call.allsub)}
   #Version upgrade safe keeping
+  if (!exists("centerscaleall",envir = argu)) {
+    message("centerscaleall does not exist, using default options: FALSE")
+    argu$centerscaleall<-FALSE}
   if (exists("ifnuisa",envir = argu) & !exists("convlv_nuisa",envir = argu)) {
     message("ifnuisa variable is now depreciated, please use convlv_nuisa to control if the pipeline should convolve nuissance regressor")
     argu$convlv_nuisa<-argu$ifnuisa}
@@ -86,6 +89,7 @@ if (length(idtodo)>0) {
           motion_type=argu$motion_type,
           motion_threshold=argu$motion_threshold,
           convlv_nuisa=argu$convlv_nuisa,
+          centerscaleall=argu$centerscaleall,
           argu=argu
           ),envir = allsub.design
        )
@@ -108,6 +112,7 @@ if (length(idtodo)>0) {
         # motion_type=argu$motion_type
         # motion_threshold=argu$motion_threshold
         # convlv_nuisa=argu$convlv_nuisa
+        # centerscaleall=argu$centerscaleall
 
       },error=function(e) {message("failed regressor generation...go investigate: ",e)}
     )
