@@ -8,9 +8,9 @@ New feature:
 - New QC_pipe function to quality check on runs and subjects. 
 
 Coming soon:
-- ANOVA support for group lvl stats
 - flame support on group level (phase roll out, might support non-adaptive template first)
-
+- Negative map automation
+- Adaptive run control
 
 This project is to utilize R to streamline some fMRI processing and offer flexibility of some degrees.
 There are 2 main scripts:
