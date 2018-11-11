@@ -1,6 +1,7 @@
 # fMRI_R REPOSITORY
 
 New feature: 
+- Add support to subjects with different run numbers
 - The fsl_pipe function now can use adaptive single subject template that adjust based on the design grid for models and studys. 
 - The fsl_pipe function now can use adaptive gfeat template that adjust based on run number and max cope number from differnt models and studys. It's now one less step to adjust before running a new study or model!
 - The fsl_pipe function now can generate motion sensor files using fsl if pipeline results are not available (low priority)
