@@ -439,6 +439,7 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
                               dothese=nuisa_motion,
                               type=motion_type,
                               threshold=motion_threshold) 
+  if(any(is.na(nuisa))) {stop("Can't get nuisance files from proc dirs")}
   if (convlv_nuisa) {
     nuisa.x<-nuisa
   } else {

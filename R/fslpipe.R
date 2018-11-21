@@ -23,11 +23,11 @@ if (is.null(argu$nprocess)){
 } else {argu$nprocess->num_cores}
 
 ###Initializing argu;
-argu$cfg<-cfg_info(cfgpath)
+argu$cfg<-cfg_info(argu$cfgpath)
 argu$dsgrid<-read.table(argu$gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
 if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
 
-#######STEP 1:
+#############STEP 1: Regressor generation #####################
 #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
 stepnow<-1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
@@ -124,7 +124,7 @@ if (length(idtodo)>0) {
 #End of Step 1
 }
 
-#Step 2: #PARALLEL
+#############Step 2: Single Subject PARALLEL#######################
 #Now we do the single sub processing using FSL and the regressor that was generated
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
@@ -200,7 +200,7 @@ NX<-parSapply(cluster_step2,step2commands,function(yx) {
             indx<-suppressWarnings(split(1:length(step2commands),1:num_cores))
             pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
             setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
-              message("DONE")
+            message("DONE")
               }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
           )
           
@@ -212,7 +212,7 @@ stopCluster(cluster_step2)
 
 
 
-#Step 3: 
+#############Step 3: Prep for Higher Level #######################
 #Now we make the symbolic link for template matching...so they are not misaligned anymore...
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
@@ -233,7 +233,7 @@ prepmap<-prepare4secondlvl(
 }
 
 
-#Step 4: #PARALLEL
+#############Step 4: Fixed Effect for Single Subject PARALLEL ###############
 #This starts averaging for each subject:
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
@@ -304,10 +304,8 @@ stopCluster(clusterjobs1)
 }
 
 
-###############################
-#Step 5: #PARALLEL by function#
-#######Do Group Level########## 
-###############################
+
+#############Step 5a: Higher Level (Randomize) ##PARALLEL by function#########
 
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
@@ -340,7 +338,7 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
                 ifDeMean=argu$randomize_demean,
                 paralleln = num_cores)
   
-  #Use for debugging:
+  # Use for debugging:
   # rootdir=argu$ssub_outputroot
   # outputdir=argu$glvl_outputroot
   # modelname=argu$model.name
@@ -359,10 +357,8 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
   #End Step 5
 }
 
-########################################
-#############Step 6: ###################
-######simple graph & extra Info ########
-########################################
+
+#############Step 6: Simple Graph and Info Extraction ###################
 
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
@@ -387,18 +383,12 @@ write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "
 #End of Step 6
 }
 
-######################################################################
-#End of function 
+#############End of function fsl_pipe#####################
 }
 
 
 #In development:
 if (FALSE) {
-  #Adaptive fsl cope;
-  #To see if make sense to just create a new 
-  splitAt <- function(x, pos) unname(split(x, cumsum(seq_along(x) %in% pos)))
-  chuckofev<-fsltemplate[min(grep("EV [0-9]* title",fsltemplate)):grep("# Contrast & F-tests mode",fsltemplate,fixed = T)]
-  byev<-splitAt(chuckofev,grep("EV [0-9]* title",chuckofev))
-  length(byev)->nev
+#Flame
   
 }
