@@ -938,6 +938,7 @@ create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir
   atrx<-do.call(rbind,lapply(atlas_info$data,function(dt) {return(cbind(data.frame(target=dt$text),data.frame(as.list(dt$.attrs),stringsAsFactors = F)))}))
   atrx$index<-as.numeric(atrx$index)+1
   target_imag<-file.path(atlas_dir,imagex$images$summaryimagefile)
+  atrx$thres<-1:nrow(atrx)
   }
   #spm
   if(source_type=="spm"){
@@ -945,6 +946,8 @@ create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir
     return(data.frame(index=dt$index,target=dt$name,stringsAsFactors = F))
     }))
   target_imag<-file.path(atlas_dir,imagex$images$imagefile)
+  atrx$thres<-atrx$index
+  volxsize<-""
   }
   
   atrx$maskdir<-NA
@@ -955,18 +958,19 @@ create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir
     tarindxs<-as.character(atrx$index[grep(pattern = paste(target,collapse = "|"),x = atrx$target)])
     } else {tarindxs<-as.character(target)}
   
-  
+  dir.create(path = outdir,recursive = T,showWarnings = F)
   for (sindsk in tarindxs) {
-    tarindx <- which(atrx$index==sindsk)
-    tartext<-gsub(" ","_",atrx$target[tarindx])
+    tarwhich<-which(atrx$index==sindsk)
+    tarthres <- atrx$thres[tarwhich]
+    tartext<-gsub(" ","_",atrx$target[tarwhich])
     outfile<-file.path(outdir,paste(atlas_name,volxsize,tartext,"bin.nii.gz",sep="_"))
     if(!file.exists(outfile)){
-    opt<-paste0("-thr ",tarindx," -uthr ",tarindx," -bin \"",outfile,"\"")
+    opt<-paste0("-thr ",tarthres," -uthr ",tarthres," -bin \"",outfile,"\"")
     cmd<-paste("fslmaths",target_imag,opt)
     system(cmd,intern = F)
     }
-    atrx$maskdir[tarindx]<-outfile
-    atrx$total_voxel[tarindx]<-voxel_count(cfile = outfile)[1]
+    atrx$maskdir[tarwhich]<-outfile
+    atrx$total_voxel[tarwhich]<-voxel_count(cfile = outfile)[1]
   }
   
   if (singlemask && length(tarindxs)>1) {
