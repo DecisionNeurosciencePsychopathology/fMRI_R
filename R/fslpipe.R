@@ -23,104 +23,114 @@ if (is.null(argu$nprocess)){
 } else {argu$nprocess->num_cores}
 
 ###Initializing argu;
-argu$cfg<-cfg_info(argu$cfgpath)
+argu$cfg<-cfg_info(cfgpath)
 argu$dsgrid<-read.table(argu$gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
 if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
+#Version upgrade safe keeping
+if (!exists("centerscaleall",envir = argu)) {
+  message("centerscaleall does not exist, using default options: FALSE")
+  argu$centerscaleall<-FALSE}
+if (exists("ifnuisa",envir = argu) & !exists("convlv_nuisa",envir = argu)) {
+  message("ifnuisa variable is now depreciated, please use convlv_nuisa to control if the pipeline should convolve nuissance regressor")
+  argu$convlv_nuisa<-argu$ifnuisa}
+if (!exists("nuisa_motion",envir = argu)) {
+  message("argument nuisa_motion doesn't exist, using default options: nuisance and motion parameters")
+  argu$nuisa_motion<-c("nuisance","motion_par")
+}
+if (!exists("motion_type",envir = argu)) {
+  message("argument motion_type doesn't exist, using default options: fd")
+  argu$motion_type<-"fd"}
+if (!exists("motion_threshold",envir = argu)) {
+  message("argument motion_threshold doesn't exist, using default options, (fd 0.9; dvar 20)")
+  argu$motion_threshold<-"default"}
+#Version upgrade safe keeping: RE: FALME Support
+if (!exists("higherleveltype",envir = argu)) {
+  message("Higher level modeling type is not specified, will use randomize by default.")
+  argu$higherleveltype<-"randomize"
+} 
+if (!exists("adaptive_ssfeat",envir = argu)) {
+  message("Single Subject Level type is not specified, will use non-adaptive version by default.")
+  argu$adaptive_ssfeat<-FALSE
+} 
 
 #############STEP 1: Regressor generation #####################
 #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
 stepnow<-1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
-#Create the directory if not existed
-dir.create(file.path(argu$ssub_outputroot,argu$model.name),showWarnings = FALSE,recursive = T)
-#load the design rdata file if exists;
-if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
-  tryCatch({
-    load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
-    },
-           error=function(e) {
-             message(paste0("load not successful, have to re-run step 1...message: ",e))
-             assign('allsub.design',as.environment(list()),envir = globalenv())
+  #Create the directory if not existed
+  dir.create(file.path(argu$ssub_outputroot,argu$model.name),showWarnings = FALSE,recursive = T)
+  #load the design rdata file if exists;
+  if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
+    tryCatch({
+      load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
+    }, error=function(e) {
+      message(paste0("load not successful, have to re-run step 1...message: ",e))
+      assign('allsub.design',as.environment(list()),envir = globalenv())
     })
-         
-} else {allsub.design<-as.environment(list())}
-#Take out people who have already been processed;
-if (length(names(allsub.design))>0 & !argu$forcereg) {
-  idtodo<-as.character(names(prep.call.allsub)[which(! names(prep.call.allsub) %in% names(allsub.design))])
-  message(paste("These IDs already has regressors: ",paste(names(allsub.design),collapse=" "),sep=" ",collapse = " "))
-} else {idtodo<-names(prep.call.allsub)}
-  #Version upgrade safe keeping
-  if (!exists("centerscaleall",envir = argu)) {
-    message("centerscaleall does not exist, using default options: FALSE")
-    argu$centerscaleall<-FALSE}
-  if (exists("ifnuisa",envir = argu) & !exists("convlv_nuisa",envir = argu)) {
-    message("ifnuisa variable is now depreciated, please use convlv_nuisa to control if the pipeline should convolve nuissance regressor")
-    argu$convlv_nuisa<-argu$ifnuisa}
-  if (!exists("nuisa_motion",envir = argu)) {
-    message("argument nuisa_motion doesn't exist, using default options: nuisance and motion parameters")
-    argu$nuisa_motion<-c("nuisance","motion_par")
-  }
-  if (!exists("motion_type",envir = argu)) {
-    message("argument motion_type doesn't exist, using default options: fd")
-    argu$motion_type<-"fd"}
-  if (!exists("motion_threshold",envir = argu)) {
-    message("argument motion_threshold doesn't exist, using default options, (fd 0.9; dvar 20)")
-    argu$motion_threshold<-"default"}
-assign(prep.call.func,get(prep.call.func),envir = argu)
-if (length(idtodo)>0) {
-  for (xid in idtodo) {
-    prep.call.list<-prep.call.allsub[[xid]]
-    tryCatch(
-      {message(xid)
-        assign(as.character(xid),
-          do.all.subjs(
-          tid=xid,
-          do.prep.call=prep.call.func,
-          do.prep.arg=prep.call.list,
-          cfgpath=argu$cfgpath,
-          regpath=argu$regpath,
-          gridpath=argu$gridpath,
-          func.nii.name=argu$func.nii.name,
-          proc_id_subs=argu$proc_id_subs,    #Put "" for nothing.
-          wrt.timing=c("convolved", "FSL"),
-          model.name=argu$model.name,
-          model.varinames=argu$model.varinames,
-          nuisa_motion=argu$nuisa_motion,
-          motion_type=argu$motion_type,
-          motion_threshold=argu$motion_threshold,
-          convlv_nuisa=argu$convlv_nuisa,
-          centerscaleall=argu$centerscaleall,
-          argu=argu
-          ),envir = allsub.design
-       )
-        # tid=xid
-        # do.prep.call=prep.call.func
-        # do.prep.arg=prep.call.list
-        # cfgpath=argu$cfgpath
-        # regpath=argu$regpath
-        # gridpath=argu$gridpath
-        # func.nii.name=argu$func.nii.name
-        # proc_id_subs=argu$proc_id_subs   #Put "" for nothing.
-        # wrt.timing=c("convolved", "FSL")
-        # model.name=argu$model.name
-        # func.nii.name=argu$func.nii.name
-        # proc_id_subs=argu$proc_id_subs
-        # model.name=argu$model.name
-        # model.varinames=argu$model.varinames
-        # add.nuisa=argu$ifnuisa
-        # nuisa_motion=argu$nuisa_motion
-        # motion_type=argu$motion_type
-        # motion_threshold=argu$motion_threshold
-        # convlv_nuisa=argu$convlv_nuisa
-        # centerscaleall=argu$centerscaleall
-
-      },error=function(e) {message("failed regressor generation...go investigate: ",e)}
-    )
-  }
+    
+  } else {allsub.design<-as.environment(list())}
+  #Take out people who have already been processed;
+  if (length(names(allsub.design))>0 & !argu$forcereg) {
+    idtodo<-as.character(names(prep.call.allsub)[which(! names(prep.call.allsub) %in% names(allsub.design))])
+    message(paste("These IDs already has regressors: ",paste(names(allsub.design),collapse=" "),sep=" ",collapse = " "))
+  } else {idtodo<-names(prep.call.allsub)}
   
-  save("allsub.design",file = file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
-} else {message("NO NEW DATA NEEDED TO BE PROCESSED")}
-
+  assign(prep.call.func,get(prep.call.func),envir = argu)
+  if (length(idtodo)>0) {
+    for (xid in idtodo) {
+      prep.call.list<-prep.call.allsub[[xid]]
+      tryCatch(
+        {
+          message(xid)
+          assign(as.character(xid),
+                 do.all.subjs(
+                   tid=xid,
+                   do.prep.call=prep.call.func,
+                   do.prep.arg=prep.call.list,
+                   cfgpath=argu$cfgpath,
+                   regpath=argu$regpath,
+                   gridpath=argu$gridpath,
+                   func.nii.name=argu$func.nii.name,
+                   proc_id_subs=argu$proc_id_subs,    #Put "" for nothing.
+                   wrt.timing=c("convolved", "FSL"),
+                   model.name=argu$model.name,
+                   model.varinames=argu$model.varinames,
+                   nuisa_motion=argu$nuisa_motion,
+                   motion_type=argu$motion_type,
+                   motion_threshold=argu$motion_threshold,
+                   convlv_nuisa=argu$convlv_nuisa,
+                   centerscaleall=argu$centerscaleall,
+                   argu=argu
+                 ),envir = allsub.design
+          )
+          # tid=xid
+          # do.prep.call=prep.call.func
+          # do.prep.arg=prep.call.list
+          # cfgpath=argu$cfgpath
+          # regpath=argu$regpath
+          # gridpath=argu$gridpath
+          # func.nii.name=argu$func.nii.name
+          # proc_id_subs=argu$proc_id_subs   #Put "" for nothing.
+          # wrt.timing=c("convolved", "FSL")
+          # model.name=argu$model.name
+          # func.nii.name=argu$func.nii.name
+          # proc_id_subs=argu$proc_id_subs
+          # model.name=argu$model.name
+          # model.varinames=argu$model.varinames
+          # add.nuisa=argu$ifnuisa
+          # nuisa_motion=argu$nuisa_motion
+          # motion_type=argu$motion_type
+          # motion_threshold=argu$motion_threshold
+          # convlv_nuisa=argu$convlv_nuisa
+          # centerscaleall=argu$centerscaleall
+          
+        },error=function(e) {message("failed regressor generation...go investigate: ",e)}
+      )
+    }
+    
+    save("allsub.design",file = file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
+  } else {message("NO NEW DATA NEEDED TO BE PROCESSED")}
+  
 #End of Step 1
 }
 
@@ -309,9 +319,10 @@ stopCluster(clusterjobs1)
 
 stepnow<-stepnow+1
 if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
-  
   ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
   
+  #Randomize here:
+  if(argu$higherleveltype=="randomize"){
   onesamplet_pergroup<-F
   pairedtest<-F
   if (is.null(argu$group_id_sep) | !exists('group_id_sep',envir = argu)) {argu$group_id_sep<-""} 
@@ -330,15 +341,14 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
                 grp_sep=argu$group_id_sep,
                 onesamplet_pergroup=onesamplet_pergroup,
                 pairedtest=pairedtest,
-                #thresh_cluster_siz=argu$cluster_thresh, #appears to be an old argument, unused
                 copestorun=maxcopenum,
-                thresh_cluster_mass=argu$thresh_cluster_mass,thresh_cluster_extent=argu$thresh_cluster_extent,
+                thresh_cluster_mass=argu$thresh_cluster_mass,
+                thresh_cluster_extent=argu$thresh_cluster_extent,
                 pvalue=argu$randomize_p_threshold,
                 usethesetest=argu$randomize_thresholdingways,
                 ifDeMean=argu$randomize_demean,
                 paralleln = num_cores)
-  
-  # Use for debugging:
+  #Use for debugging:
   # rootdir=argu$ssub_outputroot
   # outputdir=argu$glvl_outputroot
   # modelname=argu$model.name
@@ -353,9 +363,23 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
   # usethesetest=argu$randomize_thresholdingways
   # ifDeMean=argu$randomize_demean
   # paralleln = num_cores
-
+  } else if (argu$higherleveltype=="flame") {
+    #Run flame here:
+    if(!exists("whichflame",envir = argu)) {
+      message("whichflame variable not specified, will use 1+2 by default.")
+      argu$whichflame<-"1+2"
+    }
+    if(argu$whichflame=="1+2"){flametype<-1} else if(argu$whichflame=="1"){flametype<-2} else {stop("Feat's flame can only support '1+2' or '1'")}
+    
+    #Variables to get:
+      #outputpath:
+      #
+    
+    
+  } else {stop("Higher level type ",argu$higherleveltype," is supported, only 'randomize' or 'flame' is currently supported")}
+  
   #End Step 5
-}
+} 
 
 
 #############Step 6: Simple Graph and Info Extraction ###################
@@ -373,13 +397,16 @@ plot_image_all(rootpath=argu$glvl_outputroot,
                colour="red")
 
 #Create cope index; regardless of the paths and stuff, it should be fine...
+if(argu$adaptive_ssfeat){
+  write.table(data.frame(copenum=seq(argu$dsgrid$name),copename=(argu$dsgrid$name)),file = file.path(argu$glvl_outputroot,argu$model.name,"cope_title_index.txt"),row.names = F)
+}else{
 write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)]))),
            title=gsub("\"","",gsub(pattern = "[0-9]*) \"",replacement = "",
                   x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
                            x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
                                     x = ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)+1],fixed = T),fixed = T),fixed = F))
 ),file = file.path(argu$glvl_outputroot,argu$model.name,"cope_title_index.txt"),row.names = F)
-
+}
 #End of Step 6
 }
 

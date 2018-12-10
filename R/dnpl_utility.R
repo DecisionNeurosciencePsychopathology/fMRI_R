@@ -753,7 +753,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
 
 
 sortid<-function(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu$group_id_sep,dosymlink=ifdosymlink){
-  system(paste0("find ",dix," -iname 'average.gfeat' -maxdepth 2"),intern = T)->dirxs
+  system(paste0("find -L ",dix," -iname 'average.gfeat' -maxdepth 2"),intern = T)->dirxs
   alldirs<-sapply(strsplit(dirxs,split = .Platform$file.sep),function(x) {x[(length(x)-1)]})
   split_dirx<-lapply(idgrep,function(x){
     j<-alldirs[grep(x,alldirs)]
@@ -833,44 +833,7 @@ amputate_run<-function(small.sub=NULL,cfgpath=NULL,type="fd",threshold="default"
 }
 
 ####QC
-qc_getinfo<-function(cfgpath=NULL,ssub_dir=file.path(argu$ssub_outputroot,argu$model.name),
-                     qc_var="PxH",ssub_template=argu$ssub_fsl_templatepath,stdspace=argu$templatedir,
-                     mask=roi_indx_df$singlemask,tempdir=T,...){
-  cfg<-cfg_info(cfgpath = cfgpath)
-  tp<-readLines(ssub_template)
-  qc_evnum<-unique(as.numeric(gsub("^.*([0-9]+).*$", "\\1", tp[grep(qc_var,tp)])))
-  dirs<-list.dirs(path = ssub_dir,recursive = F)
-  voxlist<-lapply(dirs, function(dir){
-    strp<-unlist(strsplit(dir,split = .Platform$file.sep))
-    ID<-strp[length(strp)]
-    cfl<-lapply(1:cfg$n_expected_funcruns,function(runnum) {
-      if(file.exists(file.path(dir,paste0("run",runnum,"_output.feat")))){
-        blkdir<-file.path(dir,paste0("run",runnum,"_output.feat"))
-        if (!tempdir) {
-          outdirx<-file.path(blkdir,"QC")
-          dir.create(path = outdirx,showWarnings = F,recursive = F)
-        } else {outdirx<-tempdir()}
-        voxvol<-get_voxel_count(cfile = file.path(blkdir,paste0("thresh_zstat",qc_evnum,".nii")),stdsfile = stdspace,
-                                intmat = file.path(blkdir,"masktostandtransforms.mat"),mask = mask,outdir = outdirx)
-        data.frame(ID=ID,run=runnum,voxel_count=voxvol[1],volume_count=voxvol[2])
-      }else {data.frame(ID=ID,run=runnum,voxel_count=NA,volume_count=NA)}
-    })
-    cfvox<-do.call(rbind,cleanuplist(cfl))
-    rownames(cfvox)<-NULL
-    totalmaskvox<-voxel_count(cfile = mask)
-    cfvox$total_mask_voxel<-totalmaskvox[1]
-    cfvox$total_mask_volumes<-totalmaskvox[2]
-    return(cfvox)
-  })
-  
-  voxdf<-do.call(rbind,voxlist)
-  voxdf$voxsuv_per<-voxdf$voxel_count / voxdf$total_mask_voxel
-  motiondf<-get_motion_info(configpath = cfgpath,...)
-  
-  voxinfo<-merge(voxdf,motiondf,by = c("ID","run"),all=T)
-  return(voxinfo)
-  
-}
+
 
 gen_model_arg<-function(cfgpath=NULL,func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz",mni_template=NULL,QC_auxdir="/Volumes/bek/QC_fsl",parallen=4,fullmodel=F,...){
   cfg<-cfg_info(cfgpath = cfgpath)
@@ -884,7 +847,7 @@ gen_model_arg<-function(cfgpath=NULL,func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz
                                      forcereg=F,regpath=npaths[[2]],func.nii.name=func.nii.name,ssub_outputroot=npaths[[1]],
                                      templatedir=mni_template,
                                      nuisa_motion=c("nuisance","motion_par"),convlv_nuisa=F,
-                                     QC_auxdir=QC_auxdir,
+                                     QC_auxdir=QC_auxdir,motion_type="fd",motion_threshold="default",
                                      gridpath=file.path(QC_auxdir,"qc_grid.csv"),
                                      model.name="QC",
                                      model.varinames=c("QC","QC_none"),
@@ -938,8 +901,8 @@ check_incomplete_preproc<-function(cfgpath=NULL,enforce=F,verbose=T) {
 }
 ###############
 
-create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),atlas_root=NULL,
-                               fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T)
+# create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),atlas_root=NULL,
+#                                fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T)
 
 create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),atlas_root=NULL,
                                fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T,atlas_readtype=c("fsl","spm")) {
@@ -950,13 +913,16 @@ create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir
   maybefsl<-TRUE
   } else {atlas_dir<-atlas_root}
   
-  if(is.null(atlas_readtype)){if(maybefsl){source_type<-"fsl"}else{source_type<-"spm"}}else{
-  if(length(atlas_readtype)==1 & c("fsl" %in% atlas_readtype)){source_type<-"fsl"}
-  if(length(atlas_readtype)==1 & c("spm" %in% atlas_readtype)){source_type<-"spm"}}
+  if(is.null(atlas_readtype)){
+    if(maybefsl){source_type<-"fsl"}else{source_type<-"spm"}
+    }else{
+  if(length(atlas_readtype)==1 & c("fsl" %in% atlas_readtype)){source_type<-"fsl"
+  } else if (length(atlas_readtype)==1 & c("spm" %in% atlas_readtype)){source_type<-"spm"
+  } else {stop("unknown source type")}}
   
   if (is.null(atlas_xml)) {
     if (is.null(atlas_name)) {
-      message("Below are the available atlases in fsl")
+      message("Below are the available atlases in atlas folder:")
       print(latlas<-gsub(".xml","",list.files(path = atlas_dir,pattern = "*.xml"))) 
       wic<-readline(prompt = "Which atlas to use? Type in exact: ")
       if (!wic %in% latlas) {stop(paste0("No atlas named ",wic," found in default fsl atlas directory. Try again"))
@@ -968,19 +934,22 @@ create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir
   images<-atlas_info$header[grep("images",names(atlas_info$header))]
   imagex<-cleanuplist(lapply(images,function(img) {if(length(grep(volxsize,img$imagefile))>0) {return(img)} else {return(NULL)}}))
   #fsl
+  if(source_type=="fsl"){
   atrx<-do.call(rbind,lapply(atlas_info$data,function(dt) {return(cbind(data.frame(target=dt$text),data.frame(as.list(dt$.attrs),stringsAsFactors = F)))}))
   atrx$index<-as.numeric(atrx$index)+1
   target_imag<-file.path(atlas_dir,imagex$images$summaryimagefile)
+  }
   #spm
+  if(source_type=="spm"){
   atrx<-do.call(rbind,lapply(atlas_info$data,function(dt) {
     return(data.frame(index=dt$index,target=dt$name,stringsAsFactors = F))
     }))
   target_imag<-file.path(atlas_dir,imagex$images$imagefile)
+  }
   
   atrx$maskdir<-NA
   atrx$total_voxel<-NA
   
-  target<-NULL
   if (is.null(target)){target<-as.numeric(atrx$index)}
   if (any(is.character(target))) {
     tarindxs<-as.character(atrx$index[grep(pattern = paste(target,collapse = "|"),x = atrx$target)])
