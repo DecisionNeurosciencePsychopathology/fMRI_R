@@ -54,11 +54,11 @@ qc_getinfo<-function(cfgpath=NULL,ssub_dir=file.path(argu$ssub_outputroot,argu$m
 }
 
 
-QC_pipe<-function(cfg=NULL,cfgpath=NULL,QC_func=NULL,bhav_datapath=NULL,bhav_file_patt=NULL,hdtemplate=NULL,
+QC_pipe<-function(cfgpath=NULL,QC_func=NULL,bhav_datapath=NULL,bhav_file_patt=NULL,hdtemplate=NULL,
                   QC_auxdir="/Volumes/bek/QC_fsl",nparalle=NULL,supplylist=NULL,preproc.nii.patt="nfswudktm*[0-9]_[0-9].nii.gz",
                   atlas_name="MNI",atlas_index=c(5,6),...){
   if(is.null(nparalle)) {nparalle<-4}
-  if(is.null(cfg)) {cfg<-cfg_info(cfgpath = cfgpath)}
+  cfg<-cfg_info(cfgpath = cfgpath)
   argu<-gen_model_arg(cfgpath=cfgpath,func.nii.name=preproc.nii.patt,mni_template=hdtemplate,QC_auxdir=QC_auxdir,fullmodel=F,
                      QC_func=QC_func,cfg=cfg)
   if(is.null(supplylist)) {

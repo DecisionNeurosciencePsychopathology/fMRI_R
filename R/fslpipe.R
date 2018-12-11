@@ -23,7 +23,7 @@ if (is.null(argu$nprocess)){
 } else {argu$nprocess->num_cores}
 
 ###Initializing argu;
-argu$cfg<-cfg_info(cfgpath)
+argu$cfg<-cfg_info(cfgpath = cfgpath)
 argu$dsgrid<-read.table(argu$gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
 if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
 #Version upgrade safe keeping
