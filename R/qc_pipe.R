@@ -59,7 +59,7 @@ QC_pipe<-function(cfgpath=NULL,QC_func=NULL,bhav_datapath=NULL,bhav_file_patt=NU
                   atlas_name="MNI",atlas_index=c(5,6),...){
   if(is.null(nparalle)) {nparalle<-4}
   cfg<-cfg_info(cfgpath = cfgpath)
-  argu<-gen_model_arg(cfgpath=cfgpath,func.nii.name=preproc.nii.patt,mni_template=hdtemplate,QC_auxdir=QC_auxdir,fullmodel=F,
+  argu<<-gen_model_arg(cfgpath=cfgpath,func.nii.name=preproc.nii.patt,mni_template=hdtemplate,QC_auxdir=QC_auxdir,fullmodel=F,
                      QC_func=QC_func,cfg=cfg)
   if(is.null(supplylist)) {
   if(is.null(bhav_datapath)){stop("No way of generating the list for fsl_pipe, you can custom generate one outside QC_pipe if desires so")}
@@ -68,10 +68,10 @@ QC_pipe<-function(cfgpath=NULL,QC_func=NULL,bhav_datapath=NULL,bhav_file_patt=NU
     strsplit(n,.Platform$file.sep)[[1]]->nx
     nx[[length(nx)]]
   })
-  dirs<-lapply(dirs,as.list)
+  supplylist<-lapply(dirs,as.list)
   }
   #run it through fsl pipe step 1:3;
-  fsl_pipe(argu = argu,prep.call.func = QC_func,prep.call.allsub = dirs)
+  fsl_pipe(argu = argu,prep.call.func = QC_func,prep.call.allsub = supplylist)
   roi_indx_df<-create_roimask_atlas(atlas_name="MNI",target=c(5,6),outdir=argu$QC_auxdir,
                                     fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",
                                     singlemask=T,atlas_readtype = "fsl",...) 
