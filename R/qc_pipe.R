@@ -60,7 +60,7 @@ QC_pipe<-function(cfgpath=NULL,QC_func=NULL,bhav_datapath=NULL,bhav_file_patt=NU
   if(is.null(nparalle)) {nparalle<-4}
   cfg<-cfg_info(cfgpath = cfgpath)
   argu<<-gen_model_arg(cfgpath=cfgpath,func.nii.name=preproc.nii.patt,mni_template=hdtemplate,QC_auxdir=QC_auxdir,fullmodel=F,
-                     QC_func=QC_func,cfg=cfg)
+                     QC_func=QC_func,cfg=cfg,parallen=nparalle)
   if(is.null(supplylist)) {
   if(is.null(bhav_datapath)){stop("No way of generating the list for fsl_pipe, you can custom generate one outside QC_pipe if desires so")}
   dirs<-as.list(list.files(path = bhav_datapath,recursive = F,include.dirs = T,full.names = T))
