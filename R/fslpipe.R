@@ -123,7 +123,7 @@ if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
           # motion_threshold=argu$motion_threshold
           # convlv_nuisa=argu$convlv_nuisa
           # centerscaleall=argu$centerscaleall
-          
+
         },error=function(e) {message("failed regressor generation...go investigate: ",e)}
       )
     }

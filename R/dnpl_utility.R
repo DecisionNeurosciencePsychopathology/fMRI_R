@@ -322,13 +322,13 @@ make_heatmap_with_design<-function(design=NULL) {
   return(dependlab::cor_heatmap(as.data.frame(dependlab::concat_design_runs(design))))
 }
 
-findbox<-function() {
-  if (Sys.getenv("USER")=="jiazhouchen") {boxdir <- "/Users/jiazhouchen/Box Sync"
-  } else if (Sys.getenv("USER")=="jiazhou") {boxdir <- "/Volumes/bek/Box Sync"} else {
+findbox<-function(usebek=F) {
+  if(usebek){boxdir<-"/Volumes/bek/Box Sync"} else if (dir.exists("~/Box")) {
+    boxdir <- "~/Box"
+  } else {
     boxdir<-system("find ~ -iname 'Box*' -maxdepth 2 -type d",intern = T)}
   return(boxdir)
 }
-
 prepare4secondlvl<-function(ssana.path=NULL,preproc.path=NULL,
                             standardbarin.path="/Volumes/bek/Newtemplate_may18/fsl_mni152/MNI152_T1_2mm_brain.nii",
                             proc.name=NULL,taskname=NULL,dir.filter=NULL,overwrite=TRUE,outputmap=FALSE,paralleln=NULL) {
@@ -904,8 +904,10 @@ check_incomplete_preproc<-function(cfgpath=NULL,enforce=F,verbose=T) {
 # create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),atlas_root=NULL,
 #                                fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T)
 
+
+
 create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),atlas_root=NULL,
-                               fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T,atlas_readtype=c("fsl","spm")) {
+                               fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T,atlas_readtype=c("fsl","spm"),output_main=F) {
   if (is.null(atlas_root)){
   if (is.null(fsl_dir)) {
   fsl_2_sys_env(); fsl_dir=Sys.getenv("FSLDIR")}
@@ -978,8 +980,8 @@ create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir
     cmd<-paste("${FSLDIR}/bin/fslmaths",paste(na.omit(atrx$maskdir),collapse = " -add "),singlemask)
     system(cmd,intern = F)
   } else {singlemask<-NULL}
-    
-  return(list(indexdf=atrx,singlemask=singlemask))
+  if(output_main){return(list(indexdf=atrx,singlemask=singlemask,main_img=target_imag))
+  }else{return(list(indexdf=atrx,singlemask=singlemask))}
 }
 
 voxel_count<-function(cfile=NULL,mask=NULL,nonzero=T) {
@@ -1014,6 +1016,29 @@ whichfile<-function(textx=NULL,dirx=NULL,fullnameq=T){
   return(fxj)
 }  
 
+# rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanalysis/fsl"
+# grproot="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl"
+# modelname="Value1n"
+# basemask="tstat"
+# corrp_mask="tfce"
+# saveclustermap=TRUE
+# VersionCode="tfce0.95"
+# corrmaskthreshold=0.98
+# roimaskthreshold=0.0001
+# voxelnumthres=10
+# clustertoget=NULL
+# copetoget=NULL
+# maxcore=4
+
+# featdir=featdir
+# base=basemask
+# corrp_mask=corrp_mask
+# outdir = cmoutdir
+# VersionCode = Version
+# maskthresholdvalue=corrmaskthreshold
+# roimaskthreshold=roimaskthreshold
+# overwrite=!saveclustermap
+
 gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl/alignment6/cope12_randomize_onesample_ttest",
                            outdir=NULL,VersionCode=NULL,base="tstat",corrp_mask="tstat",maskthresholdvalue=3.0,roimaskthreshold=0.0001,
                            overwrite=T,writecsv=T,savetempdir=NULL) {
@@ -1023,7 +1048,7 @@ gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpa
   #if(is.null(templatebrain)) {templatebrain<-file.path(Sys.getenv("FSLDIR"),"data","standard","MNI152_T1_2mm_brain_mask.nii.gz")}
   dir.create(tempdirx,showWarnings = F,recursive = F)
   step1path<-file.path(tempdirx,"signifi_thres.nii.gz")
-  cmd1<-paste("fslmaths",whichfile(corrp_mask,featdir,T),"-thr",maskthresholdvalue,
+  cmd1<-paste("fslmaths",whichfile (corrp_mask,featdir,T),"-thr",maskthresholdvalue,
               "-bin","-mul",whichfile(base,featdir,T),step1path,sep = " ")
   system(cmd1)
   
@@ -1061,10 +1086,23 @@ gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpa
 #Left
 #paste0("fslmaths ",templatebrain," -roi 45 -1 0 -1 0 -1 0 -1 lefthem_standard.nii")
 
+# rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanalysis/fsl"
+# grproot="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl"
+# modelname="Value1n"
+# basemask="tstat"
+# corrp_mask="tfce"
+# saveclustermap=TRUE
+# VersionCode="tfce0.95"
+# corrmaskthreshold=0.98
+# roimaskthreshold=0.0001
+# voxelnumthres=10
+# clustertoget=NULL
+# copetoget=NULL
+# maxcore=4
 
 roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot,modelname=argu$model.name,grp_identif=NA,
                        basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,
-                       roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL,maxcore=4,saverdata=T){
+                       roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL,maxcore=4,saverdata=T,...){
                        #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
 raw_avfeat<-system(paste0("find ",file.path(rootdir,modelname,"*/average.gfeat")," -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
 fsl_2_sys_env()
@@ -1098,6 +1136,7 @@ copes_roivalues<-parallel::parLapply(cl=sharedproc,X = copetoget,function(copenu
                            maskthresholdvalue=corrmaskthreshold,roimaskthreshold=roimaskthreshold,
                            overwrite=!saveclustermap,...)
   cmindx<-cmindx[cmindx$Voxels>voxelnumthres,]
+   
   clx<-clustertoget[[as.character(copenum)]]
   if(is.null(clx)){clx<-cmindx$`Cluster Index`}
   clx<-clx[clx %in% cmindx$`Cluster Index`]
