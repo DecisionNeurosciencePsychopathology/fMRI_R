@@ -25,7 +25,7 @@ if (is.null(argu$nprocess)){
 ###Initializing argu;
 argu$cfg<-cfg_info(cfgpath = argu$cfgpath)
 argu$dsgrid<-read.table(argu$gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
-argu$dsgrid$addNeg<-as.logical(argu$dsgrid$addNeg)
+argu$dsgrid$AddNeg<-as.logical(argu$dsgrid$AddNeg)
 if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
 #Version upgrade safe keeping
 if (!exists("centerscaleall",envir = argu)) {
