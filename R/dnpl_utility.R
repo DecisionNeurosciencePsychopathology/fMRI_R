@@ -554,10 +554,7 @@ rep_within<-function(adptemplate=NULL,searchenvir=NULL){
     rep_within(adptemplate=adptemplate,searchenvir = searchenvir)
   } else {return(adptemplate)}
 }
-rep_within(adptemplate=adptemplate,searchenvir = searchenvir)->adptemplate
-writeLines(adptemplate,"~/Desktop/test.fsf")
 
-readLines("~/Desktop/test.fsf")->adptemplate
 
 adopt_feat<-function(adptemplate_path=NULL,searenvir=NULL,firstorder=F) {
   readLines(adptemplate_path)->adptemplate
