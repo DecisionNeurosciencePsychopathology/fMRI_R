@@ -479,6 +479,7 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
   design$ID<-tid
   design$preprocID<-paste0(tid,proc_id_subs)
   design$regpath<-file.path(regpath,model.name,tid)
+ # design$grid<-dsgrid
   
   if (!is.null(nuisa)){
     for (k in 1:length(nuisa)) {
@@ -509,13 +510,14 @@ change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenv
 #####Generate reg path from model name:
 
 gen_reg<-function(vmodel=NULL,regpath=NULL,idx=NULL,runnum=NULL,env=NULL,regtype=NULL) {
-  NUP<-lapply(vmodel<-argu$model.varinames, function(x) {
+  message("Depreciated! Is probably useless; Will keep for 3 versions before deleting")
+  NUP<-lapply(vmodel, function(x) {
     assign(paste0(x,"reg"),file.path(regpath,idx,paste0("run",runnum,"_",x,regtype)),envir = env)
   })
 } 
 
-
 populate_within<-function(chunk_within=NULL,xvlist=NULL,variname=NULL,firstorder=NULL){
+  message("Depreciated! Is probably useless; Will keep for 3 versions before deleting")
   seq_lines<-lapply(xvlist,function(xjk){
       temp<-as.environment(list())
       assign(variname,xjk,envir = temp)
@@ -530,34 +532,63 @@ populate_within<-function(chunk_within=NULL,xvlist=NULL,variname=NULL,firstorder
   return(re_within)
 }
 
+rep_within<-function(adptemplate=NULL,searchenvir=NULL){
+  if(any(grepl("^SEC_.*_START$",adptemplate))){
+    startnum<-grep("^SEC_.*_START$",adptemplate)[1]
+    vari_x<-gsub("_START","",gsub("SEC_","",adptemplate[startnum]))
+    endnum<-grep(paste0("SEC_",vari_x,"_END"),adptemplate)[1]
+    chunk_pre<-adptemplate[1:startnum-1]
+    chunk_post<-adptemplate[(endnum+1):length(adptemplate)]
+    chunk_within<-adptemplate[(startnum+1):(endnum-1)]
+    lsx<-tryCatch({
+      lsx<-get(vari_x,envir = searchenvir)
+    },error = function(e) {
+      vari_y<-gsub("XG_","",gsub("_EX","",gsub("BxG_","",gsub("ExN","",vari_x))))
+      return(get(vari_y,envir = searchenvir))
+    })
+    new_chunk<-do.call(c,lapply(lsx,function(repl){
+      gsub(pattern = vari_x,replacement = repl,x = chunk_within,fixed = T)
+    }))
+    adptemplate<-c(chunk_pre,new_chunk,chunk_post)
+    writeLines(adptemplate,"~/Desktop/test.fsf")
+    rep_within(adptemplate=adptemplate,searchenvir = searchenvir)
+  } else {return(adptemplate)}
+}
+rep_within(adptemplate=adptemplate,searchenvir = searchenvir)->adptemplate
+writeLines(adptemplate,"~/Desktop/test.fsf")
+
+readLines("~/Desktop/test.fsf")->adptemplate
+
 adopt_feat<-function(adptemplate_path=NULL,searenvir=NULL,firstorder=F) {
   readLines(adptemplate_path)->adptemplate
   #find the area that needs to be replaced:
   #For real tho, the order should be fine but just to be 1000000 % sure, let's match them
   while(length(grep("SEC_.*_START",adptemplate))>0) {
-  startnum<-grep("SEC_.*_START",adptemplate)[1]
-  name<-gsub("_START","",gsub("SEC_","",adptemplate[startnum]))
-  endnum<-grep(paste0("SEC_",name,"_END"),adptemplate)
-  #Let's not use lapply cuz combining them would be a headache..
+    startnum<-grep("SEC_.*_START",adptemplate)[1]
+    name<-gsub("_START","",gsub("SEC_","",adptemplate[startnum]))
+    endnum<-grep(paste0("SEC_",name,"_END"),adptemplate)
+    #Let's not use lapply cuz combining them would be a headache..
     #print(as.character(name))
     chunk_pre<-adptemplate[1:startnum-1]
     chunk_post<-adptemplate[(endnum+1):length(adptemplate)]
     #Okay now we constructure what's within.
     chunk_within<-adptemplate[(startnum+1):(endnum-1)]
+    
     variname<-substr(chunk_within,regexpr(paste0("XG_","*"),chunk_within)+nchar("XG_"),
-                      regexpr(paste0("*","_EX"),chunk_within)-1)
+                     regexpr(paste0("*","_EX"),chunk_within)-1)
     unique(variname[variname!=""])->finavariname
     if(firstorder) {
-      if(any(grepl("evnum",finavariname))) {finavariname<-"evnum"} else {
-      finavariname<-finavariname[1]}
-      }
+      if(any(grepl("evnum",finavariname))) {finavariname<-"evnum"} else if (any(grepl("copenum",finavariname))) {
+        finavariname<-"copenum"}  else {
+          finavariname<-finavariname[1]}
+    }
     get(finavariname,envir = searenvir)->xvlist
     if (length(finavariname)==1) {
       new_within<-populate_within(chunk_within = chunk_within,xvlist = xvlist,variname = finavariname,firstorder=T)
     } else {stop("Something Went Wrong! This is adopt_feat, first step")}
     
     if (length(new_within)>0) {
-    adptemplate<-c(chunk_pre,new_within,chunk_post)
+      adptemplate<-c(chunk_pre,new_within,chunk_post)
     } else {stop(paste0("Something Went Wrong! This is adopt_feat, 2nd step"))}
   } #End while 
   return(adptemplate)

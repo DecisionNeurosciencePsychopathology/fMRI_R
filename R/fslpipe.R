@@ -52,6 +52,12 @@ if (!exists("adaptive_ssfeat",envir = argu)) {
   message("Single Subject Level type is not specified, will use non-adaptive version by default.")
   argu$adaptive_ssfeat<-FALSE
 } 
+if (!exists("xmat",envir = argu)) {
+  message("Single Subject Level type is not specified, will use non-adaptive version by default.")
+  ogLength<-length(argu$dsgrid$name)
+  argu$xmat<-rbind(diag(x=1,ogLength),diag(x=-1,ogLength))
+} 
+
 
 #############STEP 1: Regressor generation #####################
 #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
@@ -172,21 +178,32 @@ step2commands<-unlist(lapply(small.sub,function(x) {
       xarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfgfilepath = argu$cfgpath,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
       xarg$nuisa<-file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
       if (any(unlist(eapply(xarg,is.na)))) {stop("NA exists in one of the arguments; please double check!")}
-      gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
+      #gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
     
       if(argu$adaptive_ssfeat){
-        argu$model.varinames<-colnames(x$design)
-        xarg$evnum<-1:length(argu$model.varinames)
-        xarg$maxevnum<-length(argu$model.varinames)
-        argu$maxcopenum<-length(argu$model.varinames)
-        for (mv in 1:length(argu$model.varinames)) {
+        argu$model.varinames<-argu$dsgrid$name
+        argu$copenames<-c(argu$model.varinames,paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
+        xarg$evnum<-1:ncol(argu$xmat)
+        xarg$copenum<-1:nrow(argu$xmat)
+        xarg$maxevnum<-ncol(argu$xmat)
+        xarg$maxcopenum<-nrow(argu$xmat)
+        argu$maxcopenum<-nrow(argu$xmat)
+
+        for (xy in 1:nrow(argu$xmat)){
+          assign(paste0("copemat",xy),value = 1:ncol(argu$xmat),envir = xarg)
+          assign(paste0("copetitle",xy),argu$copenames[xy],envir = xarg)
+          assign(paste0("cope_lessnum",xy),(1:length(argu$copenames))[-xy],envir = xarg)
+          for(xx in 1:ncol(argu$xmat)){
+            assign(paste0("copevalue",xy,"_",xx),value = argu$xmat[xy,xx],envir = xarg)
+          }
+        } 
+        for (mv in 1:ncol(argu$xmat)) {
           assign(paste0("evtitle",mv),argu$model.varinames[mv],envir = xarg)
           assign(paste0("orthocombo",mv),paste(mv,(0:length(argu$model.varinames)),sep = "."),envir = xarg)
-          assign(paste0("ev_lessnum",mv),(1:length(argu$model.varinames))[-mv],envir = xarg)
           assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model.name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = xarg)
         }
         #PUT NEW FUNCTION HERE
-        ssfsltemp<-adopt_feat(adptemplate_path = argu$ssub_fsl_templatepath,searenvir=xarg,firstorder=T)
+        ssfsltemp<-rep_within(adptemplate = readLines(argu$ssub_fsl_templatepath),searchenvir = xarg)
       } else {ssfsltemp<-readLines(argu$ssub_fsl_templatepath)}
       cmmd<-feat_w_template(fsltemplate = ssfsltemp,beg = "ARG_",end = "_END",
                       fsfpath = file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_",argu$model.name,".fsf")),
@@ -285,15 +302,17 @@ NU<-parSapply(clusterjobs1,small.sub, function(y) {
   if (argu$adaptive_gfeat) {
     larg$maxrunnum<-1:length(y$featlist)
     ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
-    if(argu$adaptive_ssfeat) {larg$maxcopenum<-1:length(argu$model.varinames)} else {
-    larg$maxcopenum<-1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
-    }
+    larg$maxcopenum<-1:nrow(argu$xmat)
+    
     #PUT NEW FUNCTION HERE
     studyfsltemp<-adopt_feat(adptemplate_path = argu$gsub_fsl_templatepath,searenvir=larg,firstorder=F)
     larg$maxrunnum<-max(larg$maxrunnum)
     larg$maxcopenum<-max(larg$maxcopenum)
     
-  } else {studyfsltemp<-readLines(argu$gsub_fsl_templatepath)}
+  } else {
+  studyfsltemp<-readLines(argu$gsub_fsl_templatepath)
+  larg$maxcopenum<-1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
+  }
   if (!file.exists(paste0(larg$outputpath,".gfeat"))) {
     message(paste0("Initializing gfeat for participant: ",larg$idx))
     feat_w_template(fsltemplate = studyfsltemp,
@@ -398,7 +417,12 @@ plot_image_all(rootpath=argu$glvl_outputroot,
 
 #Create cope index; regardless of the paths and stuff, it should be fine...
 if(argu$adaptive_ssfeat){
-  write.table(data.frame(copenum=seq(argu$dsgrid$name),copename=(argu$dsgrid$name)),file = file.path(argu$glvl_outputroot,argu$model.name,"cope_title_index.txt"),row.names = F)
+  xout<-rbind(
+  data.frame(copenum=seq(argu$dsgrid$name),copename=(argu$dsgrid$name)),
+  data.frame(copenum=seq(from=length(argu$dsgrid$name)+1,along.with = which(argu$dsgrid$AddNeg)),
+             copename=paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
+  )
+  write.table(xout,file = file.path(argu$glvl_outputroot,argu$model.name,"cope_title_index.txt"),row.names = F)
 }else{
 write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)]))),
            title=gsub("\"","",gsub(pattern = "[0-9]*) \"",replacement = "",
