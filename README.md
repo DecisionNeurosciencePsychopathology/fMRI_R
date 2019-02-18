@@ -1,17 +1,14 @@
 # fMRI_R REPOSITORY
 
 New feature: 
-- Add support to subjects with different run numbers
-- The fsl_pipe function now can use adaptive single subject template that adjust based on the design grid for models and studys. 
-- The fsl_pipe function now can use adaptive gfeat template that adjust based on run number and max cope number from differnt models and studys. It's now one less step to adjust before running a new study or model!
-- The fsl_pipe function now can generate motion sensor files using fsl if pipeline results are not available (low priority)
-- Added new pack of tools related to ROI extraction
-- New QC_pipe function to quality check on runs and subjects. 
+- New ability to run negative maps, simply put TRUE as value for each cope in "AddNeg" colume. 
+- New ability to take in a design matrix to perform more flexible contrasts and F-tests.
+- Adaptive run control, ability to ambutate an run of a subject for motion creteria.
+- Adaptive single subject function is now more efficient. 
 
 Coming soon:
 - flame support on group level (phase roll out, might support non-adaptive template first)
-- Negative map automation
-- Adaptive run control
+
 
 This project is to utilize R to streamline some fMRI processing and offer flexibility of some degrees.
 There are 2 main scripts:
@@ -41,6 +38,7 @@ To utilize the pipeline in this repository, there are couple thing one would nee
 For an example, see: https://github.com/Jiazhouchen/pecina/blob/master/gen_regressor_signal.R
 
 - 1, One must set up proper argument environment which contains the following objects
+#####NEED TO BE UPDATED TO INCLUDE NEW MOTION AND ADAPTIVE FEATURES###########
 ```
 argu<-as.environment(list(
 nprocess=12,                                         #Number of processes to allow for paralle processing, if NULL will use detectCores()-2
