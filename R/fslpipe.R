@@ -175,6 +175,9 @@ small.sub<-eapply(allsub.design, function(x) {
 
 #IT's the same for all participants!!!! WHY DO YOU RE RUN IT FOR EVERYONE!!!
 xarg<-as.environment(list())
+xarg$templatebrain<-argu$templatedir
+xarg$tr<-argu$cfg$preproc_call$tr
+
 if(argu$adaptive_ssfeat){
   argu$model.varinames<-argu$dsgrid$name
   argu$copenames<-c(argu$model.varinames,paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
@@ -208,12 +211,9 @@ step2commands<-unlist(lapply(small.sub,function(x) {
       if(is.null(argu$ss_zthreshold)) {xarg$zthreshold<-3.2} else {xarg$zthreshold<-argu$ss_zthreshold}
       if(is.null(argu$ss_pthreshold)) {xarg$pthreshold<-0.05} else {xarg$pthreshold<-argu$ss_pthreshold}
       
-      xarg$runnum<-runnum    
-      xarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
-      xarg$templatebrain<-argu$templatedir
-      xarg$tr<-argu$cfg$preproc_call$tr
-      
       message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
+      xarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
+      xarg$runnum<-runnum   
       xarg$volumes<-x$run_volumes[runnum]
       xarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfgfilepath = argu$cfgpath,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
       xarg$nuisa<-file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
