@@ -59,7 +59,7 @@ if (!exists("adaptive_ssfeat",envir = argu)) {
 if (!exists("xmat",envir = argu)) {
   message("Single Subject Level type is not specified, will use non-adaptive version by default.")
   ogLength<-length(argu$dsgrid$name)
-  negLength<length(which(argu$dsgrid$AddNeg))
+  negLength<-length(which(argu$dsgrid$AddNeg))
   argu$xmat<-rbind(diag(x=1,ogLength),diag(x=-1,negLength))
 } 
 
