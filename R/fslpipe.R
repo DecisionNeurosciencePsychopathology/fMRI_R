@@ -1,5 +1,7 @@
 ######FSL PIPE:
+#New features:
 
+#You can now supply xmat to argu for design matrix 
 
 
 fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model should have a different one;
@@ -57,7 +59,8 @@ if (!exists("adaptive_ssfeat",envir = argu)) {
 if (!exists("xmat",envir = argu)) {
   message("Single Subject Level type is not specified, will use non-adaptive version by default.")
   ogLength<-length(argu$dsgrid$name)
-  argu$xmat<-rbind(diag(x=1,ogLength),diag(x=-1,ogLength))
+  negLength<length(which(argu$dsgrid$AddNeg))
+  argu$xmat<-rbind(diag(x=1,ogLength),diag(x=-1,negLength))
 } 
 
 
@@ -163,10 +166,38 @@ small.sub<-eapply(allsub.design, function(x) {
     preprocID=x$preprocID)
 })
 
+#IT's the same for all participants!!!! WHY DO YOU RE RUN IT FOR EVERYONE!!!
+xarg<-as.environment(list())
+if(argu$adaptive_ssfeat){
+  argu$model.varinames<-argu$dsgrid$name
+  argu$copenames<-c(argu$model.varinames,paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
+  xarg$evnum<-1:ncol(argu$xmat)
+  xarg$copenum<-1:nrow(argu$xmat)
+  xarg$maxevnum<-ncol(argu$xmat)
+  xarg$maxcopenum<-nrow(argu$xmat)
+  argu$maxcopenum<-nrow(argu$xmat)
+  
+  for (xy in 1:nrow(argu$xmat)){
+    assign(paste0("copemat",xy),value = 1:ncol(argu$xmat),envir = xarg)
+    assign(paste0("copetitle",xy),argu$copenames[xy],envir = xarg)
+    assign(paste0("cope_lessnum",xy),(1:length(argu$copenames))[-xy],envir = xarg)
+    for(xx in 1:ncol(argu$xmat)){
+      assign(paste0("copevalue",xy,"_",xx),value = argu$xmat[xy,xx],envir = xarg)
+    }
+  } 
+  for (mv in 1:ncol(argu$xmat)) {
+    assign(paste0("evtitle",mv),argu$model.varinames[mv],envir = xarg)
+    assign(paste0("orthocombo",mv),paste(mv,(0:length(argu$model.varinames)),sep = "."),envir = xarg)
+    assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model.name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = xarg)
+  }
+  #PUT NEW FUNCTION HERE
+  ssfsltemp<-rep_within(adptemplate = readLines(argu$ssub_fsl_templatepath),searchenvir = xarg)
+} else {ssfsltemp<-readLines(argu$ssub_fsl_templatepath)}
+
 step2commands<-unlist(lapply(small.sub,function(x) {
   idx<-x$ID
   cmmd<-unlist(lapply(1:length(x$run_volumes), function(runnum) {
-    xarg<-as.environment(list())
+   
     xarg$runnum<-runnum    
     xarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
     xarg$templatebrain<-argu$templatedir
@@ -182,31 +213,6 @@ step2commands<-unlist(lapply(small.sub,function(x) {
       if (any(unlist(eapply(xarg,is.na)))) {stop("NA exists in one of the arguments; please double check!")}
       #gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
     
-      if(argu$adaptive_ssfeat){
-        argu$model.varinames<-argu$dsgrid$name
-        argu$copenames<-c(argu$model.varinames,paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
-        xarg$evnum<-1:ncol(argu$xmat)
-        xarg$copenum<-1:nrow(argu$xmat)
-        xarg$maxevnum<-ncol(argu$xmat)
-        xarg$maxcopenum<-nrow(argu$xmat)
-        argu$maxcopenum<-nrow(argu$xmat)
-
-        for (xy in 1:nrow(argu$xmat)){
-          assign(paste0("copemat",xy),value = 1:ncol(argu$xmat),envir = xarg)
-          assign(paste0("copetitle",xy),argu$copenames[xy],envir = xarg)
-          assign(paste0("cope_lessnum",xy),(1:length(argu$copenames))[-xy],envir = xarg)
-          for(xx in 1:ncol(argu$xmat)){
-            assign(paste0("copevalue",xy,"_",xx),value = argu$xmat[xy,xx],envir = xarg)
-          }
-        } 
-        for (mv in 1:ncol(argu$xmat)) {
-          assign(paste0("evtitle",mv),argu$model.varinames[mv],envir = xarg)
-          assign(paste0("orthocombo",mv),paste(mv,(0:length(argu$model.varinames)),sep = "."),envir = xarg)
-          assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model.name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = xarg)
-        }
-        #PUT NEW FUNCTION HERE
-        ssfsltemp<-rep_within(adptemplate = readLines(argu$ssub_fsl_templatepath),searchenvir = xarg)
-      } else {ssfsltemp<-readLines(argu$ssub_fsl_templatepath)}
       cmmd<-feat_w_template(fsltemplate = ssfsltemp,beg = "ARG_",end = "_END",
                       fsfpath = file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_",argu$model.name,".fsf")),
                       envir = xarg,outcommand = T)
