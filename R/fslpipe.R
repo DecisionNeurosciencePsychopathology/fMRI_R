@@ -64,6 +64,7 @@ if (!exists("xmat",envir = argu)) {
     negMat<-diag(x=-1,ogLength)
     negMat<-negMat[negNum,]
     argu$xmat<-rbind(diag(x=1,ogLength),negMat)
+    
   } else {
     argu$xmat<-diag(x=1,ogLength)
   }
