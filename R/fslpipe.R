@@ -203,10 +203,7 @@ if(argu$adaptive_ssfeat){
 step2commands<-unlist(lapply(small.sub,function(x) {
   idx<-x$ID
   cmmd<-unlist(lapply(1:length(x$run_volumes), function(runnum) {
-   
-   
-    
-   
+
     if (!file.exists(paste0(xarg$outputpath,".feat")) ) {
       if(is.null(argu$ss_zthreshold)) {xarg$zthreshold<-3.2} else {xarg$zthreshold<-argu$ss_zthreshold}
       if(is.null(argu$ss_pthreshold)) {xarg$pthreshold<-0.05} else {xarg$pthreshold<-argu$ss_pthreshold}

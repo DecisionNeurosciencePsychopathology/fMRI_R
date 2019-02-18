@@ -510,8 +510,10 @@ change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenv
   if(focus){}
   fsltemplate[which(grepl(x1,fsltemplate))]<-unlist(lapply(fsltemplate[which(grepl(x1,fsltemplate))],function(stx){
     otx<-sub(x=stx,pattern = x2,replacement="\\1")
+    ##print(otx)
     #data.frame(org=otx,replacement=searchenvir[[otx]])
-    gsub("ARG_.*_END",replacement = searchenvir[[otx]],x = stx)
+    if(is.null(searchenvir[[otx]]) | is.na(searchenvir[[otx]])) {stop(paste0("Variable ",otx," is NULL or NA."))}
+    gsub(x1,replacement = searchenvir[[otx]],x = stx)
   }))
   
   return(fsltemplate)
