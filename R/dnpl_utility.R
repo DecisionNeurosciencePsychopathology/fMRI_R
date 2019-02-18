@@ -493,19 +493,34 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
 }
 ######Modify fsl template with variable switch
 change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenvir=xarg,focus=T) {
-  for (tofind in grep(paste0(begin,"*"),fsltemplate) ){
-    tryCatch(
-      {
-      varixma<-substr(fsltemplate[tofind],regexpr(paste0(begin,"*"),fsltemplate[tofind])+nchar(begin),
-                       regexpr(paste0("*",end),fsltemplate[tofind])-1)
-      if (!focus | varixma %in% objects(searchenvir)) {
-        fsltemplate[tofind]<-gsub(paste0(begin,varixma,end),searchenvir[[varixma]],fsltemplate[tofind])
-      } 
-      },
-      error=function(e){print(paste0("something went wrong in ",varixma," :",e))})
-  }
+  # for (tofind in grep(paste0(begin,"*"),fsltemplate) ){
+  #   tryCatch(
+  #     {
+  #     varixma<-substr(fsltemplate[tofind],regexpr(paste0(begin,"*"),fsltemplate[tofind])+nchar(begin),
+  #                      regexpr(paste0("*",end),fsltemplate[tofind])-1)
+  #     if (!focus | varixma %in% objects(searchenvir)) {
+  #       fsltemplate[tofind]<-gsub(paste0(begin,varixma,end),searchenvir[[varixma]],fsltemplate[tofind])
+  #     } 
+  #     },
+  #     error=function(e){print(paste0("something went wrong in ",varixma," :",e))})
+  # }
+  # return(fsltemplate)
+  x1<-paste0(begin,".*",end)
+  x2<-paste0(".*",begin,"*(.*?) *",end,".*")
+  if(focus){}
+  fsltemplate[which(grepl(x1,fsltemplate))]<-unlist(lapply(fsltemplate[which(grepl(x1,fsltemplate))],function(stx){
+    otx<-sub(x=stx,pattern = x2,replacement="\\1")
+    #data.frame(org=otx,replacement=searchenvir[[otx]])
+    gsub("ARG_.*_END",replacement = searchenvir[[otx]],x = stx)
+  }))
+  
   return(fsltemplate)
 }
+
+       
+
+
+
 
 #####Generate reg path from model name:
 
