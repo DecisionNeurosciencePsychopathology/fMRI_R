@@ -59,15 +59,8 @@ if (!exists("adaptive_ssfeat",envir = argu)) {
 if (!exists("xmat",envir = argu)) {
   message("Single Subject Level type is not specified, will use non-adaptive version by default.")
   ogLength<-length(argu$dsgrid$name)
-  negNum<-(which(argu$dsgrid$AddNeg))
-  if(length(negNum)>0){
-    negMat<-diag(x=-1,ogLength)
-    negMat<-negMat[negNum,]
-    argu$xmat<-rbind(diag(x=1,ogLength),negMat)
-  } else {
-    argu$xmat<-diag(x=1,ogLength)
-  }
-  
+  negLength<-length(which(argu$dsgrid$AddNeg))
+  argu$xmat<-rbind(diag(x=1,ogLength),diag(x=-1,negLength))
 } 
 
 
@@ -195,8 +188,7 @@ if(argu$adaptive_ssfeat){
   for (mv in 1:ncol(argu$xmat)) {
     assign(paste0("evtitle",mv),argu$model.varinames[mv],envir = xarg)
     assign(paste0("orthocombo",mv),paste(mv,(0:length(argu$model.varinames)),sep = "."),envir = xarg)
-    assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model.name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = xarg)
-  }
+   }
   #PUT NEW FUNCTION HERE
   ssfsltemp<-rep_within(adptemplate = readLines(argu$ssub_fsl_templatepath),searchenvir = xarg)
 } else {ssfsltemp<-readLines(argu$ssub_fsl_templatepath)}
@@ -205,21 +197,30 @@ step2commands<-unlist(lapply(small.sub,function(x) {
   idx<-x$ID
   cmmd<-unlist(lapply(1:length(x$run_volumes), function(runnum) {
    
-    xarg$runnum<-runnum    
-    xarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
-    xarg$templatebrain<-argu$templatedir
-    xarg$tr<-argu$cfg$preproc_call$tr
+   
     
-    if(is.null(argu$ss_zthreshold)) {xarg$zthreshold<-3.2} else {xarg$zthreshold<-argu$ss_zthreshold}
-    if(is.null(argu$ss_pthreshold)) {xarg$pthreshold<-0.05} else {xarg$pthreshold<-argu$ss_pthreshold}
+   
     if (!file.exists(paste0(xarg$outputpath,".feat")) ) {
+      if(is.null(argu$ss_zthreshold)) {xarg$zthreshold<-3.2} else {xarg$zthreshold<-argu$ss_zthreshold}
+      if(is.null(argu$ss_pthreshold)) {xarg$pthreshold<-0.05} else {xarg$pthreshold<-argu$ss_pthreshold}
+      
+      xarg$runnum<-runnum    
+      xarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
+      xarg$templatebrain<-argu$templatedir
+      xarg$tr<-argu$cfg$preproc_call$tr
+      
       message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
       xarg$volumes<-x$run_volumes[runnum]
       xarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfgfilepath = argu$cfgpath,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
       xarg$nuisa<-file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
+      
+      for (mv in 1:ncol(argu$xmat)) {
+        assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model.name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = xarg)
+        }
+      
       if (any(unlist(eapply(xarg,is.na)))) {stop("NA exists in one of the arguments; please double check!")}
       #gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
-    
+      
       cmmd<-feat_w_template(fsltemplate = ssfsltemp,beg = "ARG_",end = "_END",
                       fsfpath = file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_",argu$model.name,".fsf")),
                       envir = xarg,outcommand = T)
