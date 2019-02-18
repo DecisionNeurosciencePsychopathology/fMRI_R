@@ -1,0 +1,13 @@
+Package: fslpipe
+Type: Package
+Title: fMRI Tools and Pipeline for FSL
+Version: 0.0.1
+Author: Jiazhou Chen
+Maintainer: Jiazhou Chen <chenj20@upmc.edu>
+Description: Please see the README.MD for more description
+Depends: R (>= 3.4.0), data.table, ggplot2
+License: I don't know...don't really apply to other people's situation
+Imports: data.table, ggplot2,zoo,plyr,RCurl,reshape2,devtools,parallel,oro.nifti, XML
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
