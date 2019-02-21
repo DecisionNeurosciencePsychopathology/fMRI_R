@@ -321,11 +321,10 @@ NU<-parSapply(clusterjobs1,small.sub, function(y) {
   larg$templatedir<-argu$templatedir
   if (argu$adaptive_gfeat) {
     larg$maxrunnum<-1:length(y$featlist)
-    ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
     larg$maxcopenum<-1:nrow(argu$xmat)
     
     #PUT NEW FUNCTION HERE
-    studyfsltemp<-adopt_feat(adptemplate_path = argu$gsub_fsl_templatepath,searenvir=larg,firstorder=F)
+    studyfsltemp<-rep_within(adptemplate = readLines(argu$gsub_fsl_templatepath),searchenvir=larg)
     larg$maxrunnum<-max(larg$maxrunnum)
     larg$maxcopenum<-max(larg$maxcopenum)
     
