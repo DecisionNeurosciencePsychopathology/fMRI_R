@@ -512,7 +512,7 @@ change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenv
     otx<-sub(x=stx,pattern = x2,replacement="\\1")
     ##print(otx)
     #data.frame(org=otx,replacement=searchenvir[[otx]])
-    if(is.null(searchenvir[[otx]]) | is.na(searchenvir[[otx]])) {stop(paste0("Variable ",otx," is NULL or NA."))}
+    if(!exists(x = otx,envir = searchenvir) || is.null(searchenvir[[otx]]) || is.na(searchenvir[[otx]])) {stop(paste0("Variable ",otx," is NULL or NA."))}
     gsub(x1,replacement = searchenvir[[otx]],x = stx)
   }))
   
@@ -527,7 +527,7 @@ change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenv
 #####Generate reg path from model name:
 
 gen_reg<-function(vmodel=NULL,regpath=NULL,idx=NULL,runnum=NULL,env=NULL,regtype=NULL) {
-  message("Depreciated! Is probably useless; Will keep for 3 versions before deleting")
+  #message("Depreciated! Is probably useless; Will keep for 3 versions before deleting")
   NUP<-lapply(vmodel, function(x) {
     assign(paste0(x,"reg"),file.path(regpath,idx,paste0("run",runnum,"_",x,regtype)),envir = env)
   })
