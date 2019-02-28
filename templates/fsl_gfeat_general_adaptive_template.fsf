@@ -22,10 +22,10 @@ set fmri(analysis) 2
 set fmri(relative_yn) 0
 
 # Balloon help
-set fmri(help_yn) 1
+set fmri(help_yn) 0
 
 # Run Featwatcher
-set fmri(featwatcher_yn) 1
+set fmri(featwatcher_yn) 0
 
 # Cleanup first-level standard-space images
 set fmri(sscleanup_yn) 0
@@ -271,17 +271,19 @@ set fmri(ncopeinputs) ARG_maxcopenum_END
 
 
 #################################
-SEC_copeinput_START
+
+SEC_XG_maxcopenum_EX_START
 # Use lower-level cope XG_maxcopenum_EX for higher-level analysis
 set fmri(copeinput.XG_maxcopenum_EX) 1
-SEC_copeinput_END
+SEC_XG_maxcopenum_EX_END
 
 
 #################################
-SEC_4ddata_START
+SEC_XG_maxrunnum_EX_START
 # 4D AVW data or FEAT directory (XG_maxrunnum_EX)
 set feat_files(XG_maxrunnum_EX) "ARG_featXG_maxrunnum_EX_END"
-SEC_4ddata_END
+
+SEC_XG_maxrunnum_EX_END
 
 # Add confound EVs text file
 set fmri(confoundevs) 0
@@ -327,15 +329,15 @@ set fmri(ortho1.0) 0
 # Orthogonalise EV 1 wrt EV 1
 set fmri(ortho1.1) 0
 
-SEC_evg_START
+SEC_XG_maxrunnum_EX_START
 # Higher-level EV value for EV 1 and input XG_maxrunnum_EX
 set fmri(evgXG_maxrunnum_EX.1) 1.0
-SEC_evg_END
+SEC_XG_maxrunnum_EX_END
 
-SEC_gpmember_START
+SEC_XG_maxrunnum_EX_START
 # Group membership for input XG_maxrunnum_EX
 set fmri(groupmem.XG_maxrunnum_EX) 1
-SEC_gpmember_END
+SEC_XG_maxrunnum_EX_END
 
 # Contrast & F-tests mode
 # real : control real EVs

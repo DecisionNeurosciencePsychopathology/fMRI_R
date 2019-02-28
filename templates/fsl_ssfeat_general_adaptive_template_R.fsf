@@ -158,8 +158,8 @@ set fmri(evs_real) ARG_maxevnum_END
 set fmri(evs_vox) 0
 
 # Number of contrasts
-set fmri(ncon_orig) ARG_maxevnum_END
-set fmri(ncon_real) ARG_maxevnum_END
+set fmri(ncon_orig) ARG_maxcopenum_END
+set fmri(ncon_real) ARG_maxcopenum_END
 
 # Number of F-tests
 set fmri(nftests_orig) 0
@@ -283,7 +283,7 @@ set confoundev_files(1) "ARG_nuisa_END"
 
 
 #EV section
-SEC_evsec_START
+SEC_XG_evnum_EX_START
 # EV XG_evnum_EX title
 set fmri(evtitleXG_evnum_EX) "ARG_evtitleXG_evnum_EX_END"
 
@@ -319,11 +319,11 @@ set fmri(deriv_ynXG_evnum_EX) 0
 # Custom EV file
 set fmri(customXG_evnum_EX) "ARG_evregXG_evnum_EX_END"
 
-SEC_orthoXG_evnum_EX_START
-set fmri(orthoXG_orthocomboBxG_evnum_ExN_EX) 0
-SEC_orthoXG_evnum_EX_END
+SEC_XG_orthocomboXG_evnum_EX_EX_START
+set fmri(orthoXG_orthocomboXG_evnum_EX_EX) 0
+SEC_XG_orthocomboXG_evnum_EX_EX_END
 
-SEC_evsec_END
+SEC_XG_evnum_EX_END
 
 
 # Contrast & F-tests mode
@@ -333,58 +333,50 @@ set fmri(con_mode_old) orig
 set fmri(con_mode) orig
 
 
-SEC_contrastreal_START
-# Display images for contrast_real 1
-set fmri(conpic_real.XG_evnum_EX) 1
 
-# Title for contrast_real 1
-set fmri(conname_real.XG_evnum_EX) "ARG_evtitleXG_evnum_EX_END"
-
-# Real contrast_real vector XG_evnum_EX element XG_evnum_EX
-set fmri(con_realXG_evnum_EX.XG_evnum_EX) 1
-
-SEC_contrastXG_ev_lessnumBxG_evnum_ExN_EX_START
-# Real contrast_real vector XG_evnum_EX element XG_ev_lessnumBxG_evnum_ExN_EX
-set fmri(con_realXG_evnum_EX.XG_ev_lessnumBxG_evnum_ExN_EX) 0
-
-SEC_contrastXG_ev_lessnumBxG_evnum_ExN_EX_END
+SEC_XG_copenum_EX_START
 
 
-SEC_contrastreal_END
+set fmri(conpic_real.XG_copenum_EX) 1
 
 
-SEC_contrastorg_START
-# Display images for contrast_real XG_evnum_EX
-set fmri(conpic_orig.XG_evnum_EX) 1
+set fmri(conname_real.XG_copenum_EX) "ARG_copetitleXG_copenum_EX_END"
 
-# Title for contrast_real XG_evnum_EX
-set fmri(conname_orig.XG_evnum_EX) "ARG_evtitleXG_evnum_EX_END"
+SEC_XG_copematXG_copenum_EX_EX_START
 
-# Original contrast_real vector XG_evnum_EX element XG_evnum_EX
-set fmri(con_origXG_evnum_EX.XG_evnum_EX) 1
+set fmri(con_realXG_copenum_EX.XG_copematXG_copenum_EX_EX) ARG_copevalueXG_copenum_EX_XG_copematXG_copenum_EX_EX_END
 
-SEC_contrastXG_ev_lessnumBxG_evnum_ExN_EX_START
-
-# Original contrast_real vector XG_evnum_EX element XG_ev_lessnumBxG_evnum_ExN_EX
-set fmri(con_origXG_evnum_EX.XG_ev_lessnumBxG_evnum_ExN_EX) 0
-
-SEC_contrastXG_ev_lessnumBxG_evnum_ExN_EX_END
+SEC_XG_copematXG_copenum_EX_EX_END
 
 
-SEC_contrastorg_END
+SEC_XG_copenum_EX_END
+
+
+SEC_XG_copenum_EX_START
+
+set fmri(conpic_orig.XG_copenum_EX) 1
+
+set fmri(conname_orig.XG_copenum_EX) "ARG_copetitleXG_copenum_EX_END"
+
+SEC_XG_copematXG_copenum_EX_EX_START
+
+set fmri(con_origXG_copenum_EX.XG_copematXG_copenum_EX_EX) ARG_copevalueXG_copenum_EX_XG_copematXG_copenum_EX_EX_END
+
+SEC_XG_copematXG_copenum_EX_EX_END
+
+SEC_XG_copenum_EX_END
 
 
 # Contrast masking - use >0 instead of thresholding?
 set fmri(conmask_zerothresh_yn) 0
 
-SEC_ftest_START
+SEC_XG_copenum_EX_START
 
-SEC_ftestXG_ev_lessnumBxG_evnum_ExN_EX_START
-# Mask real contrast/F-test XG_evnum_EX with real contrast/F-test XG_ev_lessnumBxG_evnum_ExN_EX?
-set fmri(conmaskXG_evnum_EX_XG_ev_lessnumBxG_evnum_ExN_EX) 0
-SEC_ftestXG_ev_lessnumBxG_evnum_ExN_EX_END
+SEC_XG_cope_lessnumXG_copenum_EX_EX_START
+set fmri(conmaskXG_copenum_EX_XG_cope_lessnumXG_copenum_EX_EX) 0
+SEC_XG_cope_lessnumXG_copenum_EX_EX_END
 
-SEC_ftest_END
+SEC_XG_copenum_EX_END
 
 # Do contrast masking at all?
 set fmri(conmask1_1) 0

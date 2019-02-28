@@ -829,7 +829,11 @@ prep_paired_t<-function(idsep=NULL,outpath=NULL){
   file.remove(file.path(outpath,"design.mat.txt"))
   
   write.table(
-    diag(x = 1,nrow = 1, ncol = length(commonid)+1),file = file.path(outpath,"design.con.txt"),row.names = F,col.names = F)
+    rbind(
+    diag(x = 1,nrow = 1, ncol = length(commonid)+1),
+    diag(x = -1,nrow = 1, ncol = length(commonid)+1)
+    )
+    ,file = file.path(outpath,"design.con.txt"),row.names = F,col.names = F)
   system(paste0("${FSLDIR}/bin/Text2Vest ",file.path(outpath,"design.con.txt")," ",file.path(outpath,"design.con")))
   file.remove(file.path(outpath,"design.con.txt"))
   
