@@ -7,18 +7,18 @@
 
 cleanuplist<-function(listx){
   if (any(sapply(listx, is.null))){
-  listx[sapply(listx, is.null)] <- NULL}
+    listx[sapply(listx, is.null)] <- NULL}
   return(listx)
-  }
+}
 
 fsl_2_sys_env<-function(bashprofilepath=NULL){
   if (is.null(bashprofilepath)){bashprofilepath<-file.path(Sys.getenv("HOME"),".bash_profile")}
   if (length(system("env | grep 'fsl' ",intern = T))<1) {
-  if(file.exists(bashprofilepath)) {
-    print("Using user .bashprofile")
-    fslinfo<-cfg_info(bashprofilepath)
-    info_to_sysenv(fslinfo)
-  }
+    if(file.exists(bashprofilepath)) {
+      print("Using user .bashprofile")
+      fslinfo<-cfg_info(bashprofilepath)
+      info_to_sysenv(fslinfo)
+    }
   }
 }
 
@@ -66,8 +66,8 @@ recon.array<-function(x=NULL) {
       emp[[whichone]]<-drop(unlist(x[[i]]))
     } else {emp[[whichone]]<-drop((x[[i]]))}
   }
-#names(emp)<-names(x)
-return(emp)
+  #names(emp)<-names(x)
+  return(emp)
 }
 
 recon.mat<-function(data.raw=NULL) {
@@ -79,8 +79,8 @@ recon.mat<-function(data.raw=NULL) {
   } else if (class(data.raw)=="array") {
     data.raw<-recon.array(x=data.raw)
   } else if (!lapply(huy$muX,class) %in% c("list","array")) {}
-    
-  }
+  
+}
 
 make_eprime_struct<-function(rawtext=file.choose(),rawdf=NULL,breakpointname="BreakProc") {
   if (is.null(rawdf)){
@@ -88,7 +88,7 @@ make_eprime_struct<-function(rawtext=file.choose(),rawdf=NULL,breakpointname="Br
   } 
   wherearethebreaks<-grep(breakpointname,rawdf$Procedure)
   rawdf$blocknum<-NA
-
+  
   for (i in 1:(length(wherearethebreaks)+1)) {
     print(i)
     if (i==1) {
@@ -96,7 +96,7 @@ make_eprime_struct<-function(rawtext=file.choose(),rawdf=NULL,breakpointname="Br
       
     } else if (i==(length(wherearethebreaks)+1)) {
       rawdf$blocknum[wherearethebreaks[i-1]:length(rawdf$Procedure)]<-i
-     
+      
     } else {
       rawdf$blocknum[wherearethebreaks[i-1]:wherearethebreaks[i]]<-i}
   }
@@ -144,7 +144,7 @@ makesignal.single<-function(output,ename,norm=c("none","durmax_1","evtmax_1"),no
   if (!is.na(modifier)) {
     #INVERTING THE LOGICAL STATEMENT SO 1 for valid trials and 0 for non-valid!
     if (nonah) {
-    modx<-!output$output.df[modifier] & !is.na(subelist$onset)
+      modx<-!output$output.df[modifier] & !is.na(subelist$onset)
     } else { modx<-!output$output.df[modifier]}
     switch (style,
             "multiply" = {value.df$value<-value.df$value * as.numeric(modx)},
@@ -165,48 +165,48 @@ make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NU
   allofthem<-new.env(parent = emptyenv())
   dsgrid[dsgrid=="NA"]<-NA
   if (length(grep("_evt",dsgrid.og$valuefrom))>0){
-  dsgrid<-dsgrid.og[-grep("_evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
- 
+    dsgrid<-dsgrid.og[-grep("_evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
+  
   if (dim(dsgrid)[1]>0) {
-  for (i in 1:length(dsgrid$ename)) {
-    message(paste("making...",dsgrid$name[i],sep=""))
-    #could have totally do a do.call and make assignment within single function 
-    #but that ONE datainput variable is hard to get by with do.call so......loop is fine
-    #Forcing all arguments so it's kinda bad....
-    result<-makesignal.single(output = outputdata,
-                              ename = dsgrid$ename[i],
-                              norm = dsgrid$norm[i],
-                              normargu = dsgrid$normargu[i],
-                              valuefrom = dsgrid$valuefrom[i],
-                              modifier = dsgrid$modifier[i],
-                              style = dsgrid$style[i],
-                              nonah = nona)
-    # output = outputdata
-    # ename = dsgrid$ename[i]
-    # norm = dsgrid$norm[i]
-    # normargu = dsgrid$normargu[i]
-    # valuefrom = dsgrid$valuefrom[i]
-    # modifier = dsgrid$modifier[i]
-    # style = dsgrid$style[i]
-    # nonah = nona
-    assign(dsgrid$name[i],result,envir = allofthem)
-  }
+    for (i in 1:length(dsgrid$ename)) {
+      message(paste("making...",dsgrid$name[i],sep=""))
+      #could have totally do a do.call and make assignment within single function 
+      #but that ONE datainput variable is hard to get by with do.call so......loop is fine
+      #Forcing all arguments so it's kinda bad....
+      result<-makesignal.single(output = outputdata,
+                                ename = dsgrid$ename[i],
+                                norm = dsgrid$norm[i],
+                                normargu = dsgrid$normargu[i],
+                                valuefrom = dsgrid$valuefrom[i],
+                                modifier = dsgrid$modifier[i],
+                                style = dsgrid$style[i],
+                                nonah = nona)
+      # output = outputdata
+      # ename = dsgrid$ename[i]
+      # norm = dsgrid$norm[i]
+      # normargu = dsgrid$normargu[i]
+      # valuefrom = dsgrid$valuefrom[i]
+      # modifier = dsgrid$modifier[i]
+      # style = dsgrid$style[i]
+      # nonah = nona
+      assign(dsgrid$name[i],result,envir = allofthem)
+    }
   }
   #change it to list:
   allofthemlist<-as.list(allofthem)
   dsgrid.og->dsgrid
   #Taskness varibale:
   if (add_taskness) {
-  for (taskname in unique(dsgrid$ename)) {
-    
-    if (any(is.na(outputdata$event.list[[taskname]]))) {
-      tempdf<-outputdata$event.list[[taskname]][which(!is.na(outputdata$event.list[[taskname]]$onset)),]
-      tempdf.a<-subset.data.frame(tempdf,select = c("run","trial"))
-      tempdf.a$value<-1
-      allofthemlist[[paste(taskname,"_evt",sep = "")]] <- list(value=tempdf.a,event=taskname,normalization="none")
-    }else {allofthemlist[[paste(taskname,"_evt",sep = "")]] <- list(value=1,event=taskname,normalization="none")}
+    for (taskname in unique(dsgrid$ename)) {
+      
+      if (any(is.na(outputdata$event.list[[taskname]]))) {
+        tempdf<-outputdata$event.list[[taskname]][which(!is.na(outputdata$event.list[[taskname]]$onset)),]
+        tempdf.a<-subset.data.frame(tempdf,select = c("run","trial"))
+        tempdf.a$value<-1
+        allofthemlist[[paste(taskname,"_evt",sep = "")]] <- list(value=tempdf.a,event=taskname,normalization="none")
+      }else {allofthemlist[[paste(taskname,"_evt",sep = "")]] <- list(value=1,event=taskname,normalization="none")}
+    }
   }
-}
   return(allofthemlist)
   
 }
@@ -238,8 +238,8 @@ cfg_info<-function(cfgpath=NULL,noproc=F) {
 }
 
 get_nuisance_preproc<-function(id=NULL,cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
-                              returnas=c("path","data.frame"),dothese=c("nuisance","motion_par","motion_outlier"),
-                              type="fd",threshold="default") {
+                               returnas=c("path","data.frame"),dothese=c("nuisance","motion_par","motion_outlier"),
+                               type="fd",threshold="default") {
   if (type == "dvar") {
     moutn<-"dvars.txt"
     if (threshold == "default") {threshold<-20}
@@ -252,65 +252,65 @@ get_nuisance_preproc<-function(id=NULL,cfgfilepath="/Volumes/bek/autopreprocessi
   cfg<-cfg_info(cfgpath = cfgfilepath)
   lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
     list(
-    nuisance=
-    file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""),cfg$preproc_call$nuisance_file),
-    motionpar=
-    file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""),"motion.par"),
-    motionoutlier=
-      file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""),"motion_info",moutn))
-    })
+      nuisance=
+        file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""),cfg$preproc_call$nuisance_file),
+      motionpar=
+        file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""),"motion.par"),
+      motionoutlier=
+        file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""),"motion_info",moutn))
+  })
   names(lpath)<-paste("run",1:cfg$n_expected_funcruns,sep = "")
   if (returnas=="path") {
-  return(lpath)} else if (returnas=="data.frame") {
-    ldf<-lapply(lpath,function(x) {
-      combo<-list()
-      if ("nuisance" %in% dothese) {
-      nui<-read.table(x$nuisance)
-      names(nui)<-unlist(strsplit(cfg$preproc_call$nuisance_compute,split = ","))
-      } else {nui<-data.frame()}
-      if ("motion_par" %in% dothese) {
-      mopar<-read.table(x$motionpar)
-      names(mopar)<-paste0("motion_V",1:length(mopar))
-      } else {mopar<-data.frame()}
-      if ("motion_outlier" %in% dothese) {
-        moout<-read.table(x$motionoutlier)
-        moout$logi<-moout$V1>threshold
-        if (any(moout$logi)) {
-          xj<-matrix(data = 0,nrow = length(moout$logi),ncol = length(which(moout$logi)))
-          for (xn in 1:length(which(moout$logi))) {
-            xj[which(moout$logi)[xn],xn]<-1
-          }
-          moout<-as.data.frame(xj)
-          names(moout)<-paste0("motionoutlier_",1:length(moout))
+    return(lpath)} else if (returnas=="data.frame") {
+      ldf<-lapply(lpath,function(x) {
+        combo<-list()
+        if ("nuisance" %in% dothese) {
+          nui<-read.table(x$nuisance)
+          names(nui)<-unlist(strsplit(cfg$preproc_call$nuisance_compute,split = ","))
+        } else {nui<-data.frame()}
+        if ("motion_par" %in% dothese) {
+          mopar<-read.table(x$motionpar)
+          names(mopar)<-paste0("motion_V",1:length(mopar))
+        } else {mopar<-data.frame()}
+        if ("motion_outlier" %in% dothese) {
+          moout<-read.table(x$motionoutlier)
+          moout$logi<-moout$V1>threshold
+          if (any(moout$logi)) {
+            xj<-matrix(data = 0,nrow = length(moout$logi),ncol = length(which(moout$logi)))
+            for (xn in 1:length(which(moout$logi))) {
+              xj[which(moout$logi)[xn],xn]<-1
+            }
+            moout<-as.data.frame(xj)
+            names(moout)<-paste0("motionoutlier_",1:length(moout))
+          } else {moout<-data.frame()}
         } else {moout<-data.frame()}
-      } else {moout<-data.frame()}
+        
+        combo<-c(nui,mopar,moout)
+        combo<-as.data.frame(combo)
+        return(combo)
+      })
       
-      combo<-c(nui,mopar,moout)
-      combo<-as.data.frame(combo)
-      return(combo)
-    })
-    
-  }
+    }
 }
 
 get_volume_run<-function(id=NULL,cfgfilepath=NULL,reg.nii.name="swudktm*[0-9].nii.gz",returnas=c("path","numbers")){
   cfg<-cfg_info(cfgpath = cfgfilepath)
   if (returnas=="path"){
-  lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
-    file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""))->procpath
-    system(paste0("find ",procpath," -iname ",reg.nii.name," -maxdepth 2 -mindepth 1"),intern = T)
-   # file.path(,nii.name)
-  })
-  return(unlist(lpath))
+    lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
+      file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""))->procpath
+      system(paste0("find -L ",procpath," -iname ",reg.nii.name," -maxdepth 2 -mindepth 1"),intern = T)
+      # file.path(,nii.name)
+    })
+    return(unlist(lpath))
   }
   if (returnas=="numbers"){
     lnum<-lapply(1:cfg$n_expected_funcruns, function(i) {
       fdpath<-file.path(cfg$loc_mrproc_root,id,
-                cfg$preprocessed_dirname,
-                paste(cfg$paradigm_name,i,sep = ""),
-                "motion_info","fd.txt")
+                        cfg$preprocessed_dirname,
+                        paste(cfg$paradigm_name,i,sep = ""),
+                        "motion_info","fd.txt")
       if (file.exists(fdpath)) {
-      length(readLines(fdpath))
+        length(readLines(fdpath))
       } else return(NA)
       
     })
@@ -359,34 +359,14 @@ prepare4secondlvl<-function(ssana.path=NULL,preproc.path=NULL,
   linkmap$originplace<-file.path(ssana.path,linkmap$id,linkmap$runword,"masktostandtransforms.mat")
   
   if (is.null(paralleln)) {
-  for (i in 1:length(linkmap$id)) {
-    if (overwrite) {
-      if (file.exists(linkmap$destination[i])) {file.remove(linkmap$destination[i])}
-      if (file.exists(linkmap$originplace[i])) {file.remove(linkmap$originplace[i])}
-    }
-    st2<-dir.create(showWarnings = F,path = linkmap$destination[i])
-    if (!file.exists(linkmap$originplace[i]))  {
-      fsl_2_sys_env()
-      system(paste0("${FSLDIR}/bin/flirt -in ",file.path(ssana.path,linkmap$id[i],linkmap$runword[i],"mask.nii.gz")," -ref ",
-                    standardbarin.path," -out /Volumes/bek/neurofeedback/.temp.nii -omat ",linkmap$originplace[i],
-                    " -bins 256 -cost corratio -searchrx -90 90 -searchry -90 90 -searchrz -90 90 -dof 12  -interp trilinear"))
-    }
-    if (!file.exists(file.path(linkmap$destination,"example_func2standard.mat")[i])){
-      file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"example_func2standard.mat")[i])
-      file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"standard2example_func.mat")[i])
-      file.symlink(from = standardbarin.path,to = file.path(linkmap$destination,"standard.nii.gz")[i])
-    } else {message("meh,already there, if you want to overwirite, do overwrite...")}
-    
-  }} else {
-    cluster_prep2ndlvl<-makeCluster(paralleln,outfile=file.path(argu$ssub_outputroot,argu$model.name,"prep42ndlvl_log.txt"),type = "FORK")
-    NU<-parSapply(cluster_prep2ndlvl,1:length(linkmap$id),function(i) {
-      fsl_2_sys_env()
+    for (i in 1:length(linkmap$id)) {
       if (overwrite) {
         if (file.exists(linkmap$destination[i])) {file.remove(linkmap$destination[i])}
         if (file.exists(linkmap$originplace[i])) {file.remove(linkmap$originplace[i])}
       }
       st2<-dir.create(showWarnings = F,path = linkmap$destination[i])
       if (!file.exists(linkmap$originplace[i]))  {
+        fsl_2_sys_env()
         system(paste0("${FSLDIR}/bin/flirt -in ",file.path(ssana.path,linkmap$id[i],linkmap$runword[i],"mask.nii.gz")," -ref ",
                       standardbarin.path," -out /Volumes/bek/neurofeedback/.temp.nii -omat ",linkmap$originplace[i],
                       " -bins 256 -cost corratio -searchrx -90 90 -searchry -90 90 -searchrz -90 90 -dof 12  -interp trilinear"))
@@ -396,11 +376,31 @@ prepare4secondlvl<-function(ssana.path=NULL,preproc.path=NULL,
         file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"standard2example_func.mat")[i])
         file.symlink(from = standardbarin.path,to = file.path(linkmap$destination,"standard.nii.gz")[i])
       } else {message("meh,already there, if you want to overwirite, do overwrite...")}
-  
+      
+    }} else {
+      cluster_prep2ndlvl<-makeCluster(paralleln,outfile=file.path(argu$ssub_outputroot,argu$model.name,"prep42ndlvl_log.txt"),type = "FORK")
+      NU<-parSapply(cluster_prep2ndlvl,1:length(linkmap$id),function(i) {
+        fsl_2_sys_env()
+        if (overwrite) {
+          if (file.exists(linkmap$destination[i])) {file.remove(linkmap$destination[i])}
+          if (file.exists(linkmap$originplace[i])) {file.remove(linkmap$originplace[i])}
+        }
+        st2<-dir.create(showWarnings = F,path = linkmap$destination[i])
+        if (!file.exists(linkmap$originplace[i]))  {
+          system(paste0("${FSLDIR}/bin/flirt -in ",file.path(ssana.path,linkmap$id[i],linkmap$runword[i],"mask.nii.gz")," -ref ",
+                        standardbarin.path," -out /Volumes/bek/neurofeedback/.temp.nii -omat ",linkmap$originplace[i],
+                        " -bins 256 -cost corratio -searchrx -90 90 -searchry -90 90 -searchrz -90 90 -dof 12  -interp trilinear"))
+        }
+        if (!file.exists(file.path(linkmap$destination,"example_func2standard.mat")[i])){
+          file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"example_func2standard.mat")[i])
+          file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"standard2example_func.mat")[i])
+          file.symlink(from = standardbarin.path,to = file.path(linkmap$destination,"standard.nii.gz")[i])
+        } else {message("meh,already there, if you want to overwirite, do overwrite...")}
+        
       })
-    stopCluster(cluster_prep2ndlvl)
-  }
-    
+      stopCluster(cluster_prep2ndlvl)
+    }
+  
   if(outputmap) {return(linkmap)}
   print("DONE")
 }
@@ -479,7 +479,7 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
   design$ID<-tid
   design$preprocID<-paste0(tid,proc_id_subs)
   design$regpath<-file.path(regpath,model.name,tid)
- # design$grid<-dsgrid
+  # design$grid<-dsgrid
   
   if (!is.null(nuisa)){
     for (k in 1:length(nuisa)) {
@@ -519,7 +519,7 @@ change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenv
   return(fsltemplate)
 }
 
-       
+
 
 
 
@@ -536,14 +536,14 @@ gen_reg<-function(vmodel=NULL,regpath=NULL,idx=NULL,runnum=NULL,env=NULL,regtype
 populate_within<-function(chunk_within=NULL,xvlist=NULL,variname=NULL,firstorder=NULL){
   message("Depreciated! Is probably useless; Will keep for 3 versions before deleting")
   seq_lines<-lapply(xvlist,function(xjk){
-      temp<-as.environment(list())
-      assign(variname,xjk,envir = temp)
-      result<-change_fsl_template(fsltemplate = chunk_within,begin = "XG_",end = "_EX",searchenvir = temp,focus=firstorder)
-      if (firstorder) {
+    temp<-as.environment(list())
+    assign(variname,xjk,envir = temp)
+    result<-change_fsl_template(fsltemplate = chunk_within,begin = "XG_",end = "_EX",searchenvir = temp,focus=firstorder)
+    if (firstorder) {
       result<-change_fsl_template(fsltemplate = result,begin = "BxG_",end = "_ExN",searchenvir = temp,focus=firstorder)
-      }
-      rm(temp)
-      return(result)
+    }
+    rm(temp)
+    return(result)
   })
   re_within<-do.call(c,seq_lines)  
   return(re_within)
@@ -614,9 +614,9 @@ feat_w_template<-function(templatepath=NULL,fsltemplate=NULL,beg="ARG_",end="_EN
   #fsfpath<-fsf.path
   writeLines(subbyrunfeat,fsfpath)
   if(!outcommand){
-  message("starting to do feat...")
-  system(paste0("feat ",fsfpath),intern = T)
-  message("feat completed")
+    message("starting to do feat...")
+    system(paste0("feat ",fsfpath),intern = T)
+    message("feat completed")
   } else {return(paste0("feat ",fsfpath))}
 }
 
@@ -702,12 +702,12 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
       outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_onesample_ttest"))
       dir.create(outputroot, showWarnings = FALSE,recursive = T)
       if (length(list.files(pattern = "*_tstat1",path = outputroot,no.. = T))<1) {
-      copefileconcat<-paste(df.jx$PATH[which(df.jx$COPENUM==x)],collapse = " ")
-      return(paste0("fslmerge -t ",outputroot,"/OneSamp4D"," ",
-             copefileconcat
-             ," \n ",
-             "randomise -i ",outputroot,"/OneSamp4D -o ",outputroot,"/OneSampT -1",option_grp
-      ))
+        copefileconcat<-paste(df.jx$PATH[which(df.jx$COPENUM==x)],collapse = " ")
+        return(paste0("fslmerge -t ",outputroot,"/OneSamp4D"," ",
+                      copefileconcat
+                      ," \n ",
+                      "randomise -i ",outputroot,"/OneSamp4D -o ",outputroot,"/OneSampT -1",option_grp
+        ))
       }else {return(NULL)}
     })
     cleanuplist(cope.fslmerge)->cope.fslmerge
@@ -763,35 +763,35 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
     
   }
   XNN<-eapply(env = allcopecomx, FUN = function(cope.fslmerge) {
-  sink(file=file.path(outputdir,modelname,"glvl_log.txt"),split=TRUE)
-  #Do Parallel or nah
-  if (!is.null(paralleln)){
-    cj1<-makeCluster(paralleln,outfile="",type = "FORK")
-    NU<-parSapply(cj1,cope.fslmerge,function(x) {
-      message(paste0("Now running ",x))
-      pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
-      numdx<-which(x==cope.fslmerge)
-      indx<-suppressWarnings(split(1:length(cope.fslmerge),1:paralleln))
-      pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
-      setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
-      system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
-      message("completed")
-    })
-    stopCluster(cj1)
-  } else {
-    lapply(cope.fslmerge,function(x) {
-      message(paste0("Now running ",x))
-      pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
-      numdx<-which(x==cope.fslmerge)
-      indx<-suppressWarnings(split(1:length(cope.fslmerge),1))
-      pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
-      setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
-      
-      system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
-      
-      message("completed")
-    })
-  }
+    sink(file=file.path(outputdir,modelname,"glvl_log.txt"),split=TRUE)
+    #Do Parallel or nah
+    if (!is.null(paralleln)){
+      cj1<-makeCluster(paralleln,outfile="",type = "FORK")
+      NU<-parSapply(cj1,cope.fslmerge,function(x) {
+        message(paste0("Now running ",x))
+        pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
+        numdx<-which(x==cope.fslmerge)
+        indx<-suppressWarnings(split(1:length(cope.fslmerge),1:paralleln))
+        pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
+        setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
+        system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
+        message("completed")
+      })
+      stopCluster(cj1)
+    } else {
+      lapply(cope.fslmerge,function(x) {
+        message(paste0("Now running ",x))
+        pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
+        numdx<-which(x==cope.fslmerge)
+        indx<-suppressWarnings(split(1:length(cope.fslmerge),1))
+        pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
+        setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
+        
+        system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
+        
+        message("completed")
+      })
+    }
   })
   message("DONE")
 }
@@ -820,18 +820,18 @@ prep_paired_t<-function(idsep=NULL,outpath=NULL){
     gsub(pattern = paste0("_",xj),replacement = "",x = xk)
   }))
   
- 
+  
   write.table(
-  do.call(rbind, lapply(c(-1,1,2:100)[1:length(idsep)], function(x){
-    cbind(matrix(nrow = length(commonid),ncol = 1,data = x),diag(x = 1,nrow = length(commonid),ncol = length(commonid)))
-  })),file = file.path(outpath,"design.mat.txt"),row.names = F,col.names = F)
+    do.call(rbind, lapply(c(-1,1,2:100)[1:length(idsep)], function(x){
+      cbind(matrix(nrow = length(commonid),ncol = 1,data = x),diag(x = 1,nrow = length(commonid),ncol = length(commonid)))
+    })),file = file.path(outpath,"design.mat.txt"),row.names = F,col.names = F)
   system(paste0("${FSLDIR}/bin/Text2Vest ",file.path(outpath,"design.mat.txt")," ",file.path(outpath,"design.mat")))
   file.remove(file.path(outpath,"design.mat.txt"))
   
   write.table(
     rbind(
-    diag(x = 1,nrow = 1, ncol = length(commonid)+1),
-    diag(x = -1,nrow = 1, ncol = length(commonid)+1)
+      diag(x = 1,nrow = 1, ncol = length(commonid)+1),
+      diag(x = -1,nrow = 1, ncol = length(commonid)+1)
     )
     ,file = file.path(outpath,"design.con.txt"),row.names = F,col.names = F)
   system(paste0("${FSLDIR}/bin/Text2Vest ",file.path(outpath,"design.con.txt")," ",file.path(outpath,"design.con")))
@@ -854,12 +854,12 @@ get_motion_info<-function(configpath=NULL,type="fd",threshold="default"){
   NX<-lapply(idlist,function(X) {
     tryCatch(
       {return(get_nuisance_preproc(X,cfgfilepath=configpath,
-         returnas=c("data.frame"),
-         dothese=c("motion_outlier"),
-         type=type,
-         threshold=threshold))
+                                   returnas=c("data.frame"),
+                                   dothese=c("motion_outlier"),
+                                   type=type,
+                                   threshold=threshold))
       },error=function(e) {return(NULL)})
-    })
+  })
   names(NX)<-idlist
   NX<-cleanuplist(NX)
   NU<-lapply(1:length(NX),function(i){
@@ -958,18 +958,18 @@ check_incomplete_preproc<-function(cfgpath=NULL,enforce=F,verbose=T) {
 create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),atlas_root=NULL,
                                fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T,atlas_readtype=c("fsl","spm"),output_main=F) {
   if (is.null(atlas_root)){
-  if (is.null(fsl_dir)) {
-  fsl_2_sys_env(); fsl_dir=Sys.getenv("FSLDIR")}
-  atlas_dir<-file.path(fsl_dir,"data","atlases")    
-  maybefsl<-TRUE
+    if (is.null(fsl_dir)) {
+      fsl_2_sys_env(); fsl_dir=Sys.getenv("FSLDIR")}
+    atlas_dir<-file.path(fsl_dir,"data","atlases")    
+    maybefsl<-TRUE
   } else {atlas_dir<-atlas_root}
   
   if(is.null(atlas_readtype)){
     if(maybefsl){source_type<-"fsl"}else{source_type<-"spm"}
-    }else{
-  if(length(atlas_readtype)==1 & c("fsl" %in% atlas_readtype)){source_type<-"fsl"
-  } else if (length(atlas_readtype)==1 & c("spm" %in% atlas_readtype)){source_type<-"spm"
-  } else {stop("unknown source type")}}
+  }else{
+    if(length(atlas_readtype)==1 & c("fsl" %in% atlas_readtype)){source_type<-"fsl"
+    } else if (length(atlas_readtype)==1 & c("spm" %in% atlas_readtype)){source_type<-"spm"
+    } else {stop("unknown source type")}}
   
   if (is.null(atlas_xml)) {
     if (is.null(atlas_name)) {
@@ -986,19 +986,19 @@ create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir
   imagex<-cleanuplist(lapply(images,function(img) {if(length(grep(volxsize,img$imagefile))>0) {return(img)} else {return(NULL)}}))
   #fsl
   if(source_type=="fsl"){
-  atrx<-do.call(rbind,lapply(atlas_info$data,function(dt) {return(cbind(data.frame(target=dt$text),data.frame(as.list(dt$.attrs),stringsAsFactors = F)))}))
-  atrx$index<-as.numeric(atrx$index)+1
-  target_imag<-file.path(atlas_dir,imagex$images$summaryimagefile)
-  atrx$thres<-1:nrow(atrx)
+    atrx<-do.call(rbind,lapply(atlas_info$data,function(dt) {return(cbind(data.frame(target=dt$text),data.frame(as.list(dt$.attrs),stringsAsFactors = F)))}))
+    atrx$index<-as.numeric(atrx$index)+1
+    target_imag<-file.path(atlas_dir,imagex$images$summaryimagefile)
+    atrx$thres<-1:nrow(atrx)
   }
   #spm
   if(source_type=="spm"){
-  atrx<-do.call(rbind,lapply(atlas_info$data,function(dt) {
-    return(data.frame(index=dt$index,target=dt$name,stringsAsFactors = F))
+    atrx<-do.call(rbind,lapply(atlas_info$data,function(dt) {
+      return(data.frame(index=dt$index,target=dt$name,stringsAsFactors = F))
     }))
-  target_imag<-file.path(atlas_dir,imagex$images$imagefile)
-  atrx$thres<-atrx$index
-  volxsize<-""
+    target_imag<-file.path(atlas_dir,imagex$images$imagefile)
+    atrx$thres<-atrx$index
+    volxsize<-""
   }
   
   atrx$maskdir<-NA
@@ -1007,7 +1007,7 @@ create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir
   if (is.null(target)){target<-as.numeric(atrx$index)}
   if (any(is.character(target))) {
     tarindxs<-as.character(atrx$index[grep(pattern = paste(target,collapse = "|"),x = atrx$target)])
-    } else {tarindxs<-as.character(target)}
+  } else {tarindxs<-as.character(target)}
   
   dir.create(path = outdir,recursive = T,showWarnings = F)
   for (sindsk in tarindxs) {
@@ -1016,9 +1016,9 @@ create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir
     tartext<-gsub(" ","_",atrx$target[tarwhich])
     outfile<-file.path(outdir,paste(atlas_name,volxsize,tartext,"bin.nii.gz",sep="_"))
     if(!file.exists(outfile)){
-    opt<-paste0("-thr ",tarthres," -uthr ",tarthres," -bin \"",outfile,"\"")
-    cmd<-paste("fslmaths",target_imag,opt)
-    system(cmd,intern = F)
+      opt<-paste0("-thr ",tarthres," -uthr ",tarthres," -bin \"",outfile,"\"")
+      cmd<-paste("fslmaths",target_imag,opt)
+      system(cmd,intern = F)
     }
     atrx$maskdir[tarwhich]<-outfile
     atrx$total_voxel[tarwhich]<-voxel_count(cfile = outfile)[1]
@@ -1044,15 +1044,15 @@ voxel_count<-function(cfile=NULL,mask=NULL,nonzero=T) {
 }
 
 get_voxel_count<-function(cfile=NULL,stdsfile=NULL,intmat=NULL,mask=NULL,outdir=tempdir()) {
-if (outdir==tempdir() | !file.exists(file.path(outdir,"temp_1.nii"))) {
-  cmd<-paste("${FSLDIR}/bin/flirt",
-             "-ref",stdsfile,
-             "-in",cfile,
-             "-out",file.path(outdir,"temp_1.nii"),
-             "-applyxfm","-init",intmat,"-interp","trilinear","-datatype","float")
-  system(cmd,intern = F)}
-resultx<-voxel_count(cfile = file.path(outdir,"temp_1.nii"),mask = mask)
-return(resultx)
+  if (outdir==tempdir() | !file.exists(file.path(outdir,"temp_1.nii"))) {
+    cmd<-paste("${FSLDIR}/bin/flirt",
+               "-ref",stdsfile,
+               "-in",cfile,
+               "-out",file.path(outdir,"temp_1.nii"),
+               "-applyxfm","-init",intmat,"-interp","trilinear","-datatype","float")
+    system(cmd,intern = F)}
+  resultx<-voxel_count(cfile = file.path(outdir,"temp_1.nii"),mask = mask)
+  return(resultx)
 }
 
 ########################roi extraction;
@@ -1152,12 +1152,12 @@ gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpa
 roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot,modelname=argu$model.name,grp_identif=NA,
                        basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,
                        roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL,maxcore=4,saverdata=T,...){
-                       #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
-raw_avfeat<-system(paste0("find ",file.path(rootdir,modelname,"*/average.gfeat")," -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
-fsl_2_sys_env()
-if(is.null(Version)){Version<-paste0(corrp_mask,corrmaskthreshold)}
-strsplit(raw_avfeat,split = "/") ->raw.split
-df.ex<-data.frame(ID=unlist(lapply(raw.split,function(x) {
+  #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
+  raw_avfeat<-system(paste0("find ",file.path(rootdir,modelname,"*/average.gfeat")," -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
+  fsl_2_sys_env()
+  if(is.null(Version)){Version<-paste0(corrp_mask,corrmaskthreshold)}
+  strsplit(raw_avfeat,split = "/") ->raw.split
+  df.ex<-data.frame(ID=unlist(lapply(raw.split,function(x) {
     x[grep("average.gfeat",x)-1]
   })),
   COPENUM=unlist(lapply(raw.split,function(x) {
@@ -1165,67 +1165,67 @@ df.ex<-data.frame(ID=unlist(lapply(raw.split,function(x) {
   })),
   PATH=file.path(raw_avfeat,"stats","cope1.nii.gz")
   )
-df.ex$COPENUM<-substr(df.ex$COPENUM,start=regexpr("[0-9]",df.ex$COPENUM),stop = regexpr(".feat",df.ex$COPENUM)-1)
-if(!is.na(grp_identif)){
-  if(length(grp_identif)>1){stop("Function do not want to handle more than one grp_identifier at a time, do a lapply or loop.")}
-  truerootdir<-file.path(grproot,modelname,grp_identif)
-} else {truerootdir<-file.path(grproot,modelname)}
-
-rnddirs<-list.dirs(path = truerootdir,recursive = F)
-if(saveclustermap){cmoutdir<-NULL}else{cmoutdir<-base::tempdir()}
-if(is.null(copetoget)){copetoget<-unique(as.character(df.ex$COPENUM))}
-if(length(copetoget)<maxcore & length(copetoget)>1){coresx<-length(copetoget)}else{coresx<-4}
-sharedproc<-parallel::makeCluster(coresx,outfile="",type = "FORK")
-copes_roivalues<-parallel::parLapply(cl=sharedproc,X = copetoget,function(copenum){
-  message(copenum)
-  df.idx<-df.ex[df.ex$COPENUM==copenum,]
-  featdir<-list.files(path = truerootdir,pattern = paste0("cope",paste0(copenum,"_"),".*randomize"),full.names = T)
-  featdir<-featdir[-grep(".jpeg",featdir)]
-  cmindx<-gen_cluster_mask(featdir=featdir,base=basemask,corrp_mask=corrp_mask,outdir = cmoutdir,VersionCode = Version,
-                           maskthresholdvalue=corrmaskthreshold,roimaskthreshold=roimaskthreshold,
-                           overwrite=!saveclustermap,...)
-  cmindx<-cmindx[cmindx$Voxels>voxelnumthres,]
-   
-  clx<-clustertoget[[as.character(copenum)]]
-  if(is.null(clx)){clx<-cmindx$`Cluster Index`}
-  clx<-clx[clx %in% cmindx$`Cluster Index`]
-  if (length(clx)>0) {
-  concatimg<-list.files(pattern = ".*4D.nii.gz$",path = featdir,full.names = T)
-  if(any(grepl("concat4D.nii.gz",concatimg))) {concatimg<-concatimg[grepl("concat4D.nii.gz",concatimg)]
-  }else if(length(concatimg)<1 | grepl("PairedT",concatimg) | !is.na(grp_identif)){
-    concatimg<-file.path(featdir,"concat4D.nii.gz")
-    concatcmd<-paste(sep=" ","fslmerge -t",concatimg,paste(df.idx$PATH,collapse = " "))
-    system(concatcmd,intern = F)
+  df.ex$COPENUM<-substr(df.ex$COPENUM,start=regexpr("[0-9]",df.ex$COPENUM),stop = regexpr(".feat",df.ex$COPENUM)-1)
+  if(!is.na(grp_identif)){
+    if(length(grp_identif)>1){stop("Function do not want to handle more than one grp_identifier at a time, do a lapply or loop.")}
+    truerootdir<-file.path(grproot,modelname,grp_identif)
+  } else {truerootdir<-file.path(grproot,modelname)}
+  
+  rnddirs<-list.dirs(path = truerootdir,recursive = F)
+  if(saveclustermap){cmoutdir<-NULL}else{cmoutdir<-base::tempdir()}
+  if(is.null(copetoget)){copetoget<-unique(as.character(df.ex$COPENUM))}
+  if(length(copetoget)<maxcore & length(copetoget)>1){coresx<-length(copetoget)}else{coresx<-4}
+  sharedproc<-parallel::makeCluster(coresx,outfile="",type = "FORK")
+  copes_roivalues<-parallel::parLapply(cl=sharedproc,X = copetoget,function(copenum){
+    message(copenum)
+    df.idx<-df.ex[df.ex$COPENUM==copenum,]
+    featdir<-list.files(path = truerootdir,pattern = paste0("cope",paste0(copenum,"_"),".*randomize"),full.names = T)
+    featdir<-featdir[-grep(".jpeg",featdir)]
+    cmindx<-gen_cluster_mask(featdir=featdir,base=basemask,corrp_mask=corrp_mask,outdir = cmoutdir,VersionCode = Version,
+                             maskthresholdvalue=corrmaskthreshold,roimaskthreshold=roimaskthreshold,
+                             overwrite=!saveclustermap,...)
+    cmindx<-cmindx[cmindx$Voxels>voxelnumthres,]
+    
+    clx<-clustertoget[[as.character(copenum)]]
+    if(is.null(clx)){clx<-cmindx$`Cluster Index`}
+    clx<-clx[clx %in% cmindx$`Cluster Index`]
+    if (length(clx)>0) {
+      concatimg<-list.files(pattern = ".*4D.nii.gz$",path = featdir,full.names = T)
+      if(any(grepl("concat4D.nii.gz",concatimg))) {concatimg<-concatimg[grepl("concat4D.nii.gz",concatimg)]
+      }else if(length(concatimg)<1 | grepl("PairedT",concatimg) | !is.na(grp_identif)){
+        concatimg<-file.path(featdir,"concat4D.nii.gz")
+        concatcmd<-paste(sep=" ","fslmerge -t",concatimg,paste(df.idx$PATH,collapse = " "))
+        system(concatcmd,intern = F)
+      }
+      roivalues<-as.data.frame(do.call(cbind,lapply(clx, function(clz){
+        #print(clz)
+        # roivalue<-sapply(1:length(df.idx$ID), function(iz){
+        #   print(iz)
+        # cmdx<-paste(sep=" ","fslstats",as.character(df.idx$PATH[iz]),
+        #            "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
+        # system(cmdx,intern = T)})
+        #Use fslstat timeserires to calculate;
+        cmdx<-paste(sep=" ","fslstats -t",concatimg,
+                    "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
+        system(cmdx,intern = T)
+      })))
+      
+      names(roivalues)<-paste("cluster",clx,sep = "_")
+      roivalues$ID<-df.idx$ID
+      return(list(roivalues=roivalues,index=cmindx[cmindx$`Cluster Index`%in% clx,-grep("maskpath",names(cmindx))],corrthreshold=corrmaskthreshold))
+    } else return(NULL)
+  })
+  parallel::stopCluster(sharedproc)
+  names(copes_roivalues)<-paste("cope",copetoget,sep = "_")
+  if(saverdata) {
+    tempenvir<-as.environment(list())
+    if(file.exists(file.path(truerootdir,"extracted_roi.rdata"))) {
+      load(file = file.path(truerootdir,"extracted_roi.rdata"),envir = tempenvir)}
+    assign(gsub("-","_",paste0(modelname,"_",corrp_mask,corrmaskthreshold,"_","roi")),copes_roivalues,envir = tempenvir)
+    save(list=objects(tempenvir),
+         file = file.path(truerootdir,"extracted_roi.rdata"),envir = tempenvir)
   }
-  roivalues<-as.data.frame(do.call(cbind,lapply(clx, function(clz){
-    #print(clz)
-    # roivalue<-sapply(1:length(df.idx$ID), function(iz){
-    #   print(iz)
-    # cmdx<-paste(sep=" ","fslstats",as.character(df.idx$PATH[iz]),
-    #            "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
-    # system(cmdx,intern = T)})
-    #Use fslstat timeserires to calculate;
-    cmdx<-paste(sep=" ","fslstats -t",concatimg,
-                "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
-    system(cmdx,intern = T)
-  })))
-
-  names(roivalues)<-paste("cluster",clx,sep = "_")
-  roivalues$ID<-df.idx$ID
-  return(list(roivalues=roivalues,index=cmindx[cmindx$`Cluster Index`%in% clx,-grep("maskpath",names(cmindx))],corrthreshold=corrmaskthreshold))
-  } else return(NULL)
-})
-parallel::stopCluster(sharedproc)
-names(copes_roivalues)<-paste("cope",copetoget,sep = "_")
-if(saverdata) {
-  tempenvir<-as.environment(list())
-  if(file.exists(file.path(truerootdir,"extracted_roi.rdata"))) {
-    load(file = file.path(truerootdir,"extracted_roi.rdata"),envir = tempenvir)}
-  assign(gsub("-","_",paste0(modelname,"_",corrp_mask,corrmaskthreshold,"_","roi")),copes_roivalues,envir = tempenvir)
-  save(list=objects(tempenvir),
-       file = file.path(truerootdir,"extracted_roi.rdata"),envir = tempenvir)
-}
-return(copes_roivalues)
+  return(copes_roivalues)
 }
 
 
