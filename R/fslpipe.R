@@ -205,32 +205,33 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     
     step2commands<-unlist(lapply(small.sub,function(x) {
       idx<-x$ID
+      aarg<-xarg
       cmmd<-unlist(lapply(1:length(x$run_volumes), function(runnum) {
-        
-        if (!file.exists(paste0(xarg$outputpath,".feat")) ) {
-          if(is.null(argu$ss_zthreshold)) {xarg$zthreshold<-3.2} else {xarg$zthreshold<-argu$ss_zthreshold}
-          if(is.null(argu$ss_pthreshold)) {xarg$pthreshold<-0.05} else {xarg$pthreshold<-argu$ss_pthreshold}
+        aarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
+        if (!file.exists(paste0(aarg$outputpath,".feat")) ) {
+          if(is.null(argu$ss_zthreshold)) {aarg$zthreshold<-3.2} else {aarg$zthreshold<-argu$ss_zthreshold}
+          if(is.null(argu$ss_pthreshold)) {aarg$pthreshold<-0.05} else {aarg$pthreshold<-argu$ss_pthreshold}
           
           message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
-          xarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
-          xarg$runnum<-runnum   
-          xarg$volumes<-x$run_volumes[runnum]
-          xarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfgfilepath = argu$cfgpath,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
-          xarg$nuisa<-file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
+          aarg$runnum<-runnum   
+          aarg$volumes<-x$run_volumes[runnum]
+          aarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfgfilepath = argu$cfgpath,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
+          aarg$nuisa<-file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
           
           if(argu$adaptive_ssfeat){
             for (mv in 1:ncol(argu$xmat)) {
-              assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model.name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = xarg)
+              assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model.name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = aarg)
             }
           } else {
-            gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=xarg,regtype=argu$regtype)
+            gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=aarg,regtype=argu$regtype)
           }
-          if (any(unlist(eapply(xarg,is.na)))) {stop("NA exists in one of the arguments; please double check!")}
+          if (any(unlist(eapply(aarg,is.na)))) {stop("NA exists in one of the arguments; please double check!")}
           #gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
           
           cmmd<-feat_w_template(fsltemplate = ssfsltemp,beg = "ARG_",end = "_END",
                                 fsfpath = file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_",argu$model.name,".fsf")),
-                                envir = xarg,outcommand = T)
+                                envir = aarg,outcommand = T)
+          rm(aarg)
           return(cmmd)
         } else {
           message(paste("ID:",idx,"RUN:",runnum,",already exists,","to re-run, remove the directory."))
