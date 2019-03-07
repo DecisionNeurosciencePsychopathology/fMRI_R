@@ -767,7 +767,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
       IDorder<-prep_unpaired_t(idsep = argu$supplyidmap, outpath = file.path(outputdir,modelname))
 
       df.jr<-df.jx[which(df.jx$ID %in% IDorder),]
-      if(IDorder[which(is.na(match(IDorder,df.jx$ID)))]>0){stop("Some of the ID supplied does not have data, they are: ",IDorder[which(is.na(match(IDorder,df.jx$ID)))])}
+      if(length(IDorder[which(is.na(match(IDorder,df.jx$ID)))])>0){stop("Some of the ID supplied does not have data, they are: ",IDorder[which(is.na(match(IDorder,df.jx$ID)))])}
       cope.fslmerge<-lapply(copestorun,function(x) {
         outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_unpaired_ttests"))
         dir.create(outputroot, showWarnings = FALSE,recursive = T)
