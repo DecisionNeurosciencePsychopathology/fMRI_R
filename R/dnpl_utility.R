@@ -642,7 +642,7 @@ plot_image_all<-function(rootpath=NULL,templatedir=NULL,model.name=NULL,patt=NUL
 glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanalysis/fsl",
                         outputdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl",
                         modelname="PE_8C_old",grp_sep=argu$group_id_sep,copestorun=1:8,
-                        paralleln=NULL,onesamplet_pergroup=T,pairedtest=T,
+                        paralleln=NULL,onesamplet_pergroup=T,pairedtest=T,unpairedtest=T,
                         thresh_cluster_mass=NULL,thresh_cluster_extent=NULL,pvalue=0.001, ifDeMean=T,
                         usethesetest=c("tfce","voxel-based","cluster-based-mass","cluster-based-extent")) {
   if ( is.null(modelname) ) {stop("Must specify a model name other wise it will be hard to find all copes")}

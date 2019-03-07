@@ -367,9 +367,12 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     if(argu$higherleveltype=="randomize"){
       onesamplet_pergroup<-F
       pairedtest<-F
+      unpairedtest<-F
       if (is.null(argu$group_id_sep) | !exists('group_id_sep',envir = argu)) {argu$group_id_sep<-""} 
       if (is.null(argu$cluster_thresh) | !exists('cluster_thresh',envir = argu)) {argu$cluster_thresh<-3} 
       if (is.null(argu$whichttest) | !exists('whichttest',envir = argu)) {argu$whichttest<-"onesample"}
+      if (exists("supplyidmap",envir = argu)) {unpairedtest<-T}
+      if (exists('group_id_sep',envir = argu) & "unpaired" %in% argu$whichttest) {unpairedtest<-T} 
       if ("onesample" %in% argu$whichttest) {onesamplet_pergroup<-T}
       if ("paired" %in% argu$whichttest) {pairedtest<-T}
       #To adopt the new chnages made in adaptive ss 
@@ -386,7 +389,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                     copestorun=maxcopenum,
                     thresh_cluster_mass=argu$thresh_cluster_mass,
                     thresh_cluster_extent=argu$thresh_cluster_extent,
-                    pvalue=argu$randomize_p_threshold,
+                    pvalue=argu$randomize_p_threshold,unpairedtest=unpairedtest,
                     usethesetest=argu$randomize_thresholdingways,
                     ifDeMean=argu$randomize_demean,
                     paralleln = num_cores)
