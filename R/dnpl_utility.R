@@ -780,8 +780,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
                         ," \n ",
                         "randomise -i ",outputroot,"/UnpairedT4D -o ",outputroot,"/UnpairedT -d ",
                         file.path(outputdir,modelname),"/design_unpaired.mat -t ",
-                        file.path(outputdir,modelname),"/design_unpaired.con -e ",
-                        file.path(outputdir,modelname),"/design_unpaired.grp",option_grp
+                        file.path(outputdir,modelname),"/design_unpaired.con ",option_grp
           ))
         }else {return(NULL)}
       })
