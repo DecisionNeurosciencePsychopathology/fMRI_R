@@ -775,7 +775,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
           onecope<-df.jr[which(df.jr$COPENUM==x),]
           onecope_re<-onecope[match(IDorder,onecope$ID),]
           copefileconcat<-paste(onecope_re$PATH,collapse = " ")
-          return(paste0("fslmerge -t ",outputroot,"/PairedT4D"," ",
+          return(paste0("fslmerge -t ",outputroot,"/UnpairedT4D"," ",
                         copefileconcat
                         ," \n ",
                         "randomise -i ",outputroot,"/UnpairedT4D -o ",outputroot,"/UnpairedT -d ",
