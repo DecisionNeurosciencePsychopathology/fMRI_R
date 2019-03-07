@@ -763,25 +763,23 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
       dir.create(file.path(outputdir,modelname),showWarnings = F,recursive = T)
       if(!exists("supplyidmap",envir = argu)){argu$supplyidmap<-sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F)}
       IDorder<-prep_unpaired_t(idsep = argu$supplyidmap, outpath = file.path(outputdir,modelname))
-      
-      cidindex<-data.frame(ID=do.call(c,lapply(commonid,function(xm) {paste(xm,grp_sep,sep = "_")})),notag=do.call(c,lapply(commonid,function(xm) {paste(xm,c("",""),sep = "")})))
-      df.kh<-merge(df.jx,cidindex,all = T)
-      df.jk<-df.kh[which(!is.na(df.kh$notag)),]
+
+      df.jr<-df.jx[which(df.jx$ID %in% IDorder),]
       
       cope.fslmerge<-lapply(copestorun,function(x) {
-        outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_paired_ttest"))
+        outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_unpaired_ttests"))
         dir.create(outputroot, showWarnings = FALSE,recursive = T)
         if (length(list.files(pattern = "*tfce_corrp_tstat1",path = outputroot,no.. = T))<1) {
-          onecope<-df.jk[which(df.jk$COPENUM==x),]
-          onecope_re<-onecope[with(onecope,order(GROUP,notag)),]
+          onecope<-df.jr[which(df.jr$COPENUM==x),]
+          onecope_re<-onecope[match(IDorder,onecope$ID),]
           copefileconcat<-paste(onecope_re$PATH,collapse = " ")
           return(paste0("fslmerge -t ",outputroot,"/PairedT4D"," ",
                         copefileconcat
                         ," \n ",
-                        "randomise -i ",outputroot,"/PairedT4D -o ",outputroot,"/PairedT -d ",
-                        file.path(outputdir,modelname),"/design.mat -t ",
-                        file.path(outputdir,modelname),"/design.con -e ",
-                        file.path(outputdir,modelname),"/design.grp",option_grp
+                        "randomise -i ",outputroot,"/UnpairedT4D -o ",outputroot,"/UnpairedT -d ",
+                        file.path(outputdir,modelname),"/design_unpaired.mat -t ",
+                        file.path(outputdir,modelname),"/design_unpaired.con -e ",
+                        file.path(outputdir,modelname),"/design_unpaired.grp",option_grp
           ))
         }else {return(NULL)}
       })
@@ -858,7 +856,7 @@ prep_unpaired_t<-function(idsep=NULL,outpath=NULL){
       cmat[,match(sr[2],allnames)]<- -1
       return(list(name=paste(sr,collapse = ">"),cmat=cmat))
       })
-  
+  cmat<-do.call(rbind,lapply(cmat_ls,function(r){r$cmat}))
   gmat<-do.call(rbind,lapply(1:ngrp,function(io){matrix(ncol = 1,nrow = nsub[io],data = io)}))
   
   write.table(dmat,file = file.path(outpath,"design.mat.txt"),row.names = F,col.names = F)
@@ -876,6 +874,7 @@ prep_unpaired_t<-function(idsep=NULL,outpath=NULL){
   write.table(data.frame(contrastnum=1:nrow(cmat),constrastname=unlist(lapply(cmat_ls, function(x){x$name}))),
               file = file.path(outpath,"unpaired_t_contrastnames.csv"))
   return(as.character(unlist(sapply(idsep,function(x){x$ID}))))    
+  #return(list(dmat,cmat,gmat))
 }
 
 prep_paired_t<-function(idsep=NULL,outpath=NULL){
