@@ -696,7 +696,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   
   #Now we face this problem of runing bunch of them...
   #One sample T test;
-  if (length(unique(df.jx$GROUP))==1){ 
+  if (length(unique(df.jx$GROUP))==1 | exists("supplyidmap",envir = argu)){ 
     #Make Commands;
     cope.fslmerge<-lapply(copestorun,function(x) {
       outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_onesample_ttest"))
@@ -735,7 +735,9 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
     } 
     if (pairedtest) {
       dir.create(file.path(outputdir,modelname),showWarnings = F,recursive = T)
-      commonid<-prep_paired_t(idsep = sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F), outpath = file.path(outputdir,modelname))
+      if(!exists("supplyidmap",envir = argu)){argu$supplyidmap<-sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F)}
+      
+      commonid<-prep_paired_t(idsep = argu$supplyidmap, outpath = file.path(outputdir,modelname))
       cidindex<-data.frame(ID=do.call(c,lapply(commonid,function(xm) {paste(xm,grp_sep,sep = "_")})),notag=do.call(c,lapply(commonid,function(xm) {paste(xm,c("",""),sep = "")})))
       df.kh<-merge(df.jx,cidindex,all = T)
       df.jk<-df.kh[which(!is.na(df.kh$notag)),]
