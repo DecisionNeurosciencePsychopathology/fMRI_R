@@ -696,7 +696,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   
   #Now we face this problem of runing bunch of them...
   #One sample T test;
-  if (length(unique(df.jx$GROUP))==1 | exists("supplyidmap",envir = argu)){ 
+  if (length(unique(df.jx$GROUP))==1 & !exists("supplyidmap",envir = argu)){ 
     #Make Commands;
     cope.fslmerge<-lapply(copestorun,function(x) {
       outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_onesample_ttest"))
