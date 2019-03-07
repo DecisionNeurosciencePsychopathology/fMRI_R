@@ -646,6 +646,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
                         thresh_cluster_mass=NULL,thresh_cluster_extent=NULL,pvalue=0.001, ifDeMean=T,
                         usethesetest=c("tfce","voxel-based","cluster-based-mass","cluster-based-extent")) {
   if ( is.null(modelname) ) {stop("Must specify a model name other wise it will be hard to find all copes")}
+  if(!exists("supplyidmap",envir = argu)){argu$supplyidmap<-sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F)}
   #Creating directory in case they are not there;
   dir.create(file.path(outputdir,modelname),showWarnings = FALSE,recursive = T)
   #Ensure fsl are in path:
@@ -673,7 +674,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   
   #we now add in the group level stuff here, in hope that it will have more flexiblity;
   if (length(grp_sep)>1) {
-    df.jx<-merge(df.ex,do.call(rbind,lapply(sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F),function(x) {data.frame(ID=x$ID,GROUP=x$name)})),by = "ID",all.x = T)
+    df.jx<-merge(df.ex,do.call(rbind,lapply(argu$supplyidmap,function(x) {data.frame(ID=x$ID,GROUP=x$name)})),by = "ID",all.x = T)
   } else {df.ex$GROUP<-"ONE"
   df.jx<-df.ex}
   
@@ -695,7 +696,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   
   #Now we face this problem of runing bunch of them...
   #One sample T test;
-  if (length(unique(df.jx$GROUP))==1 & !exists("supplyidmap",envir = argu)){ 
+  if (length(unique(df.jx$GROUP))==1){ 
     #Make Commands;
     cope.fslmerge<-lapply(copestorun,function(x) {
       outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_onesample_ttest"))
