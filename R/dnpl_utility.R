@@ -389,7 +389,7 @@ prepare4secondlvl<-function(ssana.path=NULL,preproc.path=NULL,
         if (!file.exists(linkmap$originplace[i]))  {
           system(paste0("${FSLDIR}/bin/flirt -in ",file.path(ssana.path,linkmap$id[i],linkmap$runword[i],"mask.nii.gz")," -ref ",
                         standardbarin.path," -out /Volumes/bek/neurofeedback/.temp.nii -omat ",linkmap$originplace[i],
-                        " -bins 256 -cost corratio -searchrx -90 90 -searchry -90 90 -searchrz -90 90 -dof 6  -interp trilinear"))
+                        " -bins 256 -cost corratio -searchrx -90 90 -searchry -90 90 -searchrz -90 90 -dof 12  -interp trilinear"))
         }
         if (!file.exists(file.path(linkmap$destination,"example_func2standard.mat")[i])){
           file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"example_func2standard.mat")[i])
@@ -767,7 +767,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
       IDorder<-prep_unpaired_t(idsep = argu$supplyidmap, outpath = file.path(outputdir,modelname))
 
       df.jr<-df.jx[which(df.jx$ID %in% IDorder),]
-      if(IDorder[which(is.na(match(IDorder,df.jx$ID)))]>0){stop("Some of the ID supplied does not have data, they are: ",IDorder[which(is.na(match(IDorder,df.jx$ID)))])}
+      
       cope.fslmerge<-lapply(copestorun,function(x) {
         outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_unpaired_ttests"))
         dir.create(outputroot, showWarnings = FALSE,recursive = T)
