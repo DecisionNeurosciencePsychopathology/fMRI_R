@@ -741,7 +741,6 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
       df.jk<-df.kh[which(!is.na(df.kh$notag)),]
       cope.fslmerge<-lapply(copestorun,function(x) {
         outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_paired_ttest"))
-        list.files(pattern = "*tfce_corrp_tstat1",path = outputroot)
         dir.create(outputroot, showWarnings = FALSE,recursive = T)
         if (length(list.files(pattern = "*tfce_corrp_tstat1",path = outputroot,no.. = T))<1) {
           onecope<-df.jk[which(df.jk$COPENUM==x),]
@@ -760,7 +759,35 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
       cleanuplist(cope.fslmerge)->cope.fslmerge
       assign(x = "pairedtests",value = cope.fslmerge,envir = allcopecomx)
     }
-    
+    if (unpairedtest) {
+      dir.create(file.path(outputdir,modelname),showWarnings = F,recursive = T)
+      if(!exists("supplyidmap",envir = argu)){argu$supplyidmap<-sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F)}
+      IDorder<-prep_unpaired_t(idsep = argu$supplyidmap, outpath = file.path(outputdir,modelname))
+      
+      cidindex<-data.frame(ID=do.call(c,lapply(commonid,function(xm) {paste(xm,grp_sep,sep = "_")})),notag=do.call(c,lapply(commonid,function(xm) {paste(xm,c("",""),sep = "")})))
+      df.kh<-merge(df.jx,cidindex,all = T)
+      df.jk<-df.kh[which(!is.na(df.kh$notag)),]
+      
+      cope.fslmerge<-lapply(copestorun,function(x) {
+        outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_paired_ttest"))
+        dir.create(outputroot, showWarnings = FALSE,recursive = T)
+        if (length(list.files(pattern = "*tfce_corrp_tstat1",path = outputroot,no.. = T))<1) {
+          onecope<-df.jk[which(df.jk$COPENUM==x),]
+          onecope_re<-onecope[with(onecope,order(GROUP,notag)),]
+          copefileconcat<-paste(onecope_re$PATH,collapse = " ")
+          return(paste0("fslmerge -t ",outputroot,"/PairedT4D"," ",
+                        copefileconcat
+                        ," \n ",
+                        "randomise -i ",outputroot,"/PairedT4D -o ",outputroot,"/PairedT -d ",
+                        file.path(outputdir,modelname),"/design.mat -t ",
+                        file.path(outputdir,modelname),"/design.con -e ",
+                        file.path(outputdir,modelname),"/design.grp",option_grp
+          ))
+        }else {return(NULL)}
+      })
+      cleanuplist(cope.fslmerge)->cope.fslmerge
+      assign(x = "pairedtests",value = cope.fslmerge,envir = allcopecomx)
+    }
   }
   XNN<-eapply(env = allcopecomx, FUN = function(cope.fslmerge) {
     sink(file=file.path(outputdir,modelname,"glvl_log.txt"),split=TRUE)
@@ -813,6 +840,44 @@ sortid<-function(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu
   return(split_dirx)    
 }
 
+prep_unpaired_t<-function(idsep=NULL,outpath=NULL){
+  ngrp<-length(idsep)
+  nsub<-sapply(idsep,function(xr){length(xr$ID)})
+  allnames<-sapply(idsep,function(xr){xr$name})
+  dmat<-do.call(rbind,lapply(1:ngrp,function(rz){
+    dmatx<-matrix(data = 0,ncol = ngrp,nrow = nsub[rz])
+    dmatx[,rz]<-1 
+    return(dmatx)
+  }))
+  
+  pairs<-levels(interaction(as.factor(sapply(idsep,function(s){s$name})),as.factor(sapply(idsep,function(s){s$name})),sep = ">"))
+  cmat_ls<-lapply(cleanuplist(lapply(strsplit(pairs,split = ">"),function(x){
+    ifelse(any(duplicated(x)),return(NULL),return(x))})),function(sr){
+      cmat<-matrix(nrow = 1,ncol = ngrp,data = 0)
+      cmat[,match(sr[1],allnames)]<-1
+      cmat[,match(sr[2],allnames)]<- -1
+      return(list(name=paste(sr,collapse = ">"),cmat=cmat))
+      })
+  
+  gmat<-do.call(rbind,lapply(1:ngrp,function(io){matrix(ncol = 1,nrow = nsub[io],data = io)}))
+  
+  write.table(dmat,file = file.path(outpath,"design.mat.txt"),row.names = F,col.names = F)
+  system(paste0("${FSLDIR}/bin/Text2Vest ",file.path(outpath,"design.mat.txt")," ",file.path(outpath,"design_unpaired.mat")))
+  file.remove(file.path(outpath,"design.mat.txt"))
+  
+  write.table(cmat,file = file.path(outpath,"design.con.txt"),row.names = F,col.names = F)
+  system(paste0("${FSLDIR}/bin/Text2Vest ",file.path(outpath,"design.con.txt")," ",file.path(outpath,"design_unpaired.con")))
+  file.remove(file.path(outpath,"design.con.txt"))
+  
+  write.table(gmat,file = file.path(outpath,"design.grp.txt"),row.names = F,col.names = F)
+  system(paste0("${FSLDIR}/bin/Text2Vest ",file.path(outpath,"design.grp.txt")," ",file.path(outpath,"design_unpaired.grp")))
+  file.remove(file.path(outpath,"design.grp.txt"))
+  
+  write.table(data.frame(contrastnum=1:nrow(cmat),constrastname=unlist(lapply(cmat_ls, function(x){x$name}))),
+              file = file.path(outpath,"unpaired_t_contrastnames.csv"))
+  return(as.character(unlist(sapply(idsep,function(x){x$ID}))))    
+}
+
 prep_paired_t<-function(idsep=NULL,outpath=NULL){
   
   commonid<-Reduce(intersect, lapply(names(idsep),function(xj){
@@ -846,6 +911,7 @@ prep_paired_t<-function(idsep=NULL,outpath=NULL){
   return(commonid)
   
 }
+
 
 get_motion_info<-function(configpath=NULL,type="fd",threshold="default"){
   if (!file.exists(configpath)){stop("Config File Does NOT Exist")}
