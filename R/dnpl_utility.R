@@ -1274,7 +1274,7 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot
         cmdx<-paste(sep=" ","fslstats -t",concatimg,
                     "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
         system(cmdx,intern = T)
-      })))
+      })),stringsAsFactors = F)
       
       names(roivalues)<-paste("cluster",clx,sep = "_")
       roivalues$ID<-df.idx$ID
