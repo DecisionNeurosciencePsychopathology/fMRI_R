@@ -1249,7 +1249,7 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot
     featdir<-featdir[-grep(".jpeg",featdir)]
     cmindx<-gen_cluster_mask(featdir=featdir,base=basemask,corrp_mask=corrp_mask,outdir = cmoutdir,VersionCode = Version,
                              maskthresholdvalue=corrmaskthreshold,roimaskthreshold=roimaskthreshold,
-                             overwrite=!saveclustermap,...)
+                             overwrite=!saveclustermap)
     cmindx<-cmindx[cmindx$Voxels>voxelnumthres,]
     
     clx<-clustertoget[[as.character(copenum)]]
