@@ -1154,7 +1154,7 @@ whichfile<-function(textx=NULL,dirx=NULL,fullnameq=T){
 # roimaskthreshold=roimaskthreshold
 # overwrite=!saveclustermap
 
-gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl/alignment6/cope12_randomize_onesample_ttest",
+gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl/alignment6/cope12_randomize_onesample_ttest",useMMcor=T,
                            outdir=NULL,VersionCode=NULL,base="tstat",corrp_mask="tstat",maskthresholdvalue=3.0,roimaskthreshold=0.0001,
                            overwrite=T,writecsv=T,savetempdir=NULL) {
   if(is.null(VersionCode)){versionCode<-""}else{versionCode<-paste0("_",VersionCode)}
@@ -1167,6 +1167,7 @@ gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpa
               "-bin","-mul",whichfile(base,featdir,T),step1path,sep = " ")
   system(cmd1)
   
+  if(useMMcor){corOpt <- " --mm"}else{corOpt<-""}
   if(voxel_count(step1path)[1]<2) {
     nullmask<-TRUE
     message("This set up result in less than 2 voxels.")
@@ -1174,7 +1175,7 @@ gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpa
   #Step 1; get only the 
   if (!nullmask){
     step2path<-file.path(tempdirx,"cluster_index.nii.gz")
-    cmd2<-paste(sep = " ","cluster","-i",step1path,"-t ",roimaskthreshold,"-o",step2path)
+    cmd2<-paste(sep = " ","cluster","-i",step1path,"-t ",roimaskthreshold,"-o",step2path,corOpt)
     s2raw<-system(cmd2,intern = T)
     s2df<-read.table(text = s2raw,sep = "\t",header = T,check.names = F)
     s2df$name<-s2df$`Cluster Index` #Here's where you can do something about getting their indexs
@@ -1216,7 +1217,7 @@ gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpa
 # maxcore=4
 
 roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot,modelname=argu$model.name,grp_identif=NA,
-                       basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,
+                       basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,useMMcor=T,
                        roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL,maxcore=4,saverdata=T,...){
   #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
   raw_avfeat<-system(paste0("find ",file.path(rootdir,modelname,"*/average.gfeat")," -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
@@ -1248,7 +1249,7 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot
     featdir<-list.files(path = truerootdir,pattern = paste0("cope",paste0(copenum,"_"),".*randomize"),full.names = T)
     featdir<-featdir[-grep(".jpeg",featdir)]
     cmindx<-gen_cluster_mask(featdir=featdir,base=basemask,corrp_mask=corrp_mask,outdir = cmoutdir,VersionCode = Version,
-                             maskthresholdvalue=corrmaskthreshold,roimaskthreshold=roimaskthreshold,
+                             maskthresholdvalue=corrmaskthreshold,roimaskthreshold=roimaskthreshold,useMMcor=useMMcor,
                              overwrite=!saveclustermap)
     cmindx<-cmindx[cmindx$Voxels>voxelnumthres,]
     
