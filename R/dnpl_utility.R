@@ -1216,7 +1216,7 @@ gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpa
 # copetoget=NULL
 # maxcore=4
 
-roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot,modelname=argu$model.name,grp_identif=NA,
+roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot,modelname=argu$model.name,grp_identif=NA,forceconcat=F,
                        basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,useMMcor=F,
                        roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL,maxcore=4,saverdata=T,...){
   #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
@@ -1258,12 +1258,12 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot
     clx<-clx[clx %in% cmindx$`Cluster Index`]
     if (length(clx)>0) {
       concatimg<-list.files(pattern = ".*4D.nii.gz$",path = featdir,full.names = T)
-      if(any(grepl("concat4D.nii.gz",concatimg))) {concatimg<-concatimg[grepl("concat4D.nii.gz",concatimg)]
-      }else if(length(concatimg)<1 | grepl("PairedT",concatimg) | !is.na(grp_identif)){
+      if(any(grepl("concat4D.nii.gz",concatimg)) & !forceconcat) {concatimg<-concatimg[grepl("concat4D.nii.gz",concatimg)]
+      }else if(length(concatimg)<1 | grepl("PairedT",concatimg) | !is.na(grp_identif) | forceconcat){
         concatimg<-file.path(featdir,"concat4D.nii.gz")
         concatcmd<-paste(sep=" ","fslmerge -t",concatimg,paste(df.idx$PATH,collapse = " "))
         system(concatcmd,intern = F)
-      }
+      } else {stop("unexpected error at imaging concating...")}
       roivalues<-as.data.frame(do.call(cbind,lapply(clx, function(clz){
         #print(clz)
         # roivalue<-sapply(1:length(df.idx$ID), function(iz){
@@ -1274,7 +1274,7 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot
         #Use fslstat timeserires to calculate;
         cmdx<-paste(sep=" ","fslstats -t",concatimg,
                     "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
-        system(cmdx,intern = T)
+        as.numeric(system(cmdx,intern = T))
       })),stringsAsFactors = F)
       
       names(roivalues)<-paste("cluster",clx,sep = "_")
