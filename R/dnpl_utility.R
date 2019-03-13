@@ -1244,7 +1244,7 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot
   if(length(copetoget)<maxcore & length(copetoget)>1){coresx<-length(copetoget)}else{coresx<-4}
   sharedproc<-parallel::makeCluster(coresx,outfile="",type = "FORK")
   copes_roivalues<-parallel::parLapply(cl=sharedproc,X = copetoget,function(copenum){
-    message(copenum)
+    #message(copenum)
     df.idx<-df.ex[df.ex$COPENUM==copenum,]
     featdir<-list.files(path = truerootdir,pattern = paste0("cope",paste0(copenum,"_"),".*randomize"),full.names = T)
     featdir<-featdir[-grep(".jpeg",featdir)]
@@ -1276,7 +1276,7 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot
                     "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
         as.numeric(system(cmdx,intern = T))
       })),stringsAsFactors = F)
-      
+      roivalues<-as.data.frame(lapply(roivalues,as.numeric),stringsAsFactors = F)
       names(roivalues)<-paste(paste0("cope",copenum),"cluster",clx,sep = "_")
       roivalues$ID<-df.idx$ID
       return(list(roivalues=roivalues,index=cmindx[cmindx$`Cluster Index`%in% clx,-grep("maskpath",names(cmindx))],corrthreshold=corrmaskthreshold))
