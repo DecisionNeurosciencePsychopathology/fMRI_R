@@ -1277,7 +1277,7 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot
         as.numeric(system(cmdx,intern = T))
       })),stringsAsFactors = F)
       
-      names(roivalues)<-paste("cluster",clx,sep = "_")
+      names(roivalues)<-paste(paste0("cope",copenum),"cluster",clx,sep = "_")
       roivalues$ID<-df.idx$ID
       return(list(roivalues=roivalues,index=cmindx[cmindx$`Cluster Index`%in% clx,-grep("maskpath",names(cmindx))],corrthreshold=corrmaskthreshold))
     } else return(NULL)
