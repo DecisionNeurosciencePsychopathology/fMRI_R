@@ -54,7 +54,7 @@ qc_getinfo<-function(cfgpath=NULL,ssub_dir=file.path(argu$ssub_outputroot,argu$m
 }
 
 
-QC_pipe<-function(cfgpath=NULL,QC_func=NULL,bhav_datapath=NULL,bhav_file_patt=NULL,hdtemplate=NULL,
+QC_pipe<-function(cfgpath=NULL,QC_func=NULL,bhav_datapath=NULL,bhav_file_patt=NULL,hdtemplate=NULL,donotrunfslpipe=F,
                   QC_auxdir="/Volumes/bek/QC_fsl",nparalle=NULL,supplylist=NULL,preproc.nii.patt="nfswudktm*[0-9]_[0-9].nii.gz",
                   atlas_name="MNI",atlas_index=c(5,6),...){
   if(is.null(nparalle)) {nparalle<-4}
@@ -71,7 +71,9 @@ QC_pipe<-function(cfgpath=NULL,QC_func=NULL,bhav_datapath=NULL,bhav_file_patt=NU
   supplylist<-lapply(dirs,as.list)
   }
   #run it through fsl pipe step 1:3;
+  if(!donotrunfslpipe){
   fsl_pipe(argu = argu,prep.call.func = QC_func,prep.call.allsub = supplylist)
+  }
   roi_indx_df<-create_roimask_atlas(atlas_name="MNI",target=c(5,6),outdir=argu$QC_auxdir,
                                     fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",
                                     singlemask=T,atlas_readtype = "fsl",...) 
@@ -82,4 +84,26 @@ QC_pipe<-function(cfgpath=NULL,QC_func=NULL,bhav_datapath=NULL,bhav_file_patt=NU
   #qc_info$studyname<-cfg$study
   return(qc_info)
 }
+
+#####Uploading to the redcap; 
+linktable<-data.frame()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
