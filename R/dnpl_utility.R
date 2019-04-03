@@ -948,7 +948,7 @@ get_motion_info<-function(configpath=NULL,type="fd",threshold="default"){
 
 amputate_run<-function(small.sub=NULL,cfgpath=NULL,type="fd",threshold="default") {
   
-  
+  stop("UNFINISHED FUNC")
   
 }
 
