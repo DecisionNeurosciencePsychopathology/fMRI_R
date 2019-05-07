@@ -683,7 +683,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   } else {df.ex$GROUP<-"ONE"
   df.jx<-df.ex}
   
-  allcopecomx<-as.environment(list())
+  allcopecomx<-new.env(parent = .GlobalEnv)
   
   #DO the options:
   option_grp<-""
@@ -718,6 +718,16 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
     cleanuplist(cope.fslmerge)->cope.fslmerge
     assign(x = "onesamplet_onegroup",value = cope.fslmerge,envir = allcopecomx)
   } else {
+    #First check IDs
+    dIDs<-unlist(lapply(argu$supplyidmap,function(x){unique(x$ID)}),use.names = F)
+    if(length(dIDs[which(is.na(match(dIDs,df.jx$ID)))])>0){
+      message("Some of the ID supplied does not have data, they are: ",paste(dIDs[which(is.na(match(dIDs,df.jx$ID)))],collapse = " ") ,". Will remove them from grp analysis") 
+      argu$supplyidmap<-lapply(argu$supplyidmap,function(x){
+        x$ID<-x$ID[which(x$ID %in% unique(df.jx$ID))]
+        return(x)
+      })
+    }
+    
     if (onesamplet_pergroup) {
       #Make symoblic link first
       NX<-sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F)
@@ -770,9 +780,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
       dir.create(file.path(outputdir,modelname),showWarnings = F,recursive = T)
       if(!exists("supplyidmap",envir = argu)){argu$supplyidmap<-sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F)}
       IDorder<-prep_unpaired_t(idsep = argu$supplyidmap, outpath = file.path(outputdir,modelname))
-
       df.jr<-df.jx[which(df.jx$ID %in% IDorder),]
-      if(length(IDorder[which(is.na(match(IDorder,df.jx$ID)))])>0){stop("Some of the ID supplied does not have data, they are: ",IDorder[which(is.na(match(IDorder,df.jx$ID)))])}
       cope.fslmerge<-lapply(copestorun,function(x) {
         outputroot<-file.path(outputdir,modelname,paste0("cope",x,"_randomize_unpaired_ttests"))
         dir.create(outputroot, showWarnings = FALSE,recursive = T)

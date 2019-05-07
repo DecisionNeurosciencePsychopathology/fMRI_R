@@ -57,7 +57,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     argu$adaptive_ssfeat<-FALSE
   } 
   if (!exists("xmat",envir = argu)) {
-    message("Single Subject Level type is not specified, will use non-adaptive version by default.")
+    message("Single subject design matrix is not specified, will use automatic generated one by using grid.")
     ogLength<-length(argu$dsgrid$name)
     negNum<-(which(argu$dsgrid$AddNeg))
     if(length(negNum)>0){
@@ -393,7 +393,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                     usethesetest=argu$randomize_thresholdingways,
                     ifDeMean=argu$randomize_demean,
                     paralleln = num_cores)
-      #Use for debugging:
+      # Use for debugging:
       # rootdir=argu$ssub_outputroot
       # outputdir=argu$glvl_outputroot
       # modelname=argu$model.name
