@@ -801,38 +801,30 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
       assign(x = "pairedtests",value = cope.fslmerge,envir = allcopecomx)
     }
   }
-  XNN<-eapply(env = allcopecomx, FUN = function(cope.fslmerge) {
-    sink(file=file.path(outputdir,modelname,"glvl_log.txt"),split=TRUE)
-    #Do Parallel or nah
-    if (!is.null(paralleln)){
-      cj1<-makeCluster(paralleln,outfile="",type = "FORK")
-      NU<-parSapply(cj1,cope.fslmerge,function(x) {
-        message(paste0("Now running ",x))
-        pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
-        numdx<-which(x==cope.fslmerge)
-        indx<-suppressWarnings(split(1:length(cope.fslmerge),1:paralleln))
-        pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
-        setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
-        system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
-        message("completed")
-      })
-      stopCluster(cj1)
-    } else {
-      lapply(cope.fslmerge,function(x) {
-        message(paste0("Now running ",x))
-        pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
-        numdx<-which(x==cope.fslmerge)
-        indx<-suppressWarnings(split(1:length(cope.fslmerge),1))
-        pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
-        setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
-        
-        system(command = x,intern = T,ignore.stdout = F,ignore.stderr = F)
-        
-        message("completed")
-      })
-    }
+  
+  copetorunqueue<-unlist(as.list(allcopecomx),use.names = F)
+  copetrackdf<-data.frame(cmd=copetorunqueue,indx=1:length(copetorunqueue),ifrun=FALSE,stringsAsFactors = F)
+  message("Total of ",nrow(copetrackdf)," to run.")
+  pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
+  if (!is.null(paralleln)){
+  cj1<-makeCluster(paralleln,outfile="",type = "FORK")
+  NU<-parallel::parSapply(cj1, 1:nrow(copetrackdf),function(x){
+    message(paste0("Now running ",copetrackdf$indx[x]," in the queue."))
+    system(command = copetrackdf$cmd[x],intern = T,ignore.stdout = F,ignore.stderr = F) 
+    copetrackdf$ifrun[x]<-TRUE
+    setTxtProgressBar(pb,(length(which(copetrackdf$ifrun)) / nrow(copetrackdf) * 100) )
   })
-  message("DONE")
+  stopCluster(cj1)
+  close(pb)
+  } else {
+    for(x in 1:nrow(copetrackdf)){
+      message(paste0("Now running ",copetrackdf$indx[x]," in the queue."))
+      system(command = copetrackdf$cmd[x],intern = T,ignore.stdout = F,ignore.stderr = F) 
+      copetrackdf$ifrun[x]<-TRUE
+      setTxtProgressBar(pb,(length(which(copetrackdf$ifrun)) / nrow(copetrackdf) * 100) )
+    }
+  }
+  message("ALL DONE")
 }
 
 
