@@ -11,9 +11,9 @@ cleanuplist<-function(listx){
   return(listx)
 }
 
-fsl_2_sys_env<-function(bashprofilepath=NULL){
+fsl_2_sys_env<-function(bashprofilepath=NULL,force=T){
   if (is.null(bashprofilepath)){bashprofilepath<-file.path(Sys.getenv("HOME"),".bash_profile")}
-  if (length(system("env | grep 'fsl' ",intern = T))<1) {
+  if (length(system("env | grep 'fsl' ",intern = T))<1 | force) {
     if(file.exists(bashprofilepath)) {
       print("Using user .bashprofile")
       fslinfo<-cfg_info(bashprofilepath)
@@ -329,13 +329,15 @@ findbox<-function(usebek=F) {
     boxdir<-system("find ~ -iname 'Box*' -maxdepth 2 -type d",intern = T)}
   return(boxdir)
 }
-prepare4secondlvl<-function(ssana.path=NULL,preproc.path=NULL,
+
+#######
+prepare4secondlvl<-function(ssana.path=NULL,featfoldername="*output.feat",
                             standardbarin.path="/Volumes/bek/Newtemplate_may18/fsl_mni152/MNI152_T1_2mm_brain.nii",
-                            proc.name=NULL,taskname=NULL,dir.filter=NULL,overwrite=TRUE,outputmap=FALSE,paralleln=NULL) {
-  if (is.null(ssana.path) | is.null(preproc.path) | is.null(standardbarin.path) | is.null(proc.name) | is.null(taskname)){stop("not enough info to run")}
+                            dir.filter=NULL,overwrite=F,outputmap=FALSE,paralleln=NULL) {
+  if (is.null(ssana.path) | is.null(standardbarin.path) ){stop("not enough info to run")}
   #Step 1: Step up parameters, but it's a function so do it outside please
   #Step 2: Go to find all the feat. directory:
-  featlist<-system(paste0("find ",ssana.path," -iname '*output.feat' -maxdepth 4 -mindepth 1 -type d"),intern = T)
+  featlist<-system(paste0("find ",ssana.path," -iname ",featfoldername," -maxdepth 4 -mindepth 1 -type d"),intern = T)
   #Break them down&take out all old_template_results
   strsplit(featlist,split = "/")->s.featlist
   s.featlist.p<-lapply(s.featlist,function(x) {
@@ -346,65 +348,47 @@ prepare4secondlvl<-function(ssana.path=NULL,preproc.path=NULL,
   s.featlist.p[sapply(s.featlist.p,is.null)] <- NULL
   maxlength<-length(s.featlist.p[[1]])
   #Step 3: Get all the necessary info from the breakdown list:
-  linkmap<-data.frame(id=sapply(s.featlist.p, "[[",maxlength-1), runword=sapply(s.featlist.p, "[[",maxlength))
-  linkmap$num<-lapply(strsplit(as.character(linkmap$runword),split =''), 
-                      function(x) {suppressWarnings(x[which(!is.na(as.numeric(x)))])})
-  linkmap$num<-as.numeric(linkmap$num)
+  linkmap<-data.frame(id=sapply(s.featlist.p, "[[",maxlength-1), runword=sapply(s.featlist.p, "[[",maxlength),path=featlist)
+  #linkmap$num<-lapply(strsplit(as.character(linkmap$runword),split =''), 
+  #                    function(x) {suppressWarnings(x[which(!is.na(as.numeric(x)))])})
+  #linkmap$num<-as.numeric(linkmap$num)
   na.omit(linkmap)->linkmap 
-  linkmap$origin<-paste(taskname,linkmap$num,sep = "")
+  #linkmap$origin<-paste(taskname,linkmap$num,sep = "")
   
   #Step 4, make original directory and destination directory:
-  linkmap$destination<-file.path(ssana.path,linkmap$id,linkmap$runword,"reg")
-  linkmap$destination_standard<-file.path(ssana.path,linkmap$id,linkmap$runword,"reg_standard")
-  linkmap$originplace<-file.path(ssana.path,linkmap$id,linkmap$runword,"masktostandtransforms.mat")
+  linkmap$destination<-file.path(linkmap$path,"reg")
+  linkmap$destination_standard<-file.path(linkmap$path,"reg_standard")
+  linkmap$originplace<-file.path(linkmap$path,"masktostandtransforms.mat")
+  fsl_2_sys_env()
+  proc_lvl2<-function(i,overwrite){
+    if (overwrite) {
+      if (file.exists(linkmap$destination[i])) {file.remove(linkmap$destination[i])}
+      if (file.exists(linkmap$originplace[i])) {file.remove(linkmap$originplace[i])}
+    }
+    st2<-dir.create(showWarnings = F,path = linkmap$destination[i])
+    if (!file.exists(linkmap$originplace[i]))  {
+      
+      system(paste("${FSLDIR}/bin/flirt",
+                   "-in",file.path(linkmap$path[i],"mask.nii.gz"),
+                   "-ref",standardbarin.path,
+                   "-omat",linkmap$originplace[i],
+                   "-usesqform",sep = " "),intern = F)
+    }
+    if (!file.exists(file.path(linkmap$destination,"example_func2standard.mat")[i])){
+      file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"example_func2standard.mat")[i])
+      file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"standard2example_func.mat")[i])
+      file.symlink(from = standardbarin.path,to = file.path(linkmap$destination,"standard.nii.gz")[i])
+    } else {message("meh,already there, if you want to overwirite, do overwrite...")}
+  }
+  
   
   if (is.null(paralleln)) {
-    for (i in 1:length(linkmap$id)) {
-      if (overwrite) {
-        if (file.exists(linkmap$destination[i])) {file.remove(linkmap$destination[i])}
-        if (file.exists(linkmap$originplace[i])) {file.remove(linkmap$originplace[i])}
-      }
-      st2<-dir.create(showWarnings = F,path = linkmap$destination[i])
-      if (!file.exists(linkmap$originplace[i]))  {
-        fsl_2_sys_env()
-        system(paste("${FSLDIR}/bin/flirt",
-                     "-in",file.path(ssana.path,linkmap$id[i],linkmap$runword[i],"mask.nii.gz"),
-                     "-ref",standardbarin.path,
-                     "-omat",linkmap$originplace[i],
-                     "-usesqform",sep = " "),intern = F)
-      }
-      if (!file.exists(file.path(linkmap$destination,"example_func2standard.mat")[i])){
-        file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"example_func2standard.mat")[i])
-        file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"standard2example_func.mat")[i])
-        file.symlink(from = standardbarin.path,to = file.path(linkmap$destination,"standard.nii.gz")[i])
-      } else {message("meh,already there, if you want to overwirite, do overwrite...")}
-      
-    }} else {
-      cluster_prep2ndlvl<-makeCluster(paralleln,outfile=file.path(argu$ssub_outputroot,argu$model.name,"prep42ndlvl_log.txt"),type = "FORK")
-      NU<-parSapply(cluster_prep2ndlvl,1:length(linkmap$id),function(i) {
-        fsl_2_sys_env()
-        if (overwrite) {
-          if (file.exists(linkmap$destination[i])) {file.remove(linkmap$destination[i])}
-          if (file.exists(linkmap$originplace[i])) {file.remove(linkmap$originplace[i])}
-        }
-        st2<-dir.create(showWarnings = F,path = linkmap$destination[i])
-        if (!file.exists(linkmap$originplace[i]))  {
-          
-          system(paste("${FSLDIR}/bin/flirt",
-                       "-in",file.path(ssana.path,linkmap$id[i],linkmap$runword[i],"mask.nii.gz"),
-                       "-ref",standardbarin.path,
-                       "-omat",linkmap$originplace[i],
-                       "-usesqform",sep = " "),intern = F)
-        }
-        if (!file.exists(file.path(linkmap$destination,"example_func2standard.mat")[i])){
-          file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"example_func2standard.mat")[i])
-          file.symlink(from = file.path(linkmap$originplace)[i],to = file.path(linkmap$destination,"standard2example_func.mat")[i])
-          file.symlink(from = standardbarin.path,to = file.path(linkmap$destination,"standard.nii.gz")[i])
-        } else {message("meh,already there, if you want to overwirite, do overwrite...")}
-        
-      })
-      stopCluster(cluster_prep2ndlvl)
-    }
+    NU<-sapply(1:nrow(linkmap),proc_lvl2,overwrite)
+  } else {
+    cluster_prep2ndlvl<-makeCluster(paralleln,outfile="",type = "FORK")
+    NU<-parSapply(cluster_prep2ndlvl,1:nrow(linkmap),proc_lvl2,overwrite)
+    stopCluster(cluster_prep2ndlvl)
+  }
   
   if(outputmap) {return(linkmap)}
   print("DONE")
@@ -801,18 +785,18 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
       assign(x = "pairedtests",value = cope.fslmerge,envir = allcopecomx)
     }
   }
-  
+  grx<-new.env()
   copetorunqueue<-unlist(as.list(allcopecomx),use.names = F)
-  copetrackdf<-data.frame(cmd=copetorunqueue,indx=1:length(copetorunqueue),ifrun=FALSE,stringsAsFactors = F)
+  grx$copetrackdf<-data.frame(cmd=copetorunqueue,indx=1:length(copetorunqueue),ifrun=FALSE,stringsAsFactors = F)
   message("Total of ",nrow(copetrackdf)," to run.")
   pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
   if (!is.null(paralleln)){
-  cj1<-makeCluster(paralleln,outfile="",type = "FORK")
-  NU<-parallel::parSapply(cj1, 1:nrow(copetrackdf),function(x){
-    message(paste0("Now running ",copetrackdf$indx[x]," in the queue."))
-    system(command = copetrackdf$cmd[x],intern = T,ignore.stdout = F,ignore.stderr = F) 
-    copetrackdf$ifrun[x]<-TRUE
-    setTxtProgressBar(pb,(length(which(copetrackdf$ifrun)) / nrow(copetrackdf) * 100) )
+  cj1<-parallel::makeCluster(paralleln,outfile="",type = "FORK")
+  NU<-parallel::parSapply(cj1, 1:nrow(grx$copetrackdf),function(x){
+    message(paste0("Now running ",grx$copetrackdf$indx[x]," in the queue."))
+    #system(command = copetrackdf$cmd[x],intern = T,ignore.stdout = F,ignore.stderr = F) 
+    grx$copetrackdf$ifrun[x]<-TRUE
+    setTxtProgressBar(pb,(length(which(grx$copetrackdf$ifrun)) / nrow(grx$copetrackdf) * 100) )
   })
   stopCluster(cj1)
   close(pb)
