@@ -272,11 +272,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     cfg<-cfg_info(cfgpath = argu$cfgpath)
     prepmap<-prepare4secondlvl(
       ssana.path=file.path(argu$ssub_outputroot,argu$model.name),            
-      preproc.path=cfg$loc_mrproc_root,                                
+      #preproc.path=cfg$loc_mrproc_root,                                
       standardbarin.path=argu$templatedir, 
       dir.filter=argu$hig_lvl_path_filter,                                                
-      proc.name=cfg$paradigm_name,                                                                         
-      taskname=cfg$preprocessed_dirname,                                                                   
+      #proc.name=cfg$paradigm_name,                                                                         
+      #taskname=cfg$preprocessed_dirname,                                                                   
       overwrite=argu$ifoverwrite_secondlvl,
       outputmap=TRUE,
       paralleln = num_cores)           
