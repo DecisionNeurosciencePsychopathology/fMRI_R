@@ -709,8 +709,8 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   #pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
   if (!is.null(paralleln)){
   cj1<-parallel::makeCluster(paralleln,outfile="",type = "FORK")
-  NU<-parallel::parSapply(cj1, 1:nrow(grx$copetrackdf),function(x){
-    message(paste0("Now running ",grx$copetrackdf$indx[x]," in the queue."))
+  NU<-parallel::parSapply(cj1, 1:nrow(copetrackdf),function(x){
+    message(paste0("Now running ",copetrackdf$indx[x]," in the queue."))
     system(command = copetrackdf$cmd[x],intern = T,ignore.stdout = F,ignore.stderr = F) 
     #grx$copetrackdf$ifrun[x]<-TRUE
     #setTxtProgressBar(pb,(length(which(grx$copetrackdf$ifrun)) / nrow(grx$copetrackdf) * 100) )
