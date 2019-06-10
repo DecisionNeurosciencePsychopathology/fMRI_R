@@ -126,91 +126,6 @@ addcenterscaletolist<-function(list) {
   return(newlist)
 }
 
-#Make single signal as a list:
-makesignal.single<-function(output,ename,norm=c("none","durmax_1","evtmax_1"),normargu="convmax_1",valuefrom,modifier=NA,style="subset",nonah=T) {
-  jrz<-list()
-  jrz[["event"]]<-ename
-  jrz[["normalization"]]<-norm
-  jrz[normargu]<-TRUE
-  
-  subelist<-output$event.list$allconcat[which(output$event.list$allconcat$event==ename),]
-  value<-output$value[[valuefrom]]
-  
-  value.df<-data.frame(
-    run=subelist$run,
-    trial=subelist$trial,
-    value=value
-  )
-  if (!is.na(modifier)) {
-    #INVERTING THE LOGICAL STATEMENT SO 1 for valid trials and 0 for non-valid!
-    if (nonah) {
-      modx<-!output$output.df[modifier] & !is.na(subelist$onset)
-    } else { modx<-!output$output.df[modifier]}
-    switch (style,
-            "multiply" = {value.df$value<-value.df$value * as.numeric(modx)},
-            "subset"   = {value.df<-value.df[modx ,]}
-    )
-    
-  }
-  #0->value.df$value[is.na(value.df$value)]
-  jrz[["value"]]<-value.df
-  return(jrz)
-}
-
-#Make all of them with a grid:
-make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NULL,nona=F, expectedtn=300,add_taskness=F) {
-  if (is.null(dsgrid)) {dsgrid<-read.csv(dsgridpath, stringsAsFactors = FALSE)}
-  if (is.null(outputdata)) {stop("NO DATA")}
-  dsgrid.og<-dsgrid
-  allofthem<-new.env(parent = emptyenv())
-  dsgrid[dsgrid=="NA"]<-NA
-  if (length(grep("_evt",dsgrid.og$valuefrom))>0){
-    dsgrid<-dsgrid.og[-grep("_evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
-  
-  if (dim(dsgrid)[1]>0) {
-    for (i in 1:length(dsgrid$ename)) {
-      message(paste("making...",dsgrid$name[i],sep=""))
-      #could have totally do a do.call and make assignment within single function 
-      #but that ONE datainput variable is hard to get by with do.call so......loop is fine
-      #Forcing all arguments so it's kinda bad....
-      result<-makesignal.single(output = outputdata,
-                                ename = dsgrid$ename[i],
-                                norm = dsgrid$norm[i],
-                                normargu = dsgrid$normargu[i],
-                                valuefrom = dsgrid$valuefrom[i],
-                                modifier = dsgrid$modifier[i],
-                                style = dsgrid$style[i],
-                                nonah = nona)
-      # output = outputdata
-      # ename = dsgrid$ename[i]
-      # norm = dsgrid$norm[i]
-      # normargu = dsgrid$normargu[i]
-      # valuefrom = dsgrid$valuefrom[i]
-      # modifier = dsgrid$modifier[i]
-      # style = dsgrid$style[i]
-      # nonah = nona
-      assign(dsgrid$name[i],result,envir = allofthem)
-    }
-  }
-  #change it to list:
-  allofthemlist<-as.list(allofthem)
-  dsgrid.og->dsgrid
-  #Taskness varibale:
-  if (add_taskness) {
-    for (taskname in unique(dsgrid$ename)) {
-      
-      if (any(is.na(outputdata$event.list[[taskname]]))) {
-        tempdf<-outputdata$event.list[[taskname]][which(!is.na(outputdata$event.list[[taskname]]$onset)),]
-        tempdf.a<-subset.data.frame(tempdf,select = c("run","trial"))
-        tempdf.a$value<-1
-        allofthemlist[[paste(taskname,"_evt",sep = "")]] <- list(value=tempdf.a,event=taskname,normalization="none")
-      }else {allofthemlist[[paste(taskname,"_evt",sep = "")]] <- list(value=1,event=taskname,normalization="none")}
-    }
-  }
-  return(allofthemlist)
-  
-}
-
 cfg_info<-function(cfgpath=NULL,noproc=F) {
   if (is.null(cfgpath)) {stop("No cfg file supplied!")}
   pre.sym<-system("env",intern = T)
@@ -236,6 +151,8 @@ cfg_info<-function(cfgpath=NULL,noproc=F) {
   })
   return(as.list(xout))
 }
+
+
 
 get_nuisance_preproc<-function(id=NULL,cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
                                returnas=c("path","data.frame"),dothese=c("nuisance","motion_par","motion_outlier"),
@@ -787,16 +704,16 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   }
   grx<-new.env()
   copetorunqueue<-unlist(as.list(allcopecomx),use.names = F)
-  grx$copetrackdf<-data.frame(cmd=copetorunqueue,indx=1:length(copetorunqueue),ifrun=FALSE,stringsAsFactors = F)
+  copetrackdf<-data.frame(cmd=copetorunqueue,indx=1:length(copetorunqueue),ifrun=FALSE,stringsAsFactors = F)
   message("Total of ",nrow(copetrackdf)," to run.")
-  pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
+  #pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
   if (!is.null(paralleln)){
   cj1<-parallel::makeCluster(paralleln,outfile="",type = "FORK")
   NU<-parallel::parSapply(cj1, 1:nrow(grx$copetrackdf),function(x){
     message(paste0("Now running ",grx$copetrackdf$indx[x]," in the queue."))
-    #system(command = copetrackdf$cmd[x],intern = T,ignore.stdout = F,ignore.stderr = F) 
-    grx$copetrackdf$ifrun[x]<-TRUE
-    setTxtProgressBar(pb,(length(which(grx$copetrackdf$ifrun)) / nrow(grx$copetrackdf) * 100) )
+    system(command = copetrackdf$cmd[x],intern = T,ignore.stdout = F,ignore.stderr = F) 
+    #grx$copetrackdf$ifrun[x]<-TRUE
+    #setTxtProgressBar(pb,(length(which(grx$copetrackdf$ifrun)) / nrow(grx$copetrackdf) * 100) )
   })
   stopCluster(cj1)
   close(pb)
@@ -1413,6 +1330,93 @@ deconv_timeseries<-function(datalist=NULL,tslist=NULL,func.proc=NULL,evtname=NUL
   return(split(grx,grx$ID))
 }
 
+
+######Depreciating:
+#Make single signal as a list:
+makesignal.single<-function(output,ename,norm=c("none","durmax_1","evtmax_1"),normargu="convmax_1",valuefrom,modifier=NA,style="subset",nonah=T) {
+  jrz<-list()
+  jrz[["event"]]<-ename
+  jrz[["normalization"]]<-norm
+  jrz[normargu]<-TRUE
+  
+  subelist<-output$event.list$allconcat[which(output$event.list$allconcat$event==ename),]
+  value<-output$value[[valuefrom]]
+  
+  value.df<-data.frame(
+    run=subelist$run,
+    trial=subelist$trial,
+    value=value
+  )
+  if (!is.na(modifier)) {
+    #INVERTING THE LOGICAL STATEMENT SO 1 for valid trials and 0 for non-valid!
+    if (nonah) {
+      modx<-!output$output.df[modifier] & !is.na(subelist$onset)
+    } else { modx<-!output$output.df[modifier]}
+    switch (style,
+            "multiply" = {value.df$value<-value.df$value * as.numeric(modx)},
+            "subset"   = {value.df<-value.df[modx ,]}
+    )
+    
+  }
+  #0->value.df$value[is.na(value.df$value)]
+  jrz[["value"]]<-value.df
+  return(jrz)
+}
+
+#Make all of them with a grid:
+make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NULL,nona=F, expectedtn=300,add_taskness=F) {
+  message("!!!THIS VERSION IS GETTING DEPRECIATED. FSLPIPE2 IS COMING SOON.!!!")
+  if (is.null(dsgrid)) {dsgrid<-read.csv(dsgridpath, stringsAsFactors = FALSE)}
+  if (is.null(outputdata)) {stop("NO DATA")}
+  dsgrid.og<-dsgrid
+  allofthem<-new.env(parent = emptyenv())
+  dsgrid[dsgrid=="NA"]<-NA
+  if (length(grep("_evt",dsgrid.og$valuefrom))>0){
+    dsgrid<-dsgrid.og[-grep("_evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
+  
+  if (dim(dsgrid)[1]>0) {
+    for (i in 1:length(dsgrid$ename)) {
+      message(paste("making...",dsgrid$name[i],sep=""))
+      #could have totally do a do.call and make assignment within single function 
+      #but that ONE datainput variable is hard to get by with do.call so......loop is fine
+      #Forcing all arguments so it's kinda bad....
+      result<-makesignal.single(output = outputdata,
+                                ename = dsgrid$ename[i],
+                                norm = dsgrid$norm[i],
+                                normargu = dsgrid$normargu[i],
+                                valuefrom = dsgrid$valuefrom[i],
+                                modifier = dsgrid$modifier[i],
+                                style = dsgrid$style[i],
+                                nonah = nona)
+      # output = outputdata
+      # ename = dsgrid$ename[i]
+      # norm = dsgrid$norm[i]
+      # normargu = dsgrid$normargu[i]
+      # valuefrom = dsgrid$valuefrom[i]
+      # modifier = dsgrid$modifier[i]
+      # style = dsgrid$style[i]
+      # nonah = nona
+      assign(dsgrid$name[i],result,envir = allofthem)
+    }
+  }
+  #change it to list:
+  allofthemlist<-as.list(allofthem)
+  dsgrid.og->dsgrid
+  #Taskness varibale:
+  if (add_taskness) {
+    for (taskname in unique(dsgrid$ename)) {
+      
+      if (any(is.na(outputdata$event.list[[taskname]]))) {
+        tempdf<-outputdata$event.list[[taskname]][which(!is.na(outputdata$event.list[[taskname]]$onset)),]
+        tempdf.a<-subset.data.frame(tempdf,select = c("run","trial"))
+        tempdf.a$value<-1
+        allofthemlist[[paste(taskname,"_evt",sep = "")]] <- list(value=tempdf.a,event=taskname,normalization="none")
+      }else {allofthemlist[[paste(taskname,"_evt",sep = "")]] <- list(value=1,event=taskname,normalization="none")}
+    }
+  }
+  return(allofthemlist)
+  
+}
 
 
 
