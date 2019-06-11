@@ -716,13 +716,13 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
     #setTxtProgressBar(pb,(length(which(grx$copetrackdf$ifrun)) / nrow(grx$copetrackdf) * 100) )
   })
   stopCluster(cj1)
-  close(pb)
+  #close(pb)
   } else {
     for(x in 1:nrow(copetrackdf)){
       message(paste0("Now running ",copetrackdf$indx[x]," in the queue."))
       system(command = copetrackdf$cmd[x],intern = T,ignore.stdout = F,ignore.stderr = F) 
       copetrackdf$ifrun[x]<-TRUE
-      setTxtProgressBar(pb,(length(which(copetrackdf$ifrun)) / nrow(copetrackdf) * 100) )
+      #setTxtProgressBar(pb,(length(which(copetrackdf$ifrun)) / nrow(copetrackdf) * 100) )
     }
   }
   message("ALL DONE")
