@@ -704,9 +704,11 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   }
   grx<-new.env()
   copetorunqueue<-unlist(as.list(allcopecomx),use.names = F)
+  if (length(copetorunqueue)>0){
   copetrackdf<-data.frame(cmd=copetorunqueue,indx=1:length(copetorunqueue),ifrun=FALSE,stringsAsFactors = F)
   message("Total of ",nrow(copetrackdf)," to run.")
   #pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
+  
   if (!is.null(paralleln)){
   cj1<-parallel::makeCluster(paralleln,outfile="",type = "FORK")
   NU<-parallel::parSapply(cj1, 1:nrow(copetrackdf),function(x){
@@ -725,7 +727,11 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
       #setTxtProgressBar(pb,(length(which(copetrackdf$ifrun)) / nrow(copetrackdf) * 100) )
     }
   }
+  
   message("ALL DONE")
+  } else {
+    message("All third level had completed! Nothing to run!")
+  }
 }
 
 
