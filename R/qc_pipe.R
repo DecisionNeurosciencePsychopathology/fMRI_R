@@ -89,12 +89,6 @@ QC_pipe<-function(cfgpath=NULL,QC_func=NULL,bhav_datapath=NULL,bhav_file_patt=NU
   return(qc_info)
 }
 
-<<<<<<< HEAD
-
-=======
-#####Uploading to the redcap; 
-linktable<-data.frame()
->>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
 
 
 

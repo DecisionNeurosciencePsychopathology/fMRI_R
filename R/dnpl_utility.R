@@ -17,13 +17,9 @@ fsl_2_sys_env<-function(bashprofilepath=NULL,force=T){
     if(file.exists(bashprofilepath)) {
       print("Using user .bashprofile")
       fslinfo<-cfg_info(bashprofilepath)
-<<<<<<< HEAD
-      
       pathx<-unique(strsplit(fslinfo$PATH,":")[[1]])
       afni_path<-pathx[which(grepl("/abin",pathx) | grepl("/afni",pathx))]
       if(length(afni_path)==1) {fslinfo$AFNIDIR <- afni_path}
-=======
->>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
       info_to_sysenv(fslinfo)
     }
   }
@@ -258,10 +254,9 @@ findbox<-function(usebek=F) {
 prepare4secondlvl<-function(ssana.path=NULL,featfoldername="*output.feat",
                             standardbarin.path="/Volumes/bek/Newtemplate_may18/fsl_mni152/MNI152_T1_2mm_brain.nii",
                             dir.filter=NULL,overwrite=F,outputmap=FALSE,paralleln=NULL) {
-<<<<<<< HEAD
+
   stop("This function is officially discontinued. It should not be used.")
-=======
->>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
+
   if (is.null(ssana.path) | is.null(standardbarin.path) ){stop("not enough info to run")}
   #Step 1: Step up parameters, but it's a function so do it outside please
   #Step 2: Go to find all the feat. directory:
@@ -373,11 +368,9 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
   if(is.null(model.varinames)){
     model.varinames<-dsgrid$name
     argu$model.varinames<-model.varinames
-<<<<<<< HEAD
+
   }
-=======
-    }
->>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
+
   #Create  models:
   model<-signals[model.varinames]
   
@@ -720,7 +713,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   grx<-new.env()
   copetorunqueue<-unlist(as.list(allcopecomx),use.names = F)
   if (length(copetorunqueue)>0){
-<<<<<<< HEAD
+
     copetrackdf<-data.frame(cmd=copetorunqueue,indx=1:length(copetorunqueue),ifrun=FALSE,stringsAsFactors = F)
     message("Total of ",nrow(copetrackdf)," to run.")
     #pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
@@ -745,32 +738,7 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
     }
     
     message("ALL DONE")
-=======
-  copetrackdf<-data.frame(cmd=copetorunqueue,indx=1:length(copetorunqueue),ifrun=FALSE,stringsAsFactors = F)
-  message("Total of ",nrow(copetrackdf)," to run.")
-  #pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
-  
-  if (!is.null(paralleln)){
-  cj1<-parallel::makeCluster(paralleln,outfile="",type = "FORK")
-  NU<-parallel::parSapply(cj1, 1:nrow(copetrackdf),function(x){
-    message(paste0("Now running ",copetrackdf$indx[x]," in the queue."))
-    system(command = copetrackdf$cmd[x],intern = T,ignore.stdout = F,ignore.stderr = F) 
-    #grx$copetrackdf$ifrun[x]<-TRUE
-    #setTxtProgressBar(pb,(length(which(grx$copetrackdf$ifrun)) / nrow(grx$copetrackdf) * 100) )
-  })
-  stopCluster(cj1)
-  #close(pb)
-  } else {
-    for(x in 1:nrow(copetrackdf)){
-      message(paste0("Now running ",copetrackdf$indx[x]," in the queue."))
-      system(command = copetrackdf$cmd[x],intern = T,ignore.stdout = F,ignore.stderr = F) 
-      copetrackdf$ifrun[x]<-TRUE
-      #setTxtProgressBar(pb,(length(which(copetrackdf$ifrun)) / nrow(copetrackdf) * 100) )
-    }
-  }
-  
-  message("ALL DONE")
->>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
+
   } else {
     message("All third level had completed! Nothing to run!")
   }
@@ -810,11 +778,9 @@ prep_unpaired_t<-function(idsep=NULL,outpath=NULL){
       cmat[,match(sr[1],allnames)]<-1
       cmat[,match(sr[2],allnames)]<- -1
       return(list(name=paste(sr,collapse = ">"),cmat=cmat))
-<<<<<<< HEAD
+
     })
-=======
-      })
->>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
+
   cmat<-do.call(rbind,lapply(cmat_ls,function(r){r$cmat}))
   gmat<-do.call(rbind,lapply(1:ngrp,function(io){matrix(ncol = 1,nrow = nsub[io],data = io)}))
   
@@ -1173,7 +1139,7 @@ gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpa
 # clustertoget=NULL
 # copetoget=NULL
 # maxcore=4
-<<<<<<< HEAD
+
 readfsf<-function(fsfdir){
   fsf<-readLines(fsfdir)
   fsf<-fsf[!grepl("#",fsf)&fsf!=""]
@@ -1264,76 +1230,7 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_output,mod
     parallel::stopCluster(sharedproc)
   }
   
-=======
 
-roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_outputroot,modelname=argu$model.name,grp_identif=NA,forceconcat=F,
-                       basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,useMMcor=F,
-                       roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL,maxcore=4,saverdata=T,...){
-  #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
-  raw_avfeat<-system(paste0("find ",file.path(rootdir,modelname,"*/average.gfeat")," -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
-  fsl_2_sys_env()
-  if(is.null(Version)){Version<-paste0(corrp_mask,corrmaskthreshold)}
-  strsplit(raw_avfeat,split = "/") ->raw.split
-  df.ex<-data.frame(ID=unlist(lapply(raw.split,function(x) {
-    x[grep("average.gfeat",x)-1]
-  })),
-  COPENUM=unlist(lapply(raw.split,function(x) {
-    x[grep("average.gfeat",x)+1]
-  })),
-  PATH=file.path(raw_avfeat,"stats","cope1.nii.gz")
-  )
-  df.ex$COPENUM<-substr(df.ex$COPENUM,start=regexpr("[0-9]",df.ex$COPENUM),stop = regexpr(".feat",df.ex$COPENUM)-1)
-  if(!is.na(grp_identif)){
-    if(length(grp_identif)>1){stop("Function do not want to handle more than one grp_identifier at a time, do a lapply or loop.")}
-    truerootdir<-file.path(grproot,modelname,grp_identif)
-  } else {truerootdir<-file.path(grproot,modelname)}
-  
-  rnddirs<-list.dirs(path = truerootdir,recursive = F)
-  if(saveclustermap){cmoutdir<-NULL}else{cmoutdir<-base::tempdir()}
-  if(is.null(copetoget)){copetoget<-unique(as.character(df.ex$COPENUM))}
-  if(length(copetoget)<maxcore & length(copetoget)>1){coresx<-length(copetoget)}else{coresx<-4}
-  sharedproc<-parallel::makeCluster(coresx,outfile="",type = "FORK")
-  copes_roivalues<-parallel::parLapply(cl=sharedproc,X = copetoget,function(copenum){
-    #message(copenum)
-    df.idx<-df.ex[df.ex$COPENUM==copenum,]
-    featdir<-list.files(path = truerootdir,pattern = paste0("cope",paste0(copenum,"_"),".*randomize"),full.names = T)
-    featdir<-featdir[-grep(".jpeg",featdir)]
-    cmindx<-gen_cluster_mask(featdir=featdir,base=basemask,corrp_mask=corrp_mask,outdir = cmoutdir,VersionCode = Version,
-                             maskthresholdvalue=corrmaskthreshold,roimaskthreshold=roimaskthreshold,useMMcor=useMMcor,
-                             overwrite=!saveclustermap)
-    cmindx<-cmindx[cmindx$Voxels>voxelnumthres,]
-    
-    clx<-clustertoget[[as.character(copenum)]]
-    if(is.null(clx)){clx<-cmindx$`Cluster Index`}
-    clx<-clx[clx %in% cmindx$`Cluster Index`]
-    if (length(clx)>0) {
-      concatimg<-list.files(pattern = ".*4D.nii.gz$",path = featdir,full.names = T)
-      if(any(grepl("concat4D.nii.gz",concatimg)) & !forceconcat) {concatimg<-concatimg[grepl("concat4D.nii.gz",concatimg)]
-      }else if(length(concatimg)<1 | grepl("PairedT",concatimg) | !is.na(grp_identif) | forceconcat){
-        concatimg<-file.path(featdir,"concat4D.nii.gz")
-        concatcmd<-paste(sep=" ","fslmerge -t",concatimg,paste(df.idx$PATH,collapse = " "))
-        system(concatcmd,intern = F)
-      } else {stop("unexpected error at imaging concating...")}
-      roivalues<-as.data.frame(do.call(cbind,lapply(clx, function(clz){
-        #print(clz)
-        # roivalue<-sapply(1:length(df.idx$ID), function(iz){
-        #   print(iz)
-        # cmdx<-paste(sep=" ","fslstats",as.character(df.idx$PATH[iz]),
-        #            "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
-        # system(cmdx,intern = T)})
-        #Use fslstat timeserires to calculate;
-        cmdx<-paste(sep=" ","fslstats -t",concatimg,
-                    "-k",cmindx$maskpath[cmindx$`Cluster Index`==clz],"-M")
-        as.numeric(system(cmdx,intern = T))
-      })),stringsAsFactors = F)
-      roivalues<-as.data.frame(lapply(roivalues,as.numeric),stringsAsFactors = F)
-      names(roivalues)<-paste(paste0("cope",copenum),"cluster",clx,sep = "_")
-      roivalues$ID<-df.idx$ID
-      return(list(roivalues=roivalues,index=cmindx[cmindx$`Cluster Index`%in% clx,-grep("maskpath",names(cmindx))],corrthreshold=corrmaskthreshold))
-    } else return(NULL)
-  })
-  parallel::stopCluster(sharedproc)
->>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
   names(copes_roivalues)<-paste("cope",copetoget,sep = "_")
   if(saverdata) {
     tempenvir<-as.environment(list())
@@ -1410,11 +1307,6 @@ get_timeserires<-function(ssub_root=NULL,maskpath=NULL,templatepath=NULL,tarname
         return(list(root=rx_fd,imagepath=paste(rtp,collapse = .Platform$file.sep),ID=x,num=rx,
                     subjectmask=list.files(pattern = submaskname,path = rx_fd,full.names = T,no.. = T)))
       })
-<<<<<<< HEAD
-      
-=======
-    
->>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
     }else{return(list(list(ID=x,num=0)))}
   })
   glx<-unlist(lx,recursive = F)
@@ -1440,22 +1332,18 @@ get_timeserires<-function(ssub_root=NULL,maskpath=NULL,templatepath=NULL,tarname
 deconv_timeseries<-function(datalist=NULL,tslist=NULL,func.proc=NULL,evtname=NULL,tr=NULL,num.calibrate=0.5,variname="ts_beta",func.deconv=mean){
   xz<-lapply(datalist,do.call,what=func.proc)
   if(!is.null(num.calibrate)){message("Calibration number is set to be ",num.calibrate,", this will be added to before and after each epoch to capture more volumes.")
-<<<<<<< HEAD
+
   }else{num.calibrate=0}
-=======
-    }else{num.calibrate=0}
->>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
+
   tr<-as.numeric(tr)
   rxz<-lapply(1:length(xz),function(ki){
     kx<-xz[[ki]]
     ky<-kx$event.list[[evtname]]
     ky$ID<-names(xz)[[ki]]
     kys<-split(ky,ky$run)
-<<<<<<< HEAD
+
   })
-=======
-    })
->>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
+
   txz<-unlist(rxz,recursive = F,use.names = F)
   names(txz)<-sapply(txz,function(xi){paste0(unique(xi$ID),"_",unique(xi$run))})
   
@@ -1477,15 +1365,11 @@ deconv_timeseries<-function(datalist=NULL,tslist=NULL,func.proc=NULL,evtname=NUL
     ts_df_cl<-ts_df[!is.na(ts_df$whichtrial),]
     if(any(!TTbyRun$trial %in% ts_df_cl$whichtrial)){
       ts_df_cl<-rbind(ts_df_cl,
-<<<<<<< HEAD
+
                       data.frame(tsbeta=NA,t_start=NA,t_end=NA,whichtrial=TTbyRun$trial[!TTbyRun$trial %in% ts_df_cl$whichtrial],stringsAsFactors = F)
       )
     }
-=======
-      data.frame(tsbeta=NA,t_start=NA,t_end=NA,whichtrial=TTbyRun$trial[!TTbyRun$trial %in% ts_df_cl$whichtrial],stringsAsFactors = F)
-      )
-      }
->>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
+
     TTbyRun[[variname]]<-sapply(lapply(split(ts_df_cl,ts_df_cl$whichtrial),function(r){r$tsbeta}),func.deconv)
     return(TTbyRun[c("ID","run","trial",variname)])
   })
