@@ -47,11 +47,9 @@ qc_getinfo<-function(cfgpath=NULL,ssub_dir=file.path(argu$ssub_outputroot,argu$m
   voxdf<-do.call(rbind,voxlist)
   voxdf$voxsuv_per<-voxdf$voxel_count / voxdf$total_mask_voxel
   motiondf<-get_motion_info(configpath = cfgpath,type = argu$motion_type,argu$motion_threshold,...)
-<<<<<<< HEAD
+
   if(nrow(voxdf)<1 || is.null(nrow(voxdf))){voxdf[1,] <- NA}
-=======
-  
->>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
+
   voxinfo<-merge(voxdf,motiondf,by = c("ID","run"),all=T)
   return(voxinfo)
   
