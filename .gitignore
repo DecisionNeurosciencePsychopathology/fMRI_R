@@ -1,0 +1,6 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+feat_lvl2_to_afni.R
+./grids/.*
