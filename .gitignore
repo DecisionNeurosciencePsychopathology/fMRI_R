@@ -2,5 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+<<<<<<< HEAD
 feat_lvl2_to_afni.R
 ./grids/.*
+=======
+>>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f

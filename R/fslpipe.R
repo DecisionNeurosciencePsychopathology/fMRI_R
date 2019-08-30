@@ -71,6 +71,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   } 
   
   
+<<<<<<< HEAD
   argu$model_name <-   argu$model.name
   argu$subj_outputroot <-  argu$ssub_outputroot
   argu$templatebrain_path <- argu$templatedir
@@ -78,6 +79,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   
   #############STEP 1: Regressor generation#####################
+=======
+  #############STEP 1: Regressor generation #####################
+>>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
   #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
   stepnow<-1
   if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
@@ -158,9 +162,15 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     #End of Step 1
   }
   
+<<<<<<< HEAD
   #############Step 2: LVL1: Single Subject PARALLEL##########
   #Now we do the single sub processing using FSL and the regressor that was generated
   stepnow<-2
+=======
+  #############Step 2: Single Subject PARALLEL#######################
+  #Now we do the single sub processing using FSL and the regressor that was generated
+  stepnow<-stepnow+1
+>>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
   if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
     
     if (!is.null(argu$onlyrun) & !1 %in% argu$onlyrun) {
@@ -271,6 +281,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   #############Step 3: Prep for Higher Level #######################
   #Now we make the symbolic link for template matching...so they are not misaligned anymore...
+<<<<<<< HEAD
   stepnow<-3
   if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
     lvl2_featlist<-prep_session_lvl(subj_rootpath = file.path(argu$subj_outputroot,argu$model_name),subj_folderreg = "*output.feat",
@@ -328,14 +339,109 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       
     })
     parallel::stopCluster(lvl2_cluster)
+=======
+  stepnow<-stepnow+1
+  if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
+    
+    #This one runs fast enough that it should be fine to not parallel it
+    cfg<-cfg_info(cfgpath = argu$cfgpath)
+    prepmap<-prepare4secondlvl(
+      ssana.path=file.path(argu$ssub_outputroot,argu$model.name),            
+      #preproc.path=cfg$loc_mrproc_root,                                
+      standardbarin.path=argu$templatedir, 
+      dir.filter=argu$hig_lvl_path_filter,                                                
+      #proc.name=cfg$paradigm_name,                                                                         
+      #taskname=cfg$preprocessed_dirname,                                                                   
+      overwrite=argu$ifoverwrite_secondlvl,
+      outputmap=TRUE,
+      paralleln = num_cores)           
+    ##End of Step 3
+  }
+  
+  
+  #############Step 4: Fixed Effect for Single Subject PARALLEL ###############
+  #This starts averaging for each subject:
+  stepnow<-stepnow+1
+  if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
+    
+    if (!is.null(argu$onlyrun) & !2 %in% argu$onlyrun) {
+      if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
+        load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
+      } else {stop("No design rdata file found")}
+      small.sub<-lapply(allsub.design, function(x) {
+        list(
+          design=x$design,
+          ID=x$ID,
+          run_volumes=x$run_volumes,
+          regpath=x$regpath,
+          preprocID=x$preprocID)
+      })
+    }
+    cfg<-cfg_info(cfgpath = argu$cfgpath)
+    cfg$n_expected_funcruns->runnum
+    featlist<-lapply(small.sub,function(x) {
+      x$ID->idz
+      emp<-list()
+      for (runnum in 1:length(x$run_volumes)) {
+        emp[[paste0("feat",runnum)]]<-file.path(argu$ssub_outputroot,argu$model.name,idz,paste0("run",runnum,"_output.feat"))
+      }
+      small.sub[[idz]]$featlist<-emp
+      #assign("small.sub",small.sub,envir = globalenv())
+      small.sub<<-small.sub
+      return(emp)
+    })
+    IDs<-sapply(small.sub,function(j){j$ID})
+    clusterjobs1<-makeCluster(num_cores,outfile="",type = "FORK")
+    NU<-parSapply(clusterjobs1,small.sub, function(y) {
+      larg<-as.environment(list())
+      y$ID->larg$idx
+      larg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,larg$idx,"average")
+      larg<-list2env(y$featlist,envir = larg)
+      larg$templatedir<-argu$templatedir
+      if (argu$adaptive_gfeat) {
+        larg$maxrunnum<-1:length(y$featlist)
+        larg$maxcopenum<-1:nrow(argu$xmat)
+        
+        #PUT NEW FUNCTION HERE
+        studyfsltemp<-rep_within(adptemplate = readLines(argu$gsub_fsl_templatepath),searchenvir=larg)
+        larg$maxrunnum<-max(larg$maxrunnum)
+        larg$maxcopenum<-max(larg$maxcopenum)
+        
+      } else {
+        studyfsltemp<-readLines(argu$gsub_fsl_templatepath)
+        larg$maxcopenum<-1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
+      }
+      if (!file.exists(paste0(larg$outputpath,".gfeat"))) {
+        message(paste0("Initializing gfeat for participant: ",larg$idx))
+        feat_w_template(fsltemplate = studyfsltemp,
+                        beg = "ARG_",
+                        end = "_END",
+                        fsfpath = file.path(argu$regpath,argu$model.name,larg$idx,paste0("gfeat_temp",".fsf")),
+                        envir = larg)
+        pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
+        numdx<-which(larg$idx==IDs)
+        indx<-suppressWarnings(split(1:length(IDs),1:num_cores))
+        pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
+        setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
+      } else {message("This person already got average done!")}
+      
+    })
+    stopCluster(clusterjobs1)
+>>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
     ################END of step 4
   }
   
   
   
+<<<<<<< HEAD
   #############Step 5: LVL3: Higher Level (Randomize/FLAME) ##PARALLEL by function#########
   
   stepnow<-5
+=======
+  #############Step 5a: Higher Level (Randomize) ##PARALLEL by function#########
+  
+  stepnow<-stepnow+1
+>>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
   if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
     ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
     
@@ -386,6 +492,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       # paralleln = num_cores
     } else if (argu$higherleveltype=="flame") {
       #Run flame here:
+<<<<<<< HEAD
       lowlvl_featreg<-"average.gfeat"
       raw<-system(paste0("find ",
                          file.path(argu$subj_outputroot,argu$model_name,"*/",lowlvl_featreg),
@@ -441,6 +548,13 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         
       })
       parallel::stopCluster(lvl3_cluster)
+=======
+      if(!exists("whichflame",envir = argu)) {
+        message("whichflame variable not specified, will use 1+2 by default.")
+        argu$whichflame<-"1+2"
+      }
+      if(argu$whichflame=="1+2"){flametype<-1} else if(argu$whichflame=="1"){flametype<-2} else {stop("Feat's flame can only support '1+2' or '1'")}
+>>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
       
       #Variables to get:
       #outputpath:
@@ -454,6 +568,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   
   #############Step 6: Simple Graph and Info Extraction ###################
+<<<<<<< HEAD
   # Will not be compatible with new pipeline at all.
   # stepnow<-stepnow+1
   # if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
@@ -485,6 +600,39 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #   }
   #   #End of Step 6
   # }
+=======
+  
+  stepnow<-stepnow+1
+  if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
+    library(oro.nifti)
+    ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
+    
+    plot_image_all(rootpath=argu$glvl_outputroot,
+                   templatedir=argu$templatedir,
+                   model.name=argu$model.name,
+                   patt="*_tfce_corrp_tstat1.nii.gz",
+                   threshold=argu$graphic.threshold,
+                   colour="red")
+    
+    #Create cope index; regardless of the paths and stuff, it should be fine...
+    if(argu$adaptive_ssfeat){
+      xout<-rbind(
+        data.frame(copenum=seq(argu$dsgrid$name),copename=(argu$dsgrid$name)),
+        data.frame(copenum=seq(from=length(argu$dsgrid$name)+1,along.with = which(argu$dsgrid$AddNeg)),
+                   copename=paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
+      )
+      write.table(xout,file = file.path(argu$glvl_outputroot,argu$model.name,"cope_title_index.txt"),row.names = F)
+    }else{
+      write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)]))),
+                             title=gsub("\"","",gsub(pattern = "[0-9]*) \"",replacement = "",
+                                                     x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
+                                                              x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
+                                                                       x = ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)+1],fixed = T),fixed = T),fixed = F))
+      ),file = file.path(argu$glvl_outputroot,argu$model.name,"cope_title_index.txt"),row.names = F)
+    }
+    #End of Step 6
+  }
+>>>>>>> 37fa5af672eb53768932ca72089adbc772c5e20f
   
   #############End of function fsl_pipe#####################
 }
