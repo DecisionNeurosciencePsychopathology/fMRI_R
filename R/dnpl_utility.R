@@ -149,8 +149,8 @@ cfg_info<-function(cfgpath=NULL,noproc=F) {
         })
         x.2x<-as.list(etx)
       } else {x.2x<-y[2]} 
-    } else {x.2x<-NA}
-    assign(y[1],x.2x,envir = xout)
+      assign(y[1],x.2x,envir = xout)
+    } else {return(NULL)}
   })
   return(as.list(xout))
 }
