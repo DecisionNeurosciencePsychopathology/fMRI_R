@@ -14,9 +14,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   require("devtools")
   if("dependlab" %in% installed.packages()){"GREAT, DEPENDLAB PACK IS INSTALLED"}else{devtools::install_github("PennStateDEPENdLab/dependlab")}
-  fsl_2_sys_env()
-  
+  fsl_2_sys_env(force = T)
   require("parallel")
+  
   if (is.null(argu$nprocess)){
     if (detectCores()>12){
       num_cores<-12 #Use 8 cores to minimize burden; if on throndike 
@@ -30,32 +30,21 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if(is.null(argu$dsgrid$AddNeg)){argu$dsgrid$AddNeg<-FALSE}
   argu$dsgrid$AddNeg<-as.logical(argu$dsgrid$AddNeg)
   if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
-  #Version upgrade safe keeping
-  if (!exists("centerscaleall",envir = argu)) {
-    message("centerscaleall does not exist, using default options: FALSE")
-    argu$centerscaleall<-FALSE}
+  
+  ###Version upgrade safe keeping
+  default_ls<-list(lvl2_prep_refit=FALSE,centerscaleall=FALSE,
+                     nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",
+                     lvl3_type="flame",adaptive_ssfeat=TRUE)
+  default_ls<-default_ls[!names(default_ls) %in% names(argu)]
+  for(lx in 1:length(default_ls)){
+    message("Variable: '",names(default_ls)[lx],"' is not set, will use default value: ",default_ls[[lx]])
+  }
+  argu<-list2env(default_ls,envir = argu)
+  
+  #RE-config
   if (exists("ifnuisa",envir = argu) & !exists("convlv_nuisa",envir = argu)) {
     message("ifnuisa variable is now depreciated, please use convlv_nuisa to control if the pipeline should convolve nuissance regressor")
     argu$convlv_nuisa<-argu$ifnuisa}
-  if (!exists("nuisa_motion",envir = argu)) {
-    message("argument nuisa_motion doesn't exist, using default options: nuisance and motion parameters")
-    argu$nuisa_motion<-c("nuisance","motion_par")
-  }
-  if (!exists("motion_type",envir = argu)) {
-    message("argument motion_type doesn't exist, using default options: fd")
-    argu$motion_type<-"fd"}
-  if (!exists("motion_threshold",envir = argu)) {
-    message("argument motion_threshold doesn't exist, using default options, (fd 0.9; dvar 20)")
-    argu$motion_threshold<-"default"}
-  #Version upgrade safe keeping: RE: FALME Support
-  if (!exists("higherleveltype",envir = argu)) {
-    message("Higher level modeling type is not specified, will use randomize by default.")
-    argu$higherleveltype<-"randomize"
-  } 
-  if (!exists("adaptive_ssfeat",envir = argu)) {
-    message("Single Subject Level type is not specified, will use non-adaptive version by default.")
-    argu$adaptive_ssfeat<-FALSE
-  } 
   if (!exists("xmat",envir = argu)) {
     message("Single subject design matrix is not specified, will use automatic generated one by using grid.")
     ogLength<-length(argu$dsgrid$name)
@@ -71,13 +60,12 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   } 
   
   
-
+  #Renaming;
   argu$model_name <-   argu$model.name
   argu$subj_outputroot <-  argu$ssub_outputroot
   argu$templatebrain_path <- argu$templatedir
-  
-  
-  
+
+  if(!argu$run_pipeline){return(NULL)}
   #############STEP 1: Regressor generation#####################
 
   #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
@@ -278,8 +266,22 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
 
   stepnow<-3
   if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
-    lvl2_featlist<-prep_session_lvl(subj_rootpath = file.path(argu$subj_outputroot,argu$model_name),subj_folderreg = "*output.feat",
-                     template_brainpath = argu$templatebrain_path)
+    if(argu$lvl2_prep_refit){
+      cfg<-cfg_info(cfgpath = argu$cfgpath)
+      lvl2_featlist<-prepare4secondlvl(
+        ssana.path=file.path(argu$ssub_outputroot,argu$model.name),            
+        preproc.path=cfg$loc_mrproc_root,                                
+        standardbarin.path=argu$templatedir, 
+        dir.filter=argu$hig_lvl_path_filter,                                                
+        proc.name=cfg$paradigm_name,                                                                         
+        taskname=cfg$preprocessed_dirname,                                                                   
+        overwrite=argu$ifoverwrite_secondlvl,
+        outputmap=TRUE,
+        paralleln = num_cores)           
+    } else {
+      lvl2_featlist<-prep_session_lvl(subj_rootpath = file.path(argu$subj_outputroot,argu$model_name),subj_folderreg = "*output.feat",
+                                      template_brainpath = argu$templatebrain_path)
+    }
     ##End of Step 3
   }
   
@@ -348,7 +350,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
     
     #Randomize here:
-    if(argu$higherleveltype=="randomize"){
+    if(argu$lvl3_type=="randomize"){
       onesamplet_pergroup<-F
       pairedtest<-F
       unpairedtest<-F
@@ -392,7 +394,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       # usethesetest=argu$randomize_thresholdingways
       # ifDeMean=argu$randomize_demean
       # paralleln = num_cores
-    } else if (argu$higherleveltype=="flame") {
+    } else if (argu$lvl3_type=="flame") {
       #Run flame here:
 
       lowlvl_featreg<-"average.gfeat"
@@ -457,7 +459,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       #
       
       
-    } else {stop("Higher level type ",argu$higherleveltype," is supported, only 'randomize' or 'flame' is currently supported")}
+    } else {stop("Higher level type ",argu$lvl3_type," is not supported, only 'randomize' or 'flame' is currently supported")}
     
     #End Step 5
   } 
