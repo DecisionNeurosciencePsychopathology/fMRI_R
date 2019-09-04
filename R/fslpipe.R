@@ -17,6 +17,10 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   fsl_2_sys_env(force = T)
   require("parallel")
   
+  if(!exists("run_pipeline",envir = argu)){
+    if(Sys.getenv("run_pipeline")==""){argu$run_pipeline<-TRUE}else{argu$run_pipeline<-Sys.getenv("run_pipeline")}
+  }
+  
   if (is.null(argu$nprocess)){
     if (detectCores()>12){
       num_cores<-12 #Use 8 cores to minimize burden; if on throndike 
