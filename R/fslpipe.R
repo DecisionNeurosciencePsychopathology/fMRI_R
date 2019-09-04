@@ -45,6 +45,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if (exists("ifnuisa",envir = argu) & !exists("convlv_nuisa",envir = argu)) {
     message("ifnuisa variable is now depreciated, please use convlv_nuisa to control if the pipeline should convolve nuissance regressor")
     argu$convlv_nuisa<-argu$ifnuisa}
+  
+  if (exists("onlyrun",envir = argu) & !exists("run_steps",envir = argu)) {
+    message("onlyrun variable is now depreciated, please use run_steps")
+    argu$run_steps<-argu$onlyrun}
+  
   if (!exists("xmat",envir = argu)) {
     message("Single subject design matrix is not specified, will use automatic generated one by using grid.")
     ogLength<-length(argu$dsgrid$name)
@@ -59,18 +64,16 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
   } 
   
-  
   #Renaming;
   argu$model_name <-   argu$model.name
   argu$subj_outputroot <-  argu$ssub_outputroot
   argu$templatebrain_path <- argu$templatedir
 
   if(!argu$run_pipeline){return(NULL)}
-  #############STEP 1: Regressor generation#####################
-
+  #############STEP 1: Regressor generation####################
   #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
   stepnow<-1
-  if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
+  if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     #Create the directory if not existed
     dir.create(file.path(argu$ssub_outputroot,argu$model.name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
@@ -152,10 +155,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #############Step 2: LVL1: Single Subject PARALLEL##########
   #Now we do the single sub processing using FSL and the regressor that was generated
   stepnow<-2
-
-  if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
+  if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     
-    if (!is.null(argu$onlyrun) & !1 %in% argu$onlyrun) {
+    if (!is.null(argu$run_steps) & !1 %in% argu$run_steps) {
       if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
         load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
       } else {stop("No design rdata file found, must re-run step 1")}
@@ -259,22 +261,20 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     #End of Step 2
   }
   
-  
-  
   #############Step 3: Prep for Higher Level #######################
   #Now we make the symbolic link for template matching...so they are not misaligned anymore...
 
   stepnow<-3
-  if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
+  if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     if(argu$lvl2_prep_refit){
-      cfg<-cfg_info(cfgpath = argu$cfgpath)
+      #cfg<-cfg_info(cfgpath = argu$cfgpath)
       lvl2_featlist<-prepare4secondlvl(
         ssana.path=file.path(argu$ssub_outputroot,argu$model.name),            
         preproc.path=cfg$loc_mrproc_root,                                
         standardbarin.path=argu$templatedir, 
         dir.filter=argu$hig_lvl_path_filter,                                                
-        proc.name=cfg$paradigm_name,                                                                         
-        taskname=cfg$preprocessed_dirname,                                                                   
+        proc.name=argu$cfg$paradigm_name,                                                                         
+        taskname=argu$cfg$preprocessed_dirname,                                                                   
         overwrite=argu$ifoverwrite_secondlvl,
         outputmap=TRUE,
         paralleln = num_cores)           
@@ -288,7 +288,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #############Step 4: LVL2: Fixed Effect for Single Subject PARALLEL ###############
   #This starts averaging for each subject:
   stepnow<-4
-  if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
+  if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     
     lowlvl_featreg = "*output.feat"
     if(!exists("lvl2_featlist")) {
@@ -339,14 +339,10 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     ################END of step 4
   }
   
-  
-  
-
   #############Step 5: LVL3: Higher Level (Randomize/FLAME) ##PARALLEL by function#########
   
   stepnow<-5
-
-  if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
+  if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
     
     #Randomize here:
@@ -464,12 +460,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     #End Step 5
   } 
   
-  
   #############Step 6: Simple Graph and Info Extraction ###################
-
   # Will not be compatible with new pipeline at all.
-  # stepnow<-stepnow+1
-  # if (is.null(argu$onlyrun) | stepnow %in% argu$onlyrun) {
+  
+  # stepnow<-6
+  # if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
   #   library(oro.nifti)
   #   ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
   #   
