@@ -336,12 +336,12 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
   #Generate signal with make signal with grid function (grid.csv need to be in working directory or specified otherwise)
   signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgrid = dsgrid,nona = T)
   
-  if (length(grep("evt",dsgrid$valuefrom))>0){
-    dxgrid<-dsgrid[grep("evt",dsgrid$valuefrom),]
-    for (u in 1:length(dxgrid$name)) {
-      signals[dxgrid$name[u]]<-signals[dxgrid$valuefrom[u]]
-    }
-  }  
+  # if (length(grep("evt",dsgrid$valuefrom))>0){
+  #   dxgrid<-dsgrid[grep("evt",dsgrid$valuefrom),]
+  #   for (u in 1:length(dxgrid$name)) {
+  #     signals[dxgrid$name[u]]<-signals[dxgrid$valuefrom[u]]
+  #   }
+  # }  
   #Get nuissance regressor: 
   #Still concat nuisa regressor together
   nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),
