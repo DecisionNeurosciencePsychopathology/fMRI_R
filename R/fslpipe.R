@@ -267,18 +267,14 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   #############Step 3: Prep for Higher Level #######################
   #Now we make the symbolic link for template matching...so they are not misaligned anymore...
-
   stepnow<-3
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     if(argu$lvl2_prep_refit){
       #cfg<-cfg_info(cfgpath = argu$cfgpath)
       lvl2_featlist<-prepare4secondlvl(
         ssana.path=file.path(argu$ssub_outputroot,argu$model.name),            
-        preproc.path=cfg$loc_mrproc_root,                                
-        standardbarin.path=argu$templatedir, 
+        standardbarin.path=argu$templatedir, featfoldername = "*output.feat",
         dir.filter=argu$hig_lvl_path_filter,                                                
-        proc.name=argu$cfg$paradigm_name,                                                                         
-        taskname=argu$cfg$preprocessed_dirname,                                                                   
         overwrite=argu$ifoverwrite_secondlvl,
         outputmap=TRUE,
         paralleln = num_cores)           
