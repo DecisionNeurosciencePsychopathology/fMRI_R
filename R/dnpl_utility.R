@@ -255,7 +255,7 @@ prepare4secondlvl<-function(ssana.path=NULL,featfoldername="*output.feat",
                             standardbarin.path="/Volumes/bek/Newtemplate_may18/fsl_mni152/MNI152_T1_2mm_brain.nii",
                             dir.filter=NULL,overwrite=F,outputmap=FALSE,paralleln=NULL) {
   
-  stop("This function is officially discontinued. It should not be used.")
+  #stop("This function is officially discontinued. It should not be used.")
   
   if (is.null(ssana.path) | is.null(standardbarin.path) ){stop("not enough info to run")}
   #Step 1: Step up parameters, but it's a function so do it outside please
