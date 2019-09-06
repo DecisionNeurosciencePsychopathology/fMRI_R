@@ -271,7 +271,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     if(argu$lvl2_prep_refit){
       #cfg<-cfg_info(cfgpath = argu$cfgpath)
-      lvl2_featlist<-prepare4secondlvl(
+      gtax<-prepare4secondlvl(
         ssana.path=file.path(argu$ssub_outputroot,argu$model.name),            
         standardbarin.path=argu$templatedir, featfoldername = "*output.feat",
         dir.filter=argu$hig_lvl_path_filter,                                                
