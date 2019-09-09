@@ -276,11 +276,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         ssana.path=file.path(argu$ssub_outputroot,argu$model.name),            
         standardbarin.path=argu$templatedir, featfoldername = "*output.feat",
         dir.filter=argu$hig_lvl_path_filter,                                                
-        overwrite=argu$ifoverwrite_secondlvl,
+        overwrite=argu$lvl2_force_prep,
         outputmap=TRUE,
         paralleln = num_cores)           
     } else {
-      lvl2_featlist<-prep_session_lvl(subj_rootpath = file.path(argu$subj_outputroot,argu$model_name),subj_folderreg = "*output.feat",
+      lvl2_featlist<-prep_session_lvl(subj_rootpath = file.path(argu$subj_outputroot,argu$model_name),subj_folderreg = "*output.feat",overwrite = argu$lvl2_force_prep,
                                       template_brainpath = argu$templatebrain_path)
     }
     ##End of Step 3

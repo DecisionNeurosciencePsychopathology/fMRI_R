@@ -167,7 +167,7 @@ get_preproc_info<-function(id=NULL,cfg=argu$cfg,reg.nii.name=argu$funcimg.namepa
   return(data.frame(ID=id,mrfiles=mrfiles,runnum=runnum,runlength=runlength,nuisance,asexpectedrunnum=asexpectedrun,stringsAsFactors = F))
 }
 
-prep_session_lvl<-function(subj_rootpath=NULL,subj_folderreg=NULL,template_brainpath=NULL,overwrite=F) {
+prep_session_lvl<-function(subj_rootpath=NULL,subj_folderreg=NULL,template_brainpath=NULL,overwrite=T) {
   if (is.null(subj_rootpath) | is.null(template_brainpath) ){stop("not enough info to run")}
   featlist<-system(paste0("find ",subj_rootpath," -iname ",subj_folderreg," -maxdepth 4 -mindepth 1 -type d"),intern = T)
   if(overwrite){unlink(file.path(featlist,"reg"),recursive = T,force = T)}
