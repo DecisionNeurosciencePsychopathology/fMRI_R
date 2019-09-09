@@ -40,11 +40,12 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                      nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",
                      lvl3_type="flame",adaptive_ssfeat=TRUE)
   default_ls<-default_ls[!names(default_ls) %in% names(argu)]
+  if (length(default_ls)>0){
   for(lx in 1:length(default_ls)){
     message("Variable: '",names(default_ls)[lx],"' is not set, will use default value: ",default_ls[[lx]])
   }
   argu<-list2env(default_ls,envir = argu)
-  
+  }
   #RE-config
   if (exists("ifnuisa",envir = argu) & !exists("convlv_nuisa",envir = argu)) {
     message("ifnuisa variable is now depreciated, please use convlv_nuisa to control if the pipeline should convolve nuissance regressor")
@@ -390,7 +391,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       # usethesetest=argu$randomize_thresholdingways
       # ifDeMean=argu$randomize_demean
       # paralleln = num_cores
-    } else if (argu$lvl3_type=="flame") {
+    } else if(tolower(argu$lvl3_type)=="flame") {
       #Run flame here:
 
       lowlvl_featreg<-"average.gfeat"
@@ -439,7 +440,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       lvl3_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
       NU<-parallel::parSapply(lvl3_cluster,unique(lvl3_alldf$FSF_PATH), function(y) {
         fsl_2_sys_env()
-        message("starting feat /n ",y)
+        message("starting lvl3 feat: /n ",y)
         tryCatch(
           {system(command = paste("feat",y,sep = " "),intern = T)
             message("DONE")
