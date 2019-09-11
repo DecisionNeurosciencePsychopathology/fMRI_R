@@ -36,7 +36,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
   
   ###Version upgrade safe keeping
-  default_ls<-list(lvl2_prep_refit=FALSE,centerscaleall=FALSE,
+  default_ls<-list(lvl2_prep_refit=FALSE,centerscaleall=FALSE,lvl1_run_on_pbs=FALSE,
                      nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",
                      lvl3_type="flame",adaptive_ssfeat=TRUE)
   default_ls<-default_ls[!names(default_ls) %in% names(argu)]
@@ -68,6 +68,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       argu$xmat<-diag(x=1,ogLength)
     }
   } 
+  ###PBS defautls:
+  
+  
   
   #Renaming;
   argu$model_name <-   argu$model.name
@@ -99,7 +102,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     
     assign(prep.call.func,get(prep.call.func),envir = argu)
     if (length(idtodo)>0) {
-      for (xid in idtodo) {
+      cluster_step1<-makeCluster(argu$nprocess,outfile="",type = "FORK")
+      NX<-parSapply(cluster_step1,idtodo,function(xid) {
         prep.call.list<-prep.call.allsub[[xid]]
         tryCatch(
           {
@@ -148,8 +152,13 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
             
           },error=function(e) {message("failed regressor generation...go investigate: ",e)}
         )
-      }
-      
+      })
+      stopCluster(cluster_step1)
+      # for (xid in idtodo) {
+      #  
+      #  
+      # }
+      # 
       save("allsub.design",file = file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
     } else {message("NO NEW DATA NEEDED TO BE PROCESSED")}
     
@@ -244,24 +253,66 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       }))
       return(cmmd)
     }))
-    
-    cluster_step2<-makeCluster(num_cores,outfile="",type = "FORK")
-    NX<-parSapply(cluster_step2,step2commands,function(yx) {
-      fsl_2_sys_env()
-      message(paste0("starting to run /n ",yx))
-      tryCatch(
-        {system(command = yx,intern = T)
-          pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
-          numdx<-which(yx==step2commands)
-          indx<-suppressWarnings(split(1:length(step2commands),1:num_cores))
-          pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
-          setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
-          message("DONE")
-        }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
+    if(argu$lvl1_run_on_pbs){
+      cpusperjob <- 8 #number of cpus per qsub
+      runsperproc <- 3 #number of feat calls per processor
+      wait_for=""
+      preamble <- c(
+        "#PBS -A mnh5174_a_g_hc_default",
+        paste0("#PBS -l nodes=1:ppn=", cpusperjob, ":himem"),
+        ifelse(wait_for != "", paste0("#PBS -W depend=afterok:", wait_for), ""), #allow job dependency on upstream setup
+        "#PBS -l walltime=4:00:00",
+        "#PBS -j oe",
+        "#PBS -m abe",
+        "#PBS -W group_list=mnh5174_collab",
+        "",
+        "",
+        "source /gpfs/group/mnh5174/default/lab_resources/ni_path.bash",
+        "module load \"fsl/5.0.11\" >/dev/null 2>&1",
+        "",
+        "cd $PBS_O_WORKDIR"
       )
       
-    })
-    stopCluster(cluster_step2)
+      njobs <- ceiling(length(step2commands)/(cpusperjob*runsperproc))
+      
+      #use length.out on rep to ensure that the vectors align even if chunks are uneven wrt files to run
+      df <- data.frame(fsf=step2commands, job=rep(1:njobs, each=cpusperjob*runsperproc, length.out=length(step2commands)), stringsAsFactors=FALSE)
+      df <- df[order(df$job),]
+      
+      joblist <- rep(NA_character_, njobs)
+      for (j in 1:njobs) {
+        outfile <- paste0(getwd(), "/qsub_featsep_", j, "_", basename(tempfile()), ".pbs")
+        cat(preamble, file=outfile, sep="\n")
+        thisrun <- with(df, fsf[job==j])
+        cat(paste("feat", thisrun, "&"), file=outfile, sep="\n", append=TRUE)
+        cat("wait\n\n", file=outfile, append=TRUE)
+        joblist[j] <- qsub_file(outfile) #system(paste0("qsub ", outfile))
+      }
+      
+      #write the list of separate feat qsub jobs that are now queued (so that LVL2 can wait on these)
+      #should also return this to the caller as a function?
+      writeLines(joblist, con=file.path(workdir, "sepqsub_lvl1_jobs.txt"))
+    }else{
+      #run localy
+      cluster_step2<-makeCluster(num_cores,outfile="",type = "FORK")
+      NX<-parSapply(cluster_step2,step2commands,function(yx) {
+        fsl_2_sys_env()
+        message(paste0("starting to run /n ",yx))
+        tryCatch(
+          {system(command = yx,intern = T)
+            pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
+            numdx<-which(yx==step2commands)
+            indx<-suppressWarnings(split(1:length(step2commands),1:num_cores))
+            pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
+            setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
+            message("DONE")
+          }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
+        )
+        
+      })
+      stopCluster(cluster_step2)
+      
+    }
     
     #End of Step 2
   }
