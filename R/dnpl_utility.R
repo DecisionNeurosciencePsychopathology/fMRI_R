@@ -860,7 +860,7 @@ get_motion_info<-function(configpath=NULL,type="fd",threshold="default"){
     names(yx)<-c("run","outlier")
     yx$run<-as.numeric(gsub("[a-z]*[A-Z]*","",yx$run))
     IDx<-names(NX)[i]
-    yx$totalvol<-get_volume_run(IDx,cfgfilepath = configpath,returnas = "numbers")
+    yx$totalvol<-get_volume_run(IDx,cfg = cfg,returnas = "numbers")
     yx$out_per<-yx$outlier / yx$totalvol
     yx$ID<-IDx
     return(yx)
@@ -906,7 +906,7 @@ check_incomplete_preproc<-function(cfgpath=NULL,enforce=F,verbose=T) {
   runnums<-as.numeric(cfg$n_expected_funcruns)
   outerrors<-lapply(idstocheck,function(cid) {
     #print(cid)
-    proc_num<-get_volume_run(id = cid,cfgfilepath = cfgpath,returnas = "numbers")
+    proc_num<-get_volume_run(id = cid,cfg = cfg,returnas = "numbers")
     if (any(is.na(proc_num))) {proc_num[which(is.na(proc_num))]<-0}
     func_dir_raw<-system(paste0("find ",file.path(cfg$loc_mrraw_root,cid)," -iname ",cfg$functional_dirpattern," -maxdepth 2 -mindepth 1"),intern = T)
     TJ<-lapply(func_dir_raw,list.files,recursive=F)
