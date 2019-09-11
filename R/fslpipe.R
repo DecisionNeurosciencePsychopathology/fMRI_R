@@ -33,22 +33,22 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   argu$dsgrid<-read.table(argu$gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
   if(is.null(argu$dsgrid$AddNeg)){argu$dsgrid$AddNeg<-FALSE}
   argu$dsgrid$AddNeg<-as.logical(argu$dsgrid$AddNeg)
-  if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
+  # if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
   
   ###Version upgrade safe keeping
   
-  #RE-config
-  if (exists("ifnuisa",envir = argu) & !exists("convlv_nuisa",envir = argu)) {
-    message("ifnuisa variable is now depreciated, please use convlv_nuisa to control if the pipeline should convolve nuissance regressor")
-    argu$convlv_nuisa<-argu$ifnuisa}
+  #Replacing old variables names from previous versions
+  replaceLS<-list(ifnuisa="convlv_nuisa",onlyrun="run_steps",centerscaleall="lvl1_centervalues",
+                  model.name="model_name",ssub_outputroot="subj_outputroot",templatedir="templatebrain_path")
   
-  if (exists("onlyrun",envir = argu) & !exists("run_steps",envir = argu)) {
-    message("onlyrun variable is now depreciated, please use run_steps")
-    argu$run_steps<-argu$onlyrun}
+  for(og in names(replaceLS)){
+    if (exists(og,envir = argu) & !exists(replaceLS[[og]],envir = argu)) {
+      message(og," variable is now depreciated, please use ",replaceLS[[og]],".")
+      argu[[replaceLS[[og]]]]<-argu[[og]]}
+  }
   
-  if (exists("centerscaleall",envir = argu) & !exists("lvl1_centervalues",envir = argu)) {
-    message("centerscaleall variable is now depreciated, please use lvl1_centervalues")
-    argu$lvl1_centervalues<-argu$centerscaleall}
+
+
   
   if (!exists("xmat",envir = argu)) {
     message("Single subject design matrix is not specified, will use automatic generated one by using grid.")
@@ -64,7 +64,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
   } 
   
-  default_ls<-list(lvl2_prep_refit=FALSE,centerscaleall=FALSE,lvl1_run_on_pbs=FALSE,lvl1_centervalues=TRUE,
+  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,lvl1_run_on_pbs=FALSE,lvl1_centervalues=TRUE,
                    nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",
                    lvl3_type="flame",adaptive_ssfeat=TRUE)
   default_ls<-default_ls[!names(default_ls) %in% names(argu)]
