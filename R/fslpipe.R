@@ -80,7 +80,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   
   #Renaming;
-  argu$model_name <-   argu$model_name
+  argu$model_name <-   argu$model.name
   argu$subj_outputroot <-  argu$ssub_outputroot
   argu$ssub_outputroot <-  argu$subj_outputroot
   argu$templatebrain_path <- argu$templatedir
