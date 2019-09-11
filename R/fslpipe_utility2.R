@@ -116,7 +116,7 @@ make_signal_with_grid<-function(outputdata=NULL,dsgrid=NULL,...) {
       )
       if (!is.na(curGrid$modifier)) {
         if(any(!curGrid$modifier %in% names(outputdata$value))) {stop("Make Signal with Grid error: data supplied does not contain all MODIFIER values")}
-        switch (style,
+        switch (curGrid$style,
                 "multiply" = {value.df$value<-as.numeric(outputdata$value[[curGrid$valuefrom]]) * as.numeric(outputdata$value[[curGrid$modifier]])},
                 "subset"   = {value.df<-value.df[which(as.logical(outputdata$value[[curGrid$modifier]])) ,]})
       }
