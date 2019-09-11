@@ -302,4 +302,55 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
   return(alldf)
 }
 
-#a
+do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,func_nii_name=NULL,cfg=NULL,proc_id_subs=NULL,model_name=NULL,nprocess=4,
+                             reg_rootpath=NULL,center_values=TRUE,nuisance_types=c("nuisance","motion_par")) {
+  ls_out<-lapply(lvl1_datalist,do.call,what=lvl1_proc_func)
+  message("The lvl1 proc did not finish for the following participant(s): ",names(ls_out)[sapply(ls_out,is.null)])
+  ls_out<-ls_out[!sapply(ls_out,is.null)]
+  ls_signals<-lapply(ls_out,make_signal_with_grid,add_taskness=T,dsgrid=dsgrid)
+  ls_signals<-lapply(names(ls_signals),function(ID){lsa<-ls_signals[[ID]];lsa$ID<-ID;return(lsa)})
+  names(ls_signals)<-names(ls_out)
+  #Parallel
+  cluster_step1<- parallel::makeCluster(nprocess,outfile="",type = "FORK")
+  ls_ds_matrix<-parallel::parSapply(cluster_step1,ls_signals,function(signalx){
+    output<-list(ID=signalx$ID)
+    ID = output$ID
+    
+    signalx$ID<-NULL
+    output$regpath<-file.path(reg_rootpath,model_name,ID)
+    if(file.exists(file.path(output$regpath,"design_output.rdata"))) {
+      system(paste0("echo Loading: ",ID))
+      outx<-new.env()
+      load(file.path(output$regpath,"design_output.rdata"),envir = outx)
+      if(!is.null(outx$output)){return(outx$output)}
+    }
+    system(paste0("echo Deconvolving: ",ID))
+    run_volum<-get_volume_run(id=paste0(ID,proc_id_subs),cfg = cfg,returnas = "numbers",reg.nii.name = func_nii_name)
+    tryCatch({
+      output$design<-dependlab::build_design_matrix(center_values=center_values,signals = signalx,
+                                                    events = ls_out[[ID]]$event.list$allconcat,write_timing_files = c("convolved", "FSL","AFNI"),
+                                                    tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
+                                                    output_directory = file.path(reg_rootpath,model_name,ID))
+    },error=function(e){print(e);return(NULL)})
+    if(is.null(output$design)){return(NULL)}
+    output$nuisan<-get_nuisance_preproc(id=paste0(ID,proc_id_subs),
+                                        cfg = cfg,
+                                        returnas = "data.frame",
+                                        dothese=nuisance_types) 
+    if (!is.null(output$nuisan)){
+      for (k in 1:length(output$nuisan)) {
+        write.table(as.matrix(output$nuisan[[k]]),file.path(reg_rootpath,model_name,ID,
+                                                            paste0("run",k,"_nuisance_regressor_with_motion.txt")),
+                    row.names = F,col.names = FALSE)
+      }}
+    output$heatmap<-make_heatmap_with_design(output$design)
+    output$volume<-run_volum
+    output$preprocID<-paste0(ID,proc_id_subs)
+    save(output,file = file.path(output$regpath,"design_output.rdata"))
+    return(output)
+  })
+  parallel::stopCluster(cluster_step1)                 
+  ls_ds_matrix<-ls_ds_matrix[!sapply(ls_ds_matrix,is.null)]  
+  message("Total of '",length(ls_ds_matrix),"' participants finished regressor generation: /n",paste(names(ls_ds_matrix),collapse = ", "))
+  return(ls_ds_matrix)
+}

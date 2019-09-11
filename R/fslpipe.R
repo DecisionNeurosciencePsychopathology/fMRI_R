@@ -36,16 +36,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
   
   ###Version upgrade safe keeping
-  default_ls<-list(lvl2_prep_refit=FALSE,centerscaleall=FALSE,lvl1_run_on_pbs=FALSE,
-                     nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",
-                     lvl3_type="flame",adaptive_ssfeat=TRUE)
-  default_ls<-default_ls[!names(default_ls) %in% names(argu)]
-  if (length(default_ls)>0){
-  for(lx in 1:length(default_ls)){
-    message("Variable: '",names(default_ls)[lx],"' is not set, will use default value: ",default_ls[[lx]])
-  }
-  argu<-list2env(default_ls,envir = argu)
-  }
+  
   #RE-config
   if (exists("ifnuisa",envir = argu) & !exists("convlv_nuisa",envir = argu)) {
     message("ifnuisa variable is now depreciated, please use convlv_nuisa to control if the pipeline should convolve nuissance regressor")
@@ -54,6 +45,10 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if (exists("onlyrun",envir = argu) & !exists("run_steps",envir = argu)) {
     message("onlyrun variable is now depreciated, please use run_steps")
     argu$run_steps<-argu$onlyrun}
+  
+  if (exists("centerscaleall",envir = argu) & !exists("lvl1_centervalues",envir = argu)) {
+    message("centerscaleall variable is now depreciated, please use lvl1_centervalues")
+    argu$lvl1_centervalues<-argu$centerscaleall}
   
   if (!exists("xmat",envir = argu)) {
     message("Single subject design matrix is not specified, will use automatic generated one by using grid.")
@@ -68,12 +63,24 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       argu$xmat<-diag(x=1,ogLength)
     }
   } 
+  
+  default_ls<-list(lvl2_prep_refit=FALSE,centerscaleall=FALSE,lvl1_run_on_pbs=FALSE,lvl1_centervalues=TRUE,
+                   nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",
+                   lvl3_type="flame",adaptive_ssfeat=TRUE)
+  default_ls<-default_ls[!names(default_ls) %in% names(argu)]
+  if (length(default_ls)>0){
+    for(lx in 1:length(default_ls)){
+      message("Variable: '",names(default_ls)[lx],"' is not set, will use default value: ",default_ls[[lx]])
+    }
+    argu<-list2env(default_ls,envir = argu)
+  }
+  
   ###PBS defautls:
   
   
   
   #Renaming;
-  argu$model_name <-   argu$model.name
+  argu$model_name <-   argu$model_name
   argu$subj_outputroot <-  argu$ssub_outputroot
   argu$templatebrain_path <- argu$templatedir
   if(argu$adaptive_ssfeat){argu$ssub_fsl_templatepath<-system.file("extdata", "fsl_ssfeat_general_adaptive_template_R.fsf", package="fslpipe")}
@@ -83,86 +90,22 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   stepnow<-1
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     #Create the directory if not existed
-    dir.create(file.path(argu$ssub_outputroot,argu$model.name),showWarnings = FALSE,recursive = T)
+    dir.create(file.path(argu$ssub_outputroot,argu$model_name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
-    if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
+    if (file.exists(file.path(argu$ssub_outputroot,argu$model_name,"design.rdata"))) {
       tryCatch({
-        load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
+        load(file.path(argu$ssub_outputroot,argu$model_name,"design.rdata"))
       }, error=function(e) {
         message(paste0("load not successful, have to re-run step 1...message: ",e))
-        assign('allsub.design',as.environment(list()),envir = globalenv())
+        allsub.design<-new.env()
       })
       
-    } else {allsub.design<-as.environment(list())}
-    #Take out people who have already been processed;
-    if (length(names(allsub.design))>0 & !argu$forcereg) {
-      idtodo<-as.character(names(prep.call.allsub)[which(! names(prep.call.allsub) %in% names(allsub.design))])
-      message(paste("These IDs already has regressors: ",paste(names(allsub.design),collapse=" "),sep=" ",collapse = " "))
-    } else {idtodo<-names(prep.call.allsub)}
+    } else {allsub.design<-new.env()}
     
-    assign(prep.call.func,get(prep.call.func),envir = argu)
-    if (length(idtodo)>0) {
-      cluster_step1<-makeCluster(argu$nprocess,outfile="",type = "FORK")
-      NX<-parSapply(cluster_step1,idtodo,function(xid) {
-        prep.call.list<-prep.call.allsub[[xid]]
-        tryCatch(
-          {
-            message(xid)
-            assign(as.character(xid),
-                   do.all.subjs(
-                     tid=xid,
-                     do.prep.call=prep.call.func,
-                     do.prep.arg=prep.call.list,
-                     cfg=argu$cfg,
-                     regpath=argu$regpath,
-                     gridpath=argu$gridpath,
-                     func.nii.name=argu$func.nii.name,
-                     proc_id_subs=argu$proc_id_subs,    #Put "" for nothing.
-                     wrt.timing=c("convolved", "FSL"),
-                     model.name=argu$model.name,
-                     model.varinames=argu$model.varinames,
-                     nuisa_motion=argu$nuisa_motion,
-                     motion_type=argu$motion_type,
-                     motion_threshold=argu$motion_threshold,
-                     convlv_nuisa=argu$convlv_nuisa,
-                     centerscaleall=argu$centerscaleall,
-                     argu=argu
-                   ),envir = allsub.design
-            )
-            # tid=xid
-            # do.prep.call=prep.call.func
-            # do.prep.arg=prep.call.list
-            # cfgpath=argu$cfgpath
-            # regpath=argu$regpath
-            # gridpath=argu$gridpath
-            # func.nii.name=argu$func.nii.name
-            # proc_id_subs=argu$proc_id_subs   #Put "" for nothing.
-            # wrt.timing=c("convolved", "FSL")
-            # model.name=argu$model.name
-            # func.nii.name=argu$func.nii.name
-            # proc_id_subs=argu$proc_id_subs
-            # model.name=argu$model.name
-            # model.varinames=argu$model.varinames
-            # add.nuisa=argu$ifnuisa
-            # nuisa_motion=argu$nuisa_motion
-            # motion_type=argu$motion_type
-            # motion_threshold=argu$motion_threshold
-            # convlv_nuisa=argu$convlv_nuisa
-            # centerscaleall=argu$centerscaleall
-            
-          },error=function(e) {message("failed regressor generation...go investigate: ",e)}
-        )
-        return(NULL)
-      })
-      stopCluster(cluster_step1)
-      # for (xid in idtodo) {
-      #  
-      #  
-      # }
-      # 
-      save("allsub.design",file = file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
-    } else {message("NO NEW DATA NEEDED TO BE PROCESSED")}
-    
+    allsub_design<-do_all_first_level(lvl1_datalist=prep.call.allsub,lvl1_proc_func=get(prep.call.func),
+                                 dsgrid=argu$dsgrid,func_nii_name=argu$func.nii.name,nprocess=argu$nprocess,
+                                 cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,
+                                 reg_rootpath=argu$regpath,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
     #End of Step 1
   }
   
@@ -173,13 +116,13 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     
     if (!is.null(argu$run_steps) & !1 %in% argu$run_steps) {
-      if (file.exists(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))) {
-        load(file.path(argu$ssub_outputroot,argu$model.name,"design.rdata"))
+      if (file.exists(file.path(argu$ssub_outputroot,argu$model_name,"design.rdata"))) {
+        load(file.path(argu$ssub_outputroot,argu$model_name,"design.rdata"))
       } else {stop("No design rdata file found, must re-run step 1")}
     }  
     
     #let's subset this 
-    small.sub<-eapply(allsub.design, function(x) {
+    small.sub<-eapply(allsub_design, function(x) {
       list(
         design=x$design,
         ID=x$ID,
@@ -222,7 +165,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       idx<-x$ID
       aarg<-xarg
       cmmd<-unlist(lapply(1:length(x$run_volumes), function(runnum) {
-        aarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
+        aarg$outputpath<-file.path(argu$ssub_outputroot,argu$model_name,idx,paste0("run",runnum,"_output"))
         if (file.exists(paste0(aarg$outputpath,".feat")) ) {
           if(is.null(argu$ss_zthreshold)) {aarg$zthreshold<-3.2} else {aarg$zthreshold<-argu$ss_zthreshold}
           if(is.null(argu$ss_pthreshold)) {aarg$pthreshold<-0.05} else {aarg$pthreshold<-argu$ss_pthreshold}
@@ -231,20 +174,20 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           aarg$runnum<-runnum   
           aarg$volumes<-x$run_volumes[runnum]
           aarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfgfilepath = argu$cfgpath,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
-          aarg$nuisa<-file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
+          aarg$nuisa<-file.path(argu$regpath,argu$model_name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
           
           if(argu$adaptive_ssfeat){
             for (mv in 1:ncol(argu$xmat)) {
-              assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model.name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = aarg)
+              assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model_name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = aarg)
             }
           } else {
-            gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=aarg,regtype=argu$regtype)
+            gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model_name),idx=idx,runnum=runnum,env=aarg,regtype=argu$regtype)
           }
           if (any(unlist(eapply(aarg,is.na)))) {stop("NA exists in one of the arguments; please double check!")}
-          #gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model.name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
+          #gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model_name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
           
           cmmd<-feat_w_template(fsltemplate = ssfsltemp,beg = "ARG_",end = "_END",
-                                fsfpath = file.path(argu$regpath,argu$model.name,idx,paste0("run",runnum,"_",argu$model.name,".fsf")),
+                                fsfpath = file.path(argu$regpath,argu$model_name,idx,paste0("run",runnum,"_",argu$model_name,".fsf")),
                                 envir = aarg,outcommand = T)
           rm(aarg)
           return(cmmd)
@@ -325,7 +268,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     if(argu$lvl2_prep_refit){
       #cfg<-cfg_info(cfgpath = argu$cfgpath)
       gtax<-prepare4secondlvl(
-        ssana.path=file.path(argu$ssub_outputroot,argu$model.name),            
+        ssana.path=file.path(argu$ssub_outputroot,argu$model_name),            
         standardbarin.path=argu$templatedir, featfoldername = "*output.feat",
         dir.filter=argu$hig_lvl_path_filter,                                                
         overwrite=argu$lvl2_force_prep,
@@ -417,7 +360,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       #Start Group Level Analysis:
       glvl_all_cope(rootdir=argu$ssub_outputroot,
                     outputdir=argu$glvl_outputroot,
-                    modelname=argu$model.name,
+                    modelname=argu$model_name,
                     grp_sep=argu$group_id_sep,
                     onesamplet_pergroup=onesamplet_pergroup,
                     pairedtest=pairedtest,
@@ -431,7 +374,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       # Use for debugging:
       # rootdir=argu$ssub_outputroot
       # outputdir=argu$glvl_outputroot
-      # modelname=argu$model.name
+      # modelname=argu$model_name
       # grp_sep=argu$group_id_sep
       # onesamplet_pergroup=onesamplet_pergroup
       # pairedtest=pairedtest
@@ -526,7 +469,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #   
   #   plot_image_all(rootpath=argu$glvl_outputroot,
   #                  templatedir=argu$templatedir,
-  #                  model.name=argu$model.name,
+  #                  model.name=argu$model_name,
   #                  patt="*_tfce_corrp_tstat1.nii.gz",
   #                  threshold=argu$graphic.threshold,
   #                  colour="red")
@@ -538,14 +481,14 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #       data.frame(copenum=seq(from=length(argu$dsgrid$name)+1,along.with = which(argu$dsgrid$AddNeg)),
   #                  copename=paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
   #     )
-  #     write.table(xout,file = file.path(argu$glvl_outputroot,argu$model.name,"cope_title_index.txt"),row.names = F)
+  #     write.table(xout,file = file.path(argu$glvl_outputroot,argu$model_name,"cope_title_index.txt"),row.names = F)
   #   }else{
   #     write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)]))),
   #                            title=gsub("\"","",gsub(pattern = "[0-9]*) \"",replacement = "",
   #                                                    x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
   #                                                             x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
   #                                                                      x = ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)+1],fixed = T),fixed = T),fixed = F))
-  #     ),file = file.path(argu$glvl_outputroot,argu$model.name,"cope_title_index.txt"),row.names = F)
+  #     ),file = file.path(argu$glvl_outputroot,argu$model_name,"cope_title_index.txt"),row.names = F)
   #   }
   #   #End of Step 6
   # }
