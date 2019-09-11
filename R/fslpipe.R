@@ -74,14 +74,6 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
     argu<-list2env(default_ls,envir = argu)
   }
-  
-  ###PBS defautls:
-  
-  #PSU Defaults:
-  
-  
-  
-
 
   #Renaming;
   if(argu$adaptive_ssfeat){argu$ssub_fsl_templatepath<-system.file("extdata", "fsl_ssfeat_general_adaptive_template_R.fsf", package="fslpipe")}
@@ -92,10 +84,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     #Create the directory if not existed
     #print(argu$subj_outputroot, argu$model_name)
+    argu$lvl1_datalist<-prep.call.allsub;argu$lvl1_procfunc<-get(prep.call.func)
     dir.create(file.path(argu$subj_outputroot,argu$model_name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
     step1_cmd<-substitute({
-    allsub_design<-do_all_first_level(lvl1_datalist=prep.call.allsub,lvl1_proc_func=get(prep.call.func),
+    allsub_design<-do_all_first_level(lvl1_datalist=argu$lvl1_datalist,argu$lvl1_procfunc=get(prep.call.func),
                                       dsgrid=argu$dsgrid,func_nii_name=argu$func.nii.name,nprocess=argu$nprocess,
                                       cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,
                                       reg_rootpath=argu$regpath,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
