@@ -90,20 +90,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     #print(argu$subj_outputroot, argu$model_name)
     dir.create(file.path(argu$subj_outputroot,argu$model_name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
-    if (file.exists(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))) {
-      tryCatch({
-        load(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
-      }, error=function(e) {
-        message(paste0("load not successful, have to re-run step 1...message: ",e))
-        allsub.design<-new.env()
-      })
-      
-    } else {allsub.design<-new.env()}
-    
     allsub_design<-do_all_first_level(lvl1_datalist=prep.call.allsub,lvl1_proc_func=get(prep.call.func),
                                  dsgrid=argu$dsgrid,func_nii_name=argu$func.nii.name,nprocess=argu$nprocess,
                                  cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,
                                  reg_rootpath=argu$regpath,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
+    save(allsub_design,file = file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
     #End of Step 1
   }
   
@@ -120,7 +111,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }  
     
     #let's subset this 
-    small.sub<-eapply(allsub_design, function(x) {
+    small.sub<-lapply(as.list(allsub_design), function(x) {
       list(
         design=x$design,
         ID=x$ID,
