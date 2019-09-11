@@ -106,7 +106,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc")
       dir.create(workingdir,showWarnings = F,recursive = F)
       setwd(workingdir)
-      save(argu,prep.call.allsub,prep.call.func,step1_cmd,file = "curwd.rdata")
+      save(list = ls(),file = "curwd.rdata")
       writeLines("library(fslpipe);load(\"curwd.rdata\");eval(step1_cmd)",con = "temp.r")
       pbs_torun<-get_pbs_default();pbs_torun$cmd<-"Rscript temp.r";pbs_torun$ppn<-argu$nprocess
       writeLines(do.call(pbs_cmd,pbs_torun),"pbs_temp.sh")
