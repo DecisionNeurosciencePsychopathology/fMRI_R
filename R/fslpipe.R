@@ -281,12 +281,12 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       
       joblist <- rep(NA_character_, njobs)
       for (j in 1:njobs) {
-        outfile <- paste0(getwd(), "/qsub_featsep_", j, "_", basename(tempfile()), ".pbs")
+        outfile <- paste0(tempdir(), "/qsub_featsep_", j, "_", basename(tempfile()), ".pbs")
         cat(preamble, file=outfile, sep="\n")
         thisrun <- with(df, fsf[job==j])
         cat(paste("feat", thisrun, "&"), file=outfile, sep="\n", append=TRUE)
         cat("wait\n\n", file=outfile, append=TRUE)
-        joblist[j] <- qsub_file(outfile) #system(paste0("qsub ", outfile))
+        system(paste0("qsub ", outfile))
       }
       
       #write the list of separate feat qsub jobs that are now queued (so that LVL2 can wait on these)
