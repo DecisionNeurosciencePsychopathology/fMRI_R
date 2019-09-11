@@ -82,6 +82,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #Renaming;
   argu$model_name <-   argu$model_name
   argu$subj_outputroot <-  argu$ssub_outputroot
+  argu$ssub_outputroot <-  argu$subj_outputroot
   argu$templatebrain_path <- argu$templatedir
   if(argu$adaptive_ssfeat){argu$ssub_fsl_templatepath<-system.file("extdata", "fsl_ssfeat_general_adaptive_template_R.fsf", package="fslpipe")}
   if(!argu$run_pipeline){return(NULL)}
