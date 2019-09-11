@@ -315,7 +315,6 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
   ls_ds_matrix<-parallel::parSapply(cluster_step1,ls_signals,function(signalx){
     output<-list(ID=signalx$ID)
     ID = output$ID
-    
     signalx$ID<-NULL
     output$regpath<-file.path(reg_rootpath,model_name,ID)
     if(file.exists(file.path(output$regpath,"design_output.rdata"))) {
@@ -355,3 +354,44 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
   message("Total of '",length(ls_ds_matrix),"' participants finished regressor generation: /n",paste(names(ls_ds_matrix),collapse = ", "))
   return(ls_ds_matrix)
 }
+
+
+get_pbs_default<-function(){
+  pbs_default<-list(account="mnh5174_a_g_hc_default",nodes=1,ppn=20,memory=8,walltime="20:00:00",titlecmd="cd $PBS_O_WORKDIR
+
+export G=/gpfs/group/mnh5174/default
+
+module use $G/sw/modules
+module load r/3.6.0
+module load fsl/6.0.1
+module load afni/19.0.26
+module load gsl/2.5
+
+ni_tools=\"$G/lab_resources\"
+
+#location of MRI template directory for preprocessing
+MRI_STDDIR=\"${ni_tools}/standard\"
+
+#add preprocessing scripts that may be called in this pipeline
+PATH=\"${ni_tools}/c3d-1.1.0-Linux-x86_64/bin:${ni_tools}/fmri_processing_scripts:${ni_tools}/fmri_processing_scripts/autopreproc:${ni_tools}/bin:${PATH}\"
+
+export PATH MRI_STDDIR
+",morecmd="")
+  return(pbs_default)
+}
+pbs_cmd<-function(account,nodes,ppn,memory,walltime,titlecmd,morecmd,cmd){
+  heading<-c("#!/usr/bin/env sh",
+             "",
+             paste0("#PBS -A ",account),
+             paste0("#PBS -l nodes=",nodes,":ppn=",ppn),
+             paste0("#PBS -l pmem=",memory,"gb"),
+             paste0("#PBS -l walltime=",walltime),
+             "#PBS -j oe",
+             "#PBS -m n",
+             "",titlecmd,morecmd,cmd)
+  return(heading)
+}
+
+
+
+

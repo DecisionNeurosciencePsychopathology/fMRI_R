@@ -77,8 +77,12 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   ###PBS defautls:
   
+  #PSU Defaults:
   
   
+  
+
+
   #Renaming;
   if(argu$adaptive_ssfeat){argu$ssub_fsl_templatepath<-system.file("extdata", "fsl_ssfeat_general_adaptive_template_R.fsf", package="fslpipe")}
   if(!argu$run_pipeline){return(NULL)}
@@ -90,11 +94,26 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     #print(argu$subj_outputroot, argu$model_name)
     dir.create(file.path(argu$subj_outputroot,argu$model_name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
+    step1_cmd<-substitute({
     allsub_design<-do_all_first_level(lvl1_datalist=prep.call.allsub,lvl1_proc_func=get(prep.call.func),
-                                 dsgrid=argu$dsgrid,func_nii_name=argu$func.nii.name,nprocess=argu$nprocess,
-                                 cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,
-                                 reg_rootpath=argu$regpath,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
+                                      dsgrid=argu$dsgrid,func_nii_name=argu$func.nii.name,nprocess=argu$nprocess,
+                                      cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,
+                                      reg_rootpath=argu$regpath,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
     save(allsub_design,file = file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
+    })
+    
+    if(argu$lvl1_run_on_pbs){
+      workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc")
+      dir.create(workingdir,showWarnings = F,recursive = F)
+      setwd(workingdir)
+      save.image(file = "curwd.rdata")
+      writeLines("library(fslpipe);load(\"curwd.rdata\");eval(step1_cmd)",con = "temp.r")
+      pbs_torun<-pbs_default;pbs_torun$cmd<-"Rscript temp.r";pbs_torun$ppn<-argu$nprocess
+      writeLines(do.call(pbs_cmd,pbs_torun),"pbs_temp.sh")
+        
+    } else {
+      eval(step1_cmd)
+    }
     #End of Step 1
   }
   
@@ -398,6 +417,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       lvl3_raw_sp<-split(lvl3_rawdf,lvl3_rawdf$COPENUM)
       
       lvl3_raw_sp<-lapply(lvl3_raw_sp,function(x){
+        if(!is.null(argu$lvl3_ref_df)){x<-merge(x,argu$lvl3_ref_df,all.x=T,by="ID")}
         x$NAME = unique(readLines(file.path(x$PATH[1],"design.lev")))
         x$OUTPUTPATH = file.path(argu$glvl_output,argu$model_name)
         return(x)
@@ -420,7 +440,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       lvl3_arg$proc_ls_fsf <- lvl3_raw_sp 
       lvl3_arg$template_brain <- argu$templatebrain_path
       lvl3_arg$fsltemplate <- readLines(system.file("extdata", "fsl_flame_general_adaptive_template.fsf", package="fslpipe"))
-      
+      lvl3_arg$covariate_names<-argu$lvl3_covarnames
       lvl3_alldf <- do.call(gen_fsf_highlvl,lvl3_arg)
       lvl3_alldf <- lvl3_alldf[!grepl("_evt",lvl3_alldf$NAME),]
       
@@ -438,6 +458,15 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       parallel::stopCluster(lvl3_cluster)
 
       
+      
+      argu$lvl3_ref_df$dummy_ <- rnorm(nrow(argu$lvl3_ref_df))
+      mform <- as.formula(paste("dummy_ ~ -1 + ", paste(this_model, collapse=" + ")))
+      fit_lm <- lm(mform, argu$lvl3_ref_df)
+      dmat <- model.matrix(fit_lm) #eventually allow interactions and so on??
+      model_df$dummy_ <- NULL #clean up
+      
+      cmat <- diag(length(this_model))
+      rownames(cmat) <- this_model #just name the contrasts after the EVs themselves
       #Variables to get:
       #outputpath:
       #
