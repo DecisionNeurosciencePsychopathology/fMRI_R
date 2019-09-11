@@ -87,7 +87,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   stepnow<-1
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     #Create the directory if not existed
-    print(argu$subj_outputroot, argu$model_name)
+    #print(argu$subj_outputroot, argu$model_name)
     dir.create(file.path(argu$subj_outputroot,argu$model_name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
     if (file.exists(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))) {
