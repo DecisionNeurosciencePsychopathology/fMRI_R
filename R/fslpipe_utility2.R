@@ -327,16 +327,14 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
     system(paste0("echo Deconvolving: ",ID))
     tryCatch({
       run_volum<-get_volume_run(id=paste0(ID,proc_id_subs),cfg = cfg,returnas = "numbers",reg.nii.name = func_nii_name)
-      output$design<-dependlab::build_design_matrix(center_values=center_values,signals = signalx,
-                                                    events = ls_out[[ID]]$event.list$allconcat,write_timing_files = c("convolved", "FSL","AFNI"),
-                                                    tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
-                                                    output_directory = file.path(reg_rootpath,model_name,ID))
-      
-      
       output$nuisan<-get_nuisance_preproc(id=paste0(ID,proc_id_subs),
                                           cfg = cfg,
                                           returnas = "data.frame",
                                           dothese=nuisance_types) 
+      output$design<-dependlab::build_design_matrix(center_values=center_values,signals = signalx,
+                                                    events = ls_out[[ID]]$event.list$allconcat,write_timing_files = c("convolved", "FSL","AFNI"),
+                                                    tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
+                                                    output_directory = file.path(reg_rootpath,model_name,ID))
     },error=function(e){print(e);return(NULL)})
     if(is.null(output$design)){return(NULL)}
     if (!is.null(output$nuisan)){
