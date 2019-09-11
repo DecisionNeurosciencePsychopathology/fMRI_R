@@ -134,6 +134,7 @@ cfg_info<-function(cfgpath=NULL,noproc=F) {
   pre.sym<-system("env",intern = T)
   sysm.temp<-system(paste("source",cfgpath,"\n","env"),intern = T)
   sysm<-sysm.temp[which(!sysm.temp %in% pre.sym)]
+  sysm<-sysm[!grepl("()",sysm,fixed = T)]
   larg<-regmatches(sysm, regexpr("=", sysm), invert = TRUE)
   xout<-as.environment(list())
   NULL.x<-lapply(larg,function(y) {
@@ -1512,6 +1513,41 @@ make_signal_with_grid<-function(dsgrid=NULL,dsgridpath="grid.csv", outputdata=NU
   }
   return(allofthemlist)
   
+}
+
+
+getMotion_report<-function(infilepath=file.choose(),dvar_thresh=20,fd_thresh=0.9,protocol=ptcs$masterdemo){
+  masterdemo<-bsrc::bsrc.checkdatabase2(protocol = protocol,batch_size=1000L,forceskip = T,online = T)
+  dfa<-read.csv(infilepath,stringsAsFactors = F)
+  dfa$X<-NULL
+  sp_a<-split(dfa,paste(dfa$ID,dfa$session,sep = "_"))
+  outdf<-do.call(rbind,lapply(sp_a,function(dfb){
+    data.frame(per_fd=length(which(as.numeric(dfb$fd) >= fd_thresh))/nrow(dfb),
+               per_dvar=length(which(as.numeric(dfb$dvars) <= dvar_thresh))/nrow(dfb),
+               max_fd = max(as.numeric(dfb$fd)),
+               max_dvar = max(as.numeric(dfb$dvar)),
+               modelname=unique(dfb$modelname),ID=unique(dfb$ID),session=unique(dfb$session),stringsAsFactors = F)
+    
+  }))
+  outdf<-outdf[outdf$max_fd <= 10,]
+  outdf<-bsrc::bsrc.findid(df = outdf,idmap = masterdemo$data[c("registration_redcapid","registration_wpicid","registration_soloffid",
+                                                                "registration_group","registration_lethality")],id.var = "ID",onlyoutput = T)
+  outdf$ogid<-NULL;outdf$ifexist<-NULL;outdf$registration_wpicid<-NULL;outdf$registration_soloffid<-NULL;
+  names(outdf)[which(names(outdf)=="registration_redcapid")]<-"DNPL_ID"
+  names(outdf)[which(names(outdf)=="registration_group")]<-"Group"
+  names(outdf)[which(names(outdf)=="registration_lethality")]<-"Lethality"
+  
+  
+  sp_b<-split(outdf,outdf$ID)
+  outdf2<-do.call(rbind,lapply(sp_b,function(dfc){
+    ga<-cbind(as.data.frame(as.list(apply(dfc[1:2],2,mean))),dfc[1,3:ncol(dfc)])
+    ga$session<-"mean"
+    gat<-reshape2::melt(data = rbind(dfc,ga),id.vars=c("ID","DNPL_ID","Group","Lethality","modelname","session"))
+    gat$vari<-paste(gat$variable,gat$session,sep = "_")
+    reshape2::dcast(data = gat,formula = ID+modelname+DNPL_ID+Group+Lethality~vari,value.var = "value")
+  }))
+  outdf2$Group[which(outdf2$Group=="")]<-NA
+  return(outdf2)
 }
 
 
