@@ -109,7 +109,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                      tid=xid,
                      do.prep.call=prep.call.func,
                      do.prep.arg=prep.call.list,
-                     cfgpath=argu$cfgpath,
+                     cfgpath=argu$cfg,
                      regpath=argu$regpath,
                      gridpath=argu$gridpath,
                      func.nii.name=argu$func.nii.name,
@@ -213,7 +213,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       aarg<-xarg
       cmmd<-unlist(lapply(1:length(x$run_volumes), function(runnum) {
         aarg$outputpath<-file.path(argu$ssub_outputroot,argu$model.name,idx,paste0("run",runnum,"_output"))
-        if (!file.exists(paste0(aarg$outputpath,".feat")) ) {
+        if (file.exists(paste0(aarg$outputpath,".feat")) ) {
           if(is.null(argu$ss_zthreshold)) {aarg$zthreshold<-3.2} else {aarg$zthreshold<-argu$ss_zthreshold}
           if(is.null(argu$ss_pthreshold)) {aarg$pthreshold<-0.05} else {aarg$pthreshold<-argu$ss_pthreshold}
           

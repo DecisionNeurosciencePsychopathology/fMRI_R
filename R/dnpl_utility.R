@@ -13,7 +13,7 @@ cleanuplist<-function(listx){
 
 fsl_2_sys_env<-function(bashprofilepath=NULL,force=T){
   if (is.null(bashprofilepath)){bashprofilepath<-file.path(Sys.getenv("HOME"),".bash_profile")}
-  if (length(system("env | grep 'fsl' ",intern = T))<1 | force) {
+  if (length(system("env | grep 'FSL' ",intern = T))<1 | force) {
     if(file.exists(bashprofilepath)) {
       print("Using user .bashprofile")
       fslinfo<-cfg_info(bashprofilepath)
@@ -160,7 +160,7 @@ cfg_info<-function(cfgpath=NULL,noproc=F) {
 
 
 
-get_nuisance_preproc<-function(id=NULL,cfgfilepath="/Volumes/bek/autopreprocessing_pipeline/Learn/bandit_oldPreCMMR.cfg",
+get_nuisance_preproc<-function(id=NULL,cfg=NULL,
                                returnas=c("path","data.frame"),dothese=c("nuisance","motion_par","motion_outlier"),
                                type="fd",threshold="default") {
   if (type == "dvar") {
@@ -172,7 +172,7 @@ get_nuisance_preproc<-function(id=NULL,cfgfilepath="/Volumes/bek/autopreprocessi
     if (threshold == "default") {threshold<-0.9}
   }
   
-  cfg<-cfg_info(cfgpath = cfgfilepath)
+  #cfg<-cfg_info(cfgpath = cfgfilepath)
   lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
     list(
       nuisance=
@@ -216,8 +216,8 @@ get_nuisance_preproc<-function(id=NULL,cfgfilepath="/Volumes/bek/autopreprocessi
     }
 }
 
-get_volume_run<-function(id=NULL,cfgfilepath=NULL,reg.nii.name="swudktm*[0-9].nii.gz",returnas=c("path","numbers")){
-  cfg<-cfg_info(cfgpath = cfgfilepath)
+get_volume_run<-function(id=NULL,cfg=NULL,reg.nii.name="swudktm*[0-9].nii.gz",returnas=c("path","numbers")){
+  #cfg<-cfg_info(cfgpath = cfgfilepath)
   if (returnas=="path"){
     lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
       file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""))->procpath
@@ -321,14 +321,14 @@ prepare4secondlvl<-function(ssana.path=NULL,featfoldername="*output.feat",
 }
 
 ######General function for Single subject loop: (can be ready for lapply or do call)
-do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_single=son1_single),cfgpath=NULL,
+do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_single=son1_single),cfg=NULL,
                        regpath=NULL,gridpath="grid.csv",func.nii.name="swudktm*[0-9].nii.gz",proc_id_subs=NULL, 
                        wrt.timing=c("convolved", "FSL","AFNI"),model.name=NULL,model.varinames=NULL,
                        nuisa_motion=c("nuisance","motion_par","motion_outlier"),motion_type="fd",centerscaleall=FALSE,
                        motion_threshold="default",convlv_nuisa=F,argu=NULL) {
   
   #Read config file:
-  cfg<-cfg_info(cfgpath)
+  #cfg<-cfg_info(cfgpath)
   argu$cfg<-cfg
   #Prep the data into generally acceptable output object;
   output<-do.call(what = do.prep.call,args = do.prep.arg,envir = argu)
@@ -348,7 +348,7 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
   #Get nuissance regressor: 
   #Still concat nuisa regressor together
   nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),
-                              cfgfilepath = cfgpath,
+                              cfg = cfg,
                               returnas = "data.frame",
                               dothese=nuisa_motion,
                               type=motion_type,
@@ -362,7 +362,7 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
   
   #Get the actual volume by run:
   run_volum<-get_volume_run(id=paste0(tid,proc_id_subs),
-                            cfgfilepath = cfgpath,
+                            cfg = cfg,
                             returnas = "numbers",
                             reg.nii.name = func.nii.name)
   if(any(is.na(run_volum))) {stop("Can't get volume number from proc dirs")}
@@ -1432,7 +1432,10 @@ deconv_timeseries<-function(datalist=NULL,tslist=NULL,func.proc=NULL,evtname=NUL
 
 ######Depreciating:
 #Make single signal as a list:
-makesignal.single<-function(output,ename,norm=c("none","durmax_1","evtmax_1"),normargu="convmax_1",valuefrom,modifier=NA,style="subset",nonah=T) {
+makesignal.single<-function(output,ename,norm=c("none","durmax_1","evtmax_1"),
+                            normargu="convmax_1",valuefrom=NULL,
+                            modifier=NA,
+                            sub_style="subset",nonah=T) {
   jrz<-list()
   jrz[["event"]]<-ename
   jrz[["normalization"]]<-norm
@@ -1451,7 +1454,8 @@ makesignal.single<-function(output,ename,norm=c("none","durmax_1","evtmax_1"),no
     if (nonah) {
       modx<-!output$output.df[modifier] & !is.na(subelist$onset)
     } else { modx<-!output$output.df[modifier]}
-    switch (style,
+    
+    switch (sub_style,
             "multiply" = {value.df$value<-value.df$value * as.numeric(modx)},
             "subset"   = {value.df<-value.df[modx ,]}
     )
