@@ -80,10 +80,6 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   
   #Renaming;
-  argu$model_name <-   argu$model.name
-  argu$subj_outputroot <-  argu$ssub_outputroot
-  argu$ssub_outputroot <-  argu$subj_outputroot
-  argu$templatebrain_path <- argu$templatedir
   if(argu$adaptive_ssfeat){argu$ssub_fsl_templatepath<-system.file("extdata", "fsl_ssfeat_general_adaptive_template_R.fsf", package="fslpipe")}
   if(!argu$run_pipeline){return(NULL)}
   #############STEP 1: Regressor generation####################
@@ -91,11 +87,12 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   stepnow<-1
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     #Create the directory if not existed
+    print(argu$subj_outputroot, argu$model_name)
     dir.create(file.path(argu$subj_outputroot,argu$model_name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
-    if (file.exists(file.path(argu$ssub_outputroot,argu$model_name,"design.rdata"))) {
+    if (file.exists(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))) {
       tryCatch({
-        load(file.path(argu$ssub_outputroot,argu$model_name,"design.rdata"))
+        load(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
       }, error=function(e) {
         message(paste0("load not successful, have to re-run step 1...message: ",e))
         allsub.design<-new.env()
@@ -117,8 +114,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     
     if (!is.null(argu$run_steps) & !1 %in% argu$run_steps) {
-      if (file.exists(file.path(argu$ssub_outputroot,argu$model_name,"design.rdata"))) {
-        load(file.path(argu$ssub_outputroot,argu$model_name,"design.rdata"))
+      if (file.exists(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))) {
+        load(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
       } else {stop("No design rdata file found, must re-run step 1")}
     }  
     
@@ -166,7 +163,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       idx<-x$ID
       aarg<-xarg
       cmmd<-unlist(lapply(1:length(x$run_volumes), function(runnum) {
-        aarg$outputpath<-file.path(argu$ssub_outputroot,argu$model_name,idx,paste0("run",runnum,"_output"))
+        aarg$outputpath<-file.path(argu$subj_outputroot,argu$model_name,idx,paste0("run",runnum,"_output"))
         if (file.exists(paste0(aarg$outputpath,".feat")) ) {
           if(is.null(argu$ss_zthreshold)) {aarg$zthreshold<-3.2} else {aarg$zthreshold<-argu$ss_zthreshold}
           if(is.null(argu$ss_pthreshold)) {aarg$pthreshold<-0.05} else {aarg$pthreshold<-argu$ss_pthreshold}
@@ -269,7 +266,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     if(argu$lvl2_prep_refit){
       #cfg<-cfg_info(cfgpath = argu$cfgpath)
       gtax<-prepare4secondlvl(
-        ssana.path=file.path(argu$ssub_outputroot,argu$model_name),            
+        ssana.path=file.path(argu$subj_outputroot,argu$model_name),            
         standardbarin.path=argu$templatedir, featfoldername = "*output.feat",
         dir.filter=argu$hig_lvl_path_filter,                                                
         overwrite=argu$lvl2_force_prep,
@@ -359,7 +356,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         maxcopenum<-1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
       }
       #Start Group Level Analysis:
-      glvl_all_cope(rootdir=argu$ssub_outputroot,
+      glvl_all_cope(rootdir=argu$subj_outputroot,
                     outputdir=argu$glvl_outputroot,
                     modelname=argu$model_name,
                     grp_sep=argu$group_id_sep,
@@ -373,7 +370,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                     ifDeMean=argu$randomize_demean,
                     paralleln = num_cores)
       # Use for debugging:
-      # rootdir=argu$ssub_outputroot
+      # rootdir=argu$subj_outputroot
       # outputdir=argu$glvl_outputroot
       # modelname=argu$model_name
       # grp_sep=argu$group_id_sep
