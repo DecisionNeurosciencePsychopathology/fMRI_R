@@ -110,7 +110,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       writeLines("library(fslpipe);load(\"curwd.rdata\");eval(step1_cmd)",con = "temp.r")
       pbs_torun<-pbs_default;pbs_torun$cmd<-"Rscript temp.r";pbs_torun$ppn<-argu$nprocess
       writeLines(do.call(pbs_cmd,pbs_torun),"pbs_temp.sh")
-        
+      
     } else {
       eval(step1_cmd)
     }
