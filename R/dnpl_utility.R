@@ -29,7 +29,9 @@ info_to_sysenv<-function(info=NULL) {
   if (is.null(info)) {stop("HEY! NO INFO!")}
   for (kz in names(info)) {
     print(kz)
-    eval(parse(text=paste0("Sys.setenv(",kz,"='",info[[kz]],"')")))
+    tryCatch({
+    eval(parse(text=paste0("Sys.setenv(",kz,"","='",info[[kz]],"')")))},error=function(e){message(e)}
+    )
   }  
 }
 
