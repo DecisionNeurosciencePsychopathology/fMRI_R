@@ -82,7 +82,7 @@ make_signal_with_grid<-function(outputdata=NULL,dsgrid=NULL,...) {
   #This new version is cleaner and more efficient than the old one!
   if (is.null(outputdata)) {stop("NO DATA SUPPLIED TO MAKE SIGNAL WITH GRID")}
   sp_grid<-split(dsgrid,grepl("_evt",dsgrid$valuefrom))
-  
+  message("###Making signal...###")
   if(!is.null(sp_grid$`TRUE`)){
     #Do the evts regressor signals:
     evtGrid<-sp_grid$`TRUE`
@@ -189,6 +189,7 @@ pasteFSF<-function(fsfvari="",value="",addComment=NULL,quotevalue=F,featfile=F){
 }
 
 gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thresh = 2.3, p_thresh = 0.05,vari_to_run=c("SUBJMEAN"),
+                          
                           template_brain = "/Volumes/bek/Newtemplate_may18/fsl_mni152/MNI152_T1_2mm_brain.nii",lowlvlcopenum=NULL,overwrite=F,
                           fsltemplate=readLines("/Volumes/bek/helper_scripts/fsl_pipe/templates/fsl_flame_general_adaptive_template.fsf")){
   if(length(fsltemplate)<1) {stop("No template provided.")}
@@ -203,10 +204,14 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
     pasteFSF(fsfvari = "overwrite_yn",value = as.numeric(overwrite),addComment = "# Z threshold",quotevalue = F),
     pasteFSF(fsfvari = "conmask1_1",value = 0,addComment = "# Do contrast masking at all?",quotevalue = F),
     pasteFSF(fsfvari = "regstandard",value = template_brain,addComment = "# Standard image",quotevalue = T)
+    # #registration tri
+    # pasteFSF(fsfvari = "reginitial_highres_yn",value = reg2initial,addComment = "# Registration to initial structural",quotevalue = F),
+    # pasteFSF(fsfvari = "reghighres_yn",value = reg2main,addComment = "# Registration to main structural",quotevalue = F),
+    # pasteFSF(fsfvari = "regstandard_yn",value = reg2standard,addComment = "  # Registration to standard image?",quotevalue = F)
+    
   )
   
-  
-  
+ 
   #split info into single fsf
   alldf<-do.call(rbind,lapply(proc_ls_fsf,function(gvar_cope_df){
     if(any(!vari_to_run %in% names(gvar_cope_df))){stop("One or more vaariables to run is not included in the input data frame")}

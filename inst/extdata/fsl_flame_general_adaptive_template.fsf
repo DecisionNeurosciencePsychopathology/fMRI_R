@@ -185,8 +185,7 @@ set fmri(bgimage) 1
 # Create time series plots
 set fmri(tsplot_yn) 1
 
-# Registration to initial structural
-set fmri(reginitial_highres_yn) 0
+
 
 # Search space for registration to initial structural
 # 0   : No search
@@ -197,8 +196,14 @@ set fmri(reginitial_highres_search) 90
 # Degrees of Freedom for registration to initial structural
 set fmri(reginitial_highres_dof) 3
 
+# Registration to initial structural
+set fmri(reginitial_highres_yn) 0
+
 # Registration to main structural
 set fmri(reghighres_yn) 0
+
+# Registration to standard image?
+set fmri(regstandard_yn) 1
 
 # Search space for registration to main structural
 # 0   : No search
@@ -208,9 +213,6 @@ set fmri(reghighres_search) 90
 
 # Degrees of Freedom for registration to main structural
 set fmri(reghighres_dof) BBR
-
-# Registration to standard image?
-set fmri(regstandard_yn) 1
 
 # Use alternate reference images?
 set fmri(alternateReference_yn) 0

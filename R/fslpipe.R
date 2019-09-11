@@ -478,6 +478,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                          overwrite = F,
                          vari_to_run=c("INTERCEPT")
       )
+      
+      # lvl3_reg_default<-list(reg2main=0,reg2initial=0,reg2standard=1)
+      
       lvl3_arg<-lapply(names(lvl3_default),function(xa){
         if(exists(paste0("lvl3_",xa),envir = argu)){get(paste0("lvl3_",xa),envir = argu)}else{lvl3_default[[xa]]}
       })
