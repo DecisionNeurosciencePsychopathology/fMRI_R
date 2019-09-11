@@ -14,12 +14,12 @@ check_argu<-function(argu=NULL,init=F){
   defaultargus<-list(ncpus=4,runstep=NULL,forcererun=F,proc_id_subs="",
                      #Level 1 arguements:
                      lvl1.CenterScaleAll=F,lvl1.MotionMethod="",lvl1.ZThresh=1.96,lvl.PThresh=0.05,
-                    
+                     
                      #Level 2 arguments:
                      
                      #Level 3 argumetns:
                      lvl3.Test = "FLAME1+2",lvl3.AutoContrast=T,lvl3.SepGroupVari=F
-                     )
+  )
   
   for(xi in names(defaultargus)){
     if(is.null(argu[[xi]])){
@@ -44,7 +44,7 @@ check_argu<-function(argu=NULL,init=F){
         message("Motion spike regressor's (type FD) threshold is not provided, using default 0.9")
         argu$SpikeRegThres<-0.9
       }
-
+      
       if(argu$lvl1.SpikeRegType=="dvar" & is.null(argu$SpikeRegThres)){
         message("Motion spike regressor's (type DVAR) threshold is not provided, using default 20")
         argu$SpikeRegThres<-20
@@ -60,7 +60,7 @@ check_argu<-function(argu=NULL,init=F){
   #lvl 3
   
   
-
+  
   
   
   
@@ -211,7 +211,7 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
     
   )
   
- 
+  
   #split info into single fsf
   alldf<-do.call(rbind,lapply(proc_ls_fsf,function(gvar_cope_df){
     if(any(!vari_to_run %in% names(gvar_cope_df))){stop("One or more vaariables to run is not included in the input data frame")}
@@ -325,24 +325,27 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
       if(!is.null(outx$output)){return(outx$output)}
     }
     system(paste0("echo Deconvolving: ",ID))
-    run_volum<-get_volume_run(id=paste0(ID,proc_id_subs),cfg = cfg,returnas = "numbers",reg.nii.name = func_nii_name)
     tryCatch({
+      run_volum<-get_volume_run(id=paste0(ID,proc_id_subs),cfg = cfg,returnas = "numbers",reg.nii.name = func_nii_name)
       output$design<-dependlab::build_design_matrix(center_values=center_values,signals = signalx,
                                                     events = ls_out[[ID]]$event.list$allconcat,write_timing_files = c("convolved", "FSL","AFNI"),
                                                     tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
                                                     output_directory = file.path(reg_rootpath,model_name,ID))
+      
+      
+      output$nuisan<-get_nuisance_preproc(id=paste0(ID,proc_id_subs),
+                                          cfg = cfg,
+                                          returnas = "data.frame",
+                                          dothese=nuisance_types) 
     },error=function(e){print(e);return(NULL)})
     if(is.null(output$design)){return(NULL)}
-    output$nuisan<-get_nuisance_preproc(id=paste0(ID,proc_id_subs),
-                                        cfg = cfg,
-                                        returnas = "data.frame",
-                                        dothese=nuisance_types) 
     if (!is.null(output$nuisan)){
       for (k in 1:length(output$nuisan)) {
         write.table(as.matrix(output$nuisan[[k]]),file.path(reg_rootpath,model_name,ID,
                                                             paste0("run",k,"_nuisance_regressor_with_motion.txt")),
                     row.names = F,col.names = FALSE)
       }}
+    
     output$heatmap<-make_heatmap_with_design(output$design)
     output$volume<-run_volum
     output$preprocID<-paste0(ID,proc_id_subs)
