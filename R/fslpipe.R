@@ -152,6 +152,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
             
           },error=function(e) {message("failed regressor generation...go investigate: ",e)}
         )
+        return(NULL)
       })
       stopCluster(cluster_step1)
       # for (xid in idtodo) {
