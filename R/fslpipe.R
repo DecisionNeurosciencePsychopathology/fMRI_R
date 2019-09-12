@@ -198,11 +198,12 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       }))
       return(cmmd)
     }))
+    
+    if(length(step2commands)>0){
     if(argu$lvl1_run_on_pbs){
       workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc","lvl1_fsf")
       dir.create(workingdir,showWarnings = F,recursive = F)
-     
-      
+
       joblist <- rep(NA_character_, argu$nprocess)
       for (j in 1:length(step2commands)) {
         outfile <- paste0(workingdir, "/qsub_featsep_", j, "_", basename(tempfile()), ".pbs")
@@ -235,7 +236,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       stopCluster(cluster_step2)
       
     }
-    
+    } else {message("Nothing to run on lvl 1.")}
     #End of Step 2
   }
   
