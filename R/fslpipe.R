@@ -64,7 +64,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
   } 
   
-  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,lvl1_run_on_pbs=FALSE,lvl1_centervalues=TRUE,
+  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,lvl1_run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,
                    nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",
                    lvl3_type="flame",adaptive_ssfeat=TRUE)
   default_ls<-default_ls[!names(default_ls) %in% names(argu)]
@@ -88,7 +88,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     dir.create(file.path(argu$subj_outputroot,argu$model_name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
     step1_cmd<-substitute({
-    allsub_design<-do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,
+    allsub_design<-do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,forcererun = argu$lvl1_forcegenreg,
                                       dsgrid=argu$dsgrid,func_nii_name=argu$func.nii.name,nprocess=argu$nprocess,
                                       cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,
                                       reg_rootpath=argu$regpath,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
@@ -175,6 +175,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           aarg$runnum<-runnum   
           aarg$volumes<-x$run_volumes[runnum]
           aarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfg = argu$cfg,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
+          if(!length(aarg$funcfile)>0){message("ID: ",idx,"RUN: ",runnum,", failed to find a functional image. Terminate.");return(NULL)}
           aarg$nuisa<-file.path(argu$regpath,argu$model_name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
           
           if(argu$adaptive_ssfeat){

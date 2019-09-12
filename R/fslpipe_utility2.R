@@ -302,7 +302,7 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
   return(alldf)
 }
 
-do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,func_nii_name=NULL,cfg=NULL,proc_id_subs=NULL,model_name=NULL,nprocess=4,
+do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,func_nii_name=NULL,cfg=NULL,proc_id_subs=NULL,model_name=NULL,nprocess=4,forcererun=F,
                              reg_rootpath=NULL,center_values=TRUE,nuisance_types=c("nuisance","motion_par")) {
   ls_out<-lapply(lvl1_datalist,do.call,what=lvl1_proc_func)
   message("The lvl1 proc did not finish for the following participant(s): ",names(ls_out)[sapply(ls_out,is.null)])
@@ -317,7 +317,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
     ID = output$ID
     signalx$ID<-NULL
     output$regpath<-file.path(reg_rootpath,model_name,ID)
-    if(file.exists(file.path(output$regpath,"design_output.rdata"))) {
+    if(file.exists(file.path(output$regpath,"design_output.rdata")) && !forcererun) {
       system(paste0("echo Loading: ",ID))
       outx<-new.env()
       load(file.path(output$regpath,"design_output.rdata"),envir = outx)
