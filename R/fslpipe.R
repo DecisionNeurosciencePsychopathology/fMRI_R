@@ -174,7 +174,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
           aarg$runnum<-runnum   
           aarg$volumes<-x$run_volumes[runnum]
-          aarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfgfilepath = argu$cfgpath,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
+          aarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfg = argu$cfg,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
           aarg$nuisa<-file.path(argu$regpath,argu$model_name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
           
           if(argu$adaptive_ssfeat){
