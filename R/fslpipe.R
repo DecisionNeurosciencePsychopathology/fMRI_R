@@ -103,7 +103,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       writeLines("library(fslpipe);load(\"curwd.rdata\");eval(step1_cmd)",con = "temp.r")
       pbs_torun<-get_pbs_default();pbs_torun$cmd<-"Rscript temp.r";pbs_torun$ppn<-argu$nprocess
       writeLines(do.call(pbs_cmd,pbs_torun),"pbs_temp.sh")
-      dependlab::qsub_file("pbs_temp.sh")
+      dependlab::wait_for_job(dependlab::qsub_file("pbs_temp.sh"))
     } else {
       eval(step1_cmd)
     }
@@ -175,7 +175,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           aarg$runnum<-runnum   
           aarg$volumes<-x$run_volumes[runnum]
           aarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfg = argu$cfg,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
-          if(!length(aarg$funcfile)>0 || any(is.na(aarg$funcfile))){message("ID: ",idx,"RUN: ",runnum,", failed to find a functional image. Terminate.");return(NULL)}
+          if(!length(aarg$funcfile)>0 || any(is.na(aarg$funcfile))){message("ID: ",idx," RUN: ",runnum,", failed to find a functional image. Terminate.");return(NULL)}
           aarg$nuisa<-file.path(argu$regpath,argu$model_name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
           
           if(argu$adaptive_ssfeat){
@@ -202,20 +202,19 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     
     if(length(step2commands)>0){
     if(argu$lvl1_run_on_pbs){
+      #PBS
       workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc","lvl1_fsf")
-      dir.create(workingdir,showWarnings = F,recursive = F)
-
-      joblist <- rep(NA_character_, argu$nprocess)
-      for (j in 1:length(step2commands)) {
-        outfile <- paste0(workingdir, "/qsub_featsep_", j, "_", basename(tempfile()), ".pbs")
-        pbs_torun<-get_pbs_default();pbs_torun$cmd<-step2commands[j];pbs_torun$ppn<-argu$nprocess
-        writeLines(do.call(pbs_cmd,pbs_torun),outfile)
-        joblist[j] <- dependlab::qsub_file(outfile)
-      }
-      
-      #write the list of separate feat qsub jobs that are now queued (so that LVL2 can wait on these)
-      #should also return this to the caller as a function?
-      writeLines(joblist, con=file.path(workdir, "sepqsub_lvl1_jobs.txt"))
+      dir.create(file.path(workingdir,"log"),showWarnings = F,recursive = F)
+      setwd(file.path(workingdir,"log"))
+      df <- data.frame(cmd=step2commands, job=rep(1:njobs, each=argu$nprocess*runsperproc, length.out=length(torun)), stringsAsFactors=FALSE)
+      df <- df[order(df$job),]
+      joblist<-unlist(lapply(step2commands,function(cmdx){
+          outfile <- paste0(workingdir, "/qsub_featsep_", j, "_", basename(tempfile()), ".pbs")
+          pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx;pbs_torun$ppn<-argu$nprocess
+          writeLines(do.call(pbs_cmd,pbs_torun),outfile)
+          return(dependlab::qsub_file(outfile))
+        }))
+      dependlab::wait_for_job(joblist)
     }else{
       #run localy
       cluster_step2<-makeCluster(num_cores,outfile="",type = "FORK")
@@ -379,7 +378,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           ID=x[grep(lowlvl_featreg,x)-1],
           COPENUM=gsub("cope","",gsub(".feat","",last(x))),
           PATH = paste(x,collapse = .Platform$file.sep),
-          INTERCEPT=1,
+          Intercept=1,
           stringsAsFactors = F)
       })
       )
@@ -400,7 +399,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                          z_thresh = 3.09, #1.96 for subj lvl, 2.3 for sess lvl and 3.09 for grp lvl
                          p_thresh = 0.05, #0.05 default for both;
                          overwrite = F,
-                         vari_to_run=c("INTERCEPT")
+                         vari_to_run=c("Intercept")
       )
       
       # lvl3_reg_default<-list(reg2main=0,reg2initial=0,reg2standard=1)

@@ -201,7 +201,7 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
              addComment = "# Higher-level modelling # 3 : Fixed effects # 0 : Mixed Effects: Simple OLS # 2 : Mixed Effects: FLAME 1 # 1 : Mixed Effects: FLAME 1+2",
              quotevalue = F),
     pasteFSF(fsfvari = "z_thresh",value = z_thresh,addComment = "# Z threshold",quotevalue = F),
-    pasteFSF(fsfvari = "overwrite_yn",value = as.numeric(overwrite),addComment = "# Z threshold",quotevalue = F),
+    pasteFSF(fsfvari = "overwrite_yn",value = 0,addComment = "# Z threshold",quotevalue = F), #We can't really overwrite because it causes problem in higher levels.
     pasteFSF(fsfvari = "conmask1_1",value = 0,addComment = "# Do contrast masking at all?",quotevalue = F),
     pasteFSF(fsfvari = "regstandard",value = template_brain,addComment = "# Standard image",quotevalue = T)
     # #registration tri
@@ -217,8 +217,8 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
     if(any(!vari_to_run %in% names(gvar_cope_df))){stop("One or more vaariables to run is not included in the input data frame")}
     if(flame_type %in% c(1,2)){f_text<-"FLAME"}else{f_text<-"HIGHER LEVEL"}
     
-    message("Setting up ",f_text," for '",unique(gvar_cope_df$NAME),"'. Number of data point: ",nrow(gvar_cope_df),
-            ".\n","For IDs: ",paste(unique(gvar_cope_df$ID),collapse = ", "),"\n")
+    
+    
     if(is.null(gvar_cope_df$Group_Membership)) {gvar_cope_df$Group_Membership<-1}
     num_lowerlvl<-unique(as.numeric(sapply(lapply(sapply(gvar_cope_df$PATH,list.files,pattern = "design.con",full.name=T),readLines),function(x){
       as.numeric(gsub("\\D", "", x[grepl("/NumContrasts",x)]))
@@ -228,11 +228,25 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
     }
     #gvar_cope_df <- merge(single_fsf,input_df,by = "ID",all.x = T)
     if(length(unique(gvar_cope_df$OUTPUTPATH))>1){stop("Incorrect output path length")}
+    if(dir.exists(file.path(unique(gvar_cope_df$OUTPUTPATH),paste0(unique(gvar_cope_df$NAME),".gfeat"))) ){
+      if(overwrite){
+        message("For IDs: ",paste(unique(gvar_cope_df$ID),collapse = ", "),
+                "\n","Found ",f_text," for '",unique(gvar_cope_df$NAME),"' and overwrite is set to TRUE Will REMOVE & RE-RUN",
+                "\n")
+        unlink(file.path(unique(gvar_cope_df$OUTPUTPATH),paste0(unique(gvar_cope_df$NAME),".gfeat")),recursive = T,force = T)
+      } else {
+        message("Found ",f_text," for '",unique(gvar_cope_df$NAME),"' and overwrite is set to FALSE. Will skip.",
+                "\n","IDs: ",paste(unique(gvar_cope_df$ID),collapse = ", "),"\n")
+        return(NULL)
+      }
+    }
     if(any(is.na(gvar_cope_df))) {
       message("Found NA in the entry, the whole data point will be removed. If wish to include, change the NA in the input data frame to 0")
       gvar_cope_df<-na.omit(gvar_cope_df)
     }
     
+    message("Setting up ",f_text," for '",unique(gvar_cope_df$NAME),"'. Number of data point: ",nrow(gvar_cope_df),
+            ".\n","For IDs: ",paste(unique(gvar_cope_df$ID),collapse = ", "),"\n")
     
     numev<-length(vari_to_run)
     
@@ -387,6 +401,7 @@ pbs_cmd<-function(account,nodes,ppn,memory,walltime,titlecmd,morecmd,cmd,wait_fo
              paste0("#PBS -l nodes=",nodes,":ppn=",ppn),
              paste0("#PBS -l pmem=",memory,"gb"),
              paste0("#PBS -l walltime=",walltime),
+             "#PBS -W group_list=mnh5174_collab",
              "#PBS -j oe",
              "#PBS -m n",
              "",titlecmd,morecmd,cmd)
