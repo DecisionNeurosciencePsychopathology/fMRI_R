@@ -484,7 +484,7 @@ rep_within<-function(adptemplate=NULL,searchenvir=NULL){
       gsub(pattern = vari_x,replacement = repl,x = chunk_within,fixed = T)
     }))
     adptemplate<-c(chunk_pre,new_chunk,chunk_post)
-    writeLines(adptemplate,"~/Desktop/test.fsf")
+    #writeLines(adptemplate,"~/Desktop/test.fsf")
     rep_within(adptemplate=adptemplate,searchenvir = searchenvir)
   } else {return(adptemplate)}
 }
