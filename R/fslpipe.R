@@ -127,7 +127,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       list(
         design=x$design,
         ID=x$ID,
-        run_volumes=x$run_volumes,
+        run_volumes=x$design$run_volumes,
         regpath=x$regpath,
         preprocID=x$preprocID)
     })
@@ -203,7 +203,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       dir.create(workingdir,showWarnings = F,recursive = F)
      
       
-      joblist <- rep(NA_character_, njobs)
+      joblist <- rep(NA_character_, argu$nprocess)
       for (j in 1:length(step2commands)) {
         outfile <- paste0(workingdir, "/qsub_featsep_", j, "_", basename(tempfile()), ".pbs")
         pbs_torun<-get_pbs_default();pbs_torun$cmd<-step2commands[j];pbs_torun$ppn<-argu$nprocess
