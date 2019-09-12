@@ -379,9 +379,10 @@ export PATH MRI_STDDIR
 ",morecmd="")
   return(pbs_default)
 }
-pbs_cmd<-function(account,nodes,ppn,memory,walltime,titlecmd,morecmd,cmd){
+pbs_cmd<-function(account,nodes,ppn,memory,walltime,titlecmd,morecmd,cmd,wait_for=""){
   heading<-c("#!/usr/bin/env sh",
              "",
+             ifelse(wait_for != "", paste0("#PBS -W depend=afterok:", wait_for), ""),
              paste0("#PBS -A ",account),
              paste0("#PBS -l nodes=",nodes,":ppn=",ppn),
              paste0("#PBS -l pmem=",memory,"gb"),

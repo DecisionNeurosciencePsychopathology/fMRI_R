@@ -103,7 +103,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       writeLines("library(fslpipe);load(\"curwd.rdata\");eval(step1_cmd)",con = "temp.r")
       pbs_torun<-get_pbs_default();pbs_torun$cmd<-"Rscript temp.r";pbs_torun$ppn<-argu$nprocess
       writeLines(do.call(pbs_cmd,pbs_torun),"pbs_temp.sh")
-      
+      dependlab::qsub_file("pbs_temp.sh")
     } else {
       eval(step1_cmd)
     }
@@ -199,39 +199,16 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       return(cmmd)
     }))
     if(argu$lvl1_run_on_pbs){
-      cpusperjob <- 8 #number of cpus per qsub
-      runsperproc <- 3 #number of feat calls per processor
-      wait_for=""
-      preamble <- c(
-        "#PBS -A mnh5174_a_g_hc_default",
-        paste0("#PBS -l nodes=1:ppn=", cpusperjob, ":himem"),
-        ifelse(wait_for != "", paste0("#PBS -W depend=afterok:", wait_for), ""), #allow job dependency on upstream setup
-        "#PBS -l walltime=4:00:00",
-        "#PBS -j oe",
-        "#PBS -m abe",
-        "#PBS -W group_list=mnh5174_collab",
-        "",
-        "",
-        "source /gpfs/group/mnh5174/default/lab_resources/ni_path.bash",
-        "module load \"fsl/5.0.11\" >/dev/null 2>&1",
-        "",
-        "cd $PBS_O_WORKDIR"
-      )
-      
-      njobs <- ceiling(length(step2commands)/(cpusperjob*runsperproc))
-      
-      #use length.out on rep to ensure that the vectors align even if chunks are uneven wrt files to run
-      df <- data.frame(fsf=step2commands, job=rep(1:njobs, each=cpusperjob*runsperproc, length.out=length(step2commands)), stringsAsFactors=FALSE)
-      df <- df[order(df$job),]
+      workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc","lvl1_fsf")
+      dir.create(workingdir,showWarnings = F,recursive = F)
+     
       
       joblist <- rep(NA_character_, njobs)
-      for (j in 1:njobs) {
-        outfile <- paste0(tempdir(), "/qsub_featsep_", j, "_", basename(tempfile()), ".pbs")
-        cat(preamble, file=outfile, sep="\n")
-        thisrun <- with(df, fsf[job==j])
-        cat(paste("feat", thisrun, "&"), file=outfile, sep="\n", append=TRUE)
-        cat("wait\n\n", file=outfile, append=TRUE)
-        system(paste0("qsub ", outfile))
+      for (j in 1:length(step2commands)) {
+        outfile <- paste0(workingdir, "/qsub_featsep_", j, "_", basename(tempfile()), ".pbs")
+        pbs_torun<-get_pbs_default();pbs_torun$cmd<-step2commands[j];pbs_torun$ppn<-argu$nprocess
+        writeLines(do.call(pbs_cmd,pbs_torun),outfile)
+        dependlab::qsub_file(outfile)
       }
       
       #write the list of separate feat qsub jobs that are now queued (so that LVL2 can wait on these)
