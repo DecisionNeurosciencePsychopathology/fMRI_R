@@ -221,7 +221,7 @@ get_volume_run<-function(id=NULL,cfg=NULL,reg.nii.name="swudktm*[0-9].nii.gz",re
   if (returnas=="path"){
     lpath<-lapply(1:cfg$n_expected_funcruns, function(i) {
       file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname,paste(cfg$paradigm_name,i,sep = ""))->procpath
-      system(paste0("find -L ",procpath," -iname ",reg.nii.name," -maxdepth 2 -mindepth 1"),intern = T)
+      system(paste0("find -L ",procpath," -maxdepth 2 -mindepth 1"," -iname ",reg.nii.name),intern = T)
       # file.path(,nii.name)
     })
     return(unlist(lpath))
