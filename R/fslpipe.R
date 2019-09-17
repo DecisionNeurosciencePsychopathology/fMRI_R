@@ -41,7 +41,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   ###Version upgrade safe keeping
   
   #Replacing old variables names from previous versions
-  replaceLS<-list(ifnuisa="convlv_nuisa",onlyrun="run_steps",centerscaleall="lvl1_centervalues",
+  replaceLS<-list(ifnuisa="convlv_nuisa",onlyrun="run_steps",centerscaleall="lvl1_centervalues","lvl1_run_on_pbs"=run_on_pbs,
                   model.name="model_name",ssub_outputroot="subj_outputroot",templatedir="templatebrain_path")
   
   for(og in names(replaceLS)){
@@ -60,14 +60,14 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     if(length(negNum)>0){
       negMat<-diag(x=-1,ogLength)
       negMat<-negMat[negNum,]
-      argu$xmat<-rbind(diag(x=1,ogLength),negMat)
+      argu$lvl1_cmat<-rbind(diag(x=1,ogLength),negMat)
       
     } else {
       argu$lvl1_cmat<-diag(x=1,ogLength)
     }
   } 
   
-  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,lvl1_run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,
+  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,
                    nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",job_per_qsub=as.numeric(argu$cfg$n_expected_funcruns),
                    lvl3_type="flame",adaptive_ssfeat=TRUE)
   default_ls<-default_ls[!names(default_ls) %in% names(argu)]
@@ -103,7 +103,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       save(allsub_design,file = file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
     })
     
-    if(argu$lvl1_run_on_pbs){
+    if(argu$run_on_pbs){
       workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc")
       dir.create(workingdir,showWarnings = F,recursive = F)
       setwd(workingdir)
@@ -147,7 +147,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     
     if(argu$adaptive_ssfeat){
       argu$model_varinames<-argu$dsgrid$name
-      argu$copenames<-c(argu$model.varinames,paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
+      argu$copenames<-c(argu$model_varinames,paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
       xarg$evnum<-1:ncol(argu$lvl1_cmat)
       xarg$copenum<-1:nrow(argu$lvl1_cmat)
       xarg$maxevnum<-ncol(argu$lvl1_cmat)
@@ -187,10 +187,10 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           
           if(argu$adaptive_ssfeat){
             for (mv in 1:ncol(argu$lvl1_cmat)) {
-              assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model_name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = aarg)
+              assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model_name),idx,paste0("run",runnum,"_",argu$model_varinames[mv],argu$regtype)),envir = aarg)
             }
           } else {
-            gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model_name),idx=idx,runnum=runnum,env=aarg,regtype=argu$regtype)
+            gen_reg(vmodel=argu$model_varinames,regpath=file.path(argu$regpath,argu$model_name),idx=idx,runnum=runnum,env=aarg,regtype=argu$regtype)
           }
           if (any(unlist(eapply(aarg,is.na)))) {stop("NA exists in one of the arguments; please double check!")}
           #gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model_name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
@@ -208,7 +208,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }))
     
     if(length(step2commands)>0){
-      if(argu$lvl1_run_on_pbs){
+      if(argu$run_on_pbs){
         #PBS
         workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc","lvl1_fsf")
         dir.create(file.path(workingdir,"log"),showWarnings = F,recursive = T)
@@ -320,18 +320,47 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     lvl2_arg$fsltemplate <- readLines(system.file("extdata", "fsl_flame_general_adaptive_template.fsf", package="fslpipe"))
     lvl2_alldf <- do.call(gen_fsf_highlvl,lvl2_arg)
     
-    lvl2_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
-    NU<-parallel::parSapply(lvl2_cluster,unique(lvl2_alldf$FSF_PATH), function(y) {
-      fsl_2_sys_env()
-      message("starting feat /n ",y)
-      tryCatch(
-        {system(command = paste("feat",y,sep = " "),intern = T)
-          message("DONE")
-        }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
-      )
+    
+    if(argu$run_on_pbs){
+      #PBS
+      workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl2_misc","log")
+      dir.create(workingdir,showWarnings = F,recursive = T)
+      setwd(workingdir)
       
-    })
-    parallel::stopCluster(lvl2_cluster)
+      if((length(lvl2_alldf$FSF_PATH)/argu$job_per_qsub)>30) {
+        argu$job_per_qsub = round(length(lvl2_alldf$FSF_PATH)/30,digits = 0)
+      }
+      
+      df <- data.frame(cmd=lvl2_alldf$FSF_PATH, job=rep(1:(length(lvl2_alldf$FSF_PATH)/argu$job_per_qsub), 
+                                                  each=argu$job_per_qsub, 
+                                                  length.out=length(lvl2_alldf$FSF_PATH)), stringsAsFactors=FALSE)
+      sp_df <- split(df,df$job)
+      
+      joblist<-unlist(lapply(sp_df,function(cmdx){
+        message("Setting up job#: ",unique(cmdx$job))
+        outfile <- paste0(workingdir, "/qsub_lvl2_featsep_", basename(tempfile()), ".pbs")
+        pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx$cmd;pbs_torun$ppn<-argu$nprocess
+        writeLines(do.call(pbs_cmd,pbs_torun),outfile)
+        return(dependlab::qsub_file(outfile))
+      }))
+      dependlab::wait_for_job(joblist)
+    } else {
+      lvl2_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
+      NU<-parallel::parSapply(lvl2_cluster,unique(lvl2_alldf$FSF_PATH), function(y) {
+        fsl_2_sys_env()
+        message("starting feat /n ",y)
+        tryCatch(
+          {system(command = paste("feat",y,sep = " "),intern = T)
+            message("DONE")
+          }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
+        )
+        
+      })
+      parallel::stopCluster(lvl2_cluster)
+    }
+    
+    
+
     
     ################END of step 4
   }
