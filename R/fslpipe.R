@@ -11,7 +11,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   ###STEP 0: Source necessary scripts:
   #devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/dnpl_utility.R")
-  
+
   require("devtools")
   if("dependlab" %in% installed.packages()){"GREAT, DEPENDLAB PACK IS INSTALLED"}else{devtools::install_github("PennStateDEPENdLab/dependlab")}
   fsl_2_sys_env(force = T)
@@ -49,8 +49,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       argu[[replaceLS[[og]]]]<-argu[[og]]}
   }
   
-
-
+  
+  
   
   if (!exists("lvl1_cmat",envir = argu)) {
     message("Single subject contrast matrix is not specified, will use automatic generated one by using grid.")
@@ -67,7 +67,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   } 
   
   default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,lvl1_run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,
-                   nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",
+                   nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",job_per_qsub=as.numeric(argu$cfg$n_expected_funcruns),
                    lvl3_type="flame",adaptive_ssfeat=TRUE)
   default_ls<-default_ls[!names(default_ls) %in% names(argu)]
   if (length(default_ls)>0){
@@ -76,11 +76,15 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
     argu<-list2env(default_ls,envir = argu)
   }
-
+  
   #Renaming;
   if(argu$adaptive_ssfeat){argu$ssub_fsl_templatepath<-system.file("extdata", "fsl_ssfeat_general_adaptive_template_R.fsf", package="fslpipe")}
   if(!argu$run_pipeline){return(NULL)}
   if(initonly) {return(argu)}
+  
+  
+  
+  
   #############STEP 1: Regressor generation####################
   #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
   stepnow<-1
@@ -91,11 +95,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     dir.create(file.path(argu$subj_outputroot,argu$model_name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
     step1_cmd<-substitute({
-    allsub_design<-do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,forcererun = argu$lvl1_forcegenreg,
-                                      dsgrid=argu$dsgrid,func_nii_name=argu$func.nii.name,nprocess=argu$nprocess,
-                                      cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,
-                                      reg_rootpath=argu$regpath,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
-    save(allsub_design,file = file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
+      allsub_design<-do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,forcererun = argu$lvl1_forcegenreg,
+                                        dsgrid=argu$dsgrid,func_nii_name=argu$func.nii.name,nprocess=argu$nprocess,
+                                        cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,
+                                        reg_rootpath=argu$regpath,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
+      save(allsub_design,file = file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
     })
     
     if(argu$lvl1_run_on_pbs){
@@ -113,16 +117,16 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     #End of Step 1
   }
   
-
+  
   #############Step 2: LVL1: Single Subject PARALLEL##########
   #Now we do the single sub processing using FSL and the regressor that was generated
   stepnow<-2
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     
     
-      if (file.exists(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))) {
-        load(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
-      } else {stop("No design rdata file found, must re-run step 1")}
+    if (file.exists(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))) {
+      load(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
+    } else {stop("No design rdata file found, must re-run step 1")}
     
     
     #let's subset this 
@@ -141,25 +145,25 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     xarg$tr<-argu$cfg$preproc_call$tr
     
     if(argu$adaptive_ssfeat){
-      argu$model.varinames<-argu$dsgrid$name
+      argu$model_varinames<-argu$dsgrid$name
       argu$copenames<-c(argu$model.varinames,paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
-      xarg$evnum<-1:ncol(argu$xmat)
-      xarg$copenum<-1:nrow(argu$xmat)
-      xarg$maxevnum<-ncol(argu$xmat)
-      xarg$maxcopenum<-nrow(argu$xmat)
-      argu$maxcopenum<-nrow(argu$xmat)
+      xarg$evnum<-1:ncol(argu$lvl1_cmat)
+      xarg$copenum<-1:nrow(argu$lvl1_cmat)
+      xarg$maxevnum<-ncol(argu$lvl1_cmat)
+      xarg$maxcopenum<-nrow(argu$lvl1_cmat)
+      argu$maxcopenum<-nrow(argu$lvl1_cmat)
       
-      for (xy in 1:nrow(argu$xmat)){
-        assign(paste0("copemat",xy),value = 1:ncol(argu$xmat),envir = xarg)
+      for (xy in 1:nrow(argu$lvl1_cmat)){
+        assign(paste0("copemat",xy),value = 1:ncol(argu$lvl1_cmat),envir = xarg)
         assign(paste0("copetitle",xy),argu$copenames[xy],envir = xarg)
         assign(paste0("cope_lessnum",xy),(1:length(argu$copenames))[-xy],envir = xarg)
-        for(xx in 1:ncol(argu$xmat)){
-          assign(paste0("copevalue",xy,"_",xx),value = argu$xmat[xy,xx],envir = xarg)
+        for(xx in 1:ncol(argu$lvl1_cmat)){
+          assign(paste0("copevalue",xy,"_",xx),value = argu$lvl1_cmat[xy,xx],envir = xarg)
         }
       } 
-      for (mv in 1:ncol(argu$xmat)) {
-        assign(paste0("evtitle",mv),argu$model.varinames[mv],envir = xarg)
-        assign(paste0("orthocombo",mv),paste(mv,(0:length(argu$model.varinames)),sep = "."),envir = xarg)
+      for (mv in 1:ncol(argu$lvl1_cmat)) {
+        assign(paste0("evtitle",mv),argu$model_varinames[mv],envir = xarg)
+        assign(paste0("orthocombo",mv),paste(mv,(0:length(argu$model_varinames)),sep = "."),envir = xarg)
       }
       #PUT NEW FUNCTION HERE
       ssfsltemp<-rep_within(adptemplate = readLines(argu$ssub_fsl_templatepath),searchenvir = xarg)
@@ -173,7 +177,6 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         if (!file.exists(paste0(aarg$outputpath,".feat")) ) {
           if(is.null(argu$ss_zthreshold)) {aarg$zthreshold<-3.2} else {aarg$zthreshold<-argu$ss_zthreshold}
           if(is.null(argu$ss_pthreshold)) {aarg$pthreshold<-0.05} else {aarg$pthreshold<-argu$ss_pthreshold}
-          
           message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
           aarg$runnum<-runnum   
           aarg$volumes<-x$run_volumes[runnum]
@@ -204,41 +207,56 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }))
     
     if(length(step2commands)>0){
-    if(argu$lvl1_run_on_pbs){
-      #PBS
-      workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc","lvl1_fsf")
-      dir.create(file.path(workingdir,"log"),showWarnings = F,recursive = T)
-      setwd(file.path(workingdir,"log"))
-      df <- data.frame(cmd=step2commands, job=rep(1:4, each=argu$nprocess*2, length.out=length(step2commands)), stringsAsFactors=FALSE)
-      df <- df[order(df$job),]
-      joblist<-unlist(lapply(step2commands,function(cmdx){
+      if(argu$lvl1_run_on_pbs){
+        #PBS
+        workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc","lvl1_fsf")
+        dir.create(file.path(workingdir,"log"),showWarnings = F,recursive = T)
+        setwd(file.path(workingdir,"log"))
+        
+        df <- data.frame(cmd=step2commands, job=rep(1:(length(step2commands)/argu$job_per_qsub), 
+                                                    each=argu$job_per_qsub, 
+                                                    length.out=length(step2commands)), stringsAsFactors=FALSE)
+        df <- df[order(df$job),]
+        
+        if((length(step2commands)/argu$job_per_qsub)>30) {
+          argu$job_per_qsub = round(length(step2commands)/30,digits = 0)
+        }
+        
+        df <- data.frame(cmd=step2commands, job=rep(1:(length(step2commands)/argu$job_per_qsub), 
+                                                    each=argu$job_per_qsub, 
+                                                    length.out=length(step2commands)), stringsAsFactors=FALSE)
+        sp_df <- split(df,df$job)
+        
+        
+        joblist<-unlist(lapply(sp_df,function(cmdx){
+          message("Setting up job#: ",unique(cmdx$job))
           outfile <- paste0(workingdir, "/qsub_featsep_", basename(tempfile()), ".pbs")
-          pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx;pbs_torun$ppn<-argu$nprocess
+          pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx$cmd;pbs_torun$ppn<-argu$nprocess
           writeLines(do.call(pbs_cmd,pbs_torun),outfile)
           return(dependlab::qsub_file(outfile))
         }))
-      dependlab::wait_for_job(joblist)
-    }else{
-      #run localy
-      cluster_step2<-makeCluster(num_cores,outfile="",type = "FORK")
-      NX<-parSapply(cluster_step2,step2commands,function(yx) {
-        fsl_2_sys_env()
-        message(paste0("starting to run /n ",yx))
-        tryCatch(
-          {system(command = yx,intern = T)
-            pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
-            numdx<-which(yx==step2commands)
-            indx<-suppressWarnings(split(1:length(step2commands),1:num_cores))
-            pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
-            setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
-            message("DONE")
-          }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
-        )
+        dependlab::wait_for_job(joblist)
+      }else{
+        #run localy
+        cluster_step2<-makeCluster(num_cores,outfile="",type = "FORK")
+        NX<-parSapply(cluster_step2,step2commands,function(yx) {
+          fsl_2_sys_env()
+          message(paste0("starting to run /n ",yx))
+          tryCatch(
+            {system(command = yx,intern = T)
+              pb<-txtProgressBar(min = 0,max = 100,char = "|",width = 50,style = 3)
+              numdx<-which(yx==step2commands)
+              indx<-suppressWarnings(split(1:length(step2commands),1:num_cores))
+              pindx<-grep(paste0("\\b",numdx,"\\b"),indx)
+              setTxtProgressBar(pb,(which(numdx==indx[[pindx]]) / length(indx[[pindx]]))*100)
+              message("DONE")
+            }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
+          )
+          
+        })
+        stopCluster(cluster_step2)
         
-      })
-      stopCluster(cluster_step2)
-      
-    }
+      }
     } else {message("Nothing to run on lvl 1.")}
     #End of Step 2
   }
@@ -313,7 +331,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       
     })
     parallel::stopCluster(lvl2_cluster)
-
+    
     ################END of step 4
   }
   
@@ -370,7 +388,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       # paralleln = num_cores
     } else if(tolower(argu$lvl3_type)=="flame") {
       #Run flame here:
-
+      
       lowlvl_featreg<-"average.gfeat"
       raw<-system(paste0("find ",
                          file.path(argu$subj_outputroot,argu$model_name,"*/",lowlvl_featreg),
@@ -387,7 +405,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       )
       # NAME = ?
       # OUTPUTPATH = ?
-        
+      
       lvl3_raw_sp<-split(lvl3_rawdf,lvl3_rawdf$COPENUM)
       
       lvl3_raw_sp<-lapply(lvl3_raw_sp,function(x){
@@ -430,7 +448,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         
       })
       parallel::stopCluster(lvl3_cluster)
-
+      
       
       
       argu$lvl3_ref_df$dummy_ <- rnorm(nrow(argu$lvl3_ref_df))
@@ -484,7 +502,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #   }
   #   #End of Step 6
   # }
-
+  
   
   #############End of function fsl_pipe#####################
 }
