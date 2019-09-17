@@ -204,8 +204,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     if(argu$lvl1_run_on_pbs){
       #PBS
       workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc","lvl1_fsf")
-      dir.create(file.path(workingdir,"log"),showWarnings = F,recursive = F)
-      #setwd(file.path(workingdir,"log"))
+      dir.create(file.path(workingdir,"log"),showWarnings = F,recursive = T)
+      setwd(file.path(workingdir,"log"))
       df <- data.frame(cmd=step2commands, job=rep(1:4, each=argu$nprocess*2, length.out=length(step2commands)), stringsAsFactors=FALSE)
       df <- df[order(df$job),]
       joblist<-unlist(lapply(step2commands,function(cmdx){
