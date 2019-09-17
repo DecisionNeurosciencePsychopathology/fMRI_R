@@ -206,7 +206,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc","lvl1_fsf")
       dir.create(file.path(workingdir,"log"),showWarnings = F,recursive = F)
       setwd(file.path(workingdir,"log"))
-      df <- data.frame(cmd=step2commands, job=rep(1:njobs, each=argu$nprocess*runsperproc, length.out=length(torun)), stringsAsFactors=FALSE)
+      df <- data.frame(cmd=step2commands, job=rep(1:4, each=argu$nprocess*runsperproc, length.out=length(torun)), stringsAsFactors=FALSE)
       df <- df[order(df$job),]
       joblist<-unlist(lapply(step2commands,function(cmdx){
           outfile <- paste0(workingdir, "/qsub_featsep_", j, "_", basename(tempfile()), ".pbs")
