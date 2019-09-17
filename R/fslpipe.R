@@ -41,7 +41,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   ###Version upgrade safe keeping
   
   #Replacing old variables names from previous versions
-  replaceLS<-list(ifnuisa="convlv_nuisa",onlyrun="run_steps",centerscaleall="lvl1_centervalues","lvl1_run_on_pbs"=run_on_pbs,
+  replaceLS<-list(ifnuisa="convlv_nuisa",onlyrun="run_steps",centerscaleall="lvl1_centervalues",lvl1_run_on_pbs="run_on_pbs",
                   model.name="model_name",ssub_outputroot="subj_outputroot",templatedir="templatebrain_path")
   
   for(og in names(replaceLS)){
