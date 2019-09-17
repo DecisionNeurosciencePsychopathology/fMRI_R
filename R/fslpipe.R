@@ -210,7 +210,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     if(length(step2commands)>0){
       if(argu$run_on_pbs){
         #PBS
-        lvl1_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc","log")
+        lvl1_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
         qsub_commands(cmds = step2commands,jobperqsub = argu$job_per_qsub,workingdir = lvl1_workingdir,tagname = "lvl1")
       
       }else{
