@@ -116,11 +116,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   stepnow<-2
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     
-    if (!is.null(argu$run_steps) & !1 %in% argu$run_steps) {
+    
       if (file.exists(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))) {
         load(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
       } else {stop("No design rdata file found, must re-run step 1")}
-    }  
+    
     
     #let's subset this 
     small.sub<-lapply(as.list(allsub_design), function(x) {
