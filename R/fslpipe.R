@@ -6,7 +6,8 @@
 
 fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model should have a different one;
                    prep.call.func="", #This should be a character string that's the name of the prep proc function
-                   prep.call.allsub=list(ID=list(data=NULL),initonly=F) #List of ID list of arguments for prep.call.
+                   prep.call.allsub=list(ID=list(data=NULL)),#List of ID list of arguments for prep.call.
+                   initonly=F
 ) {
   
   ###STEP 0: Source necessary scripts:
