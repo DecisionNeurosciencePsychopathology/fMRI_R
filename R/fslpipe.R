@@ -119,11 +119,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   stepnow<-2
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     
-    if (!is.null(argu$run_steps) & !1 %in% argu$run_steps) {
+    
       if (file.exists(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))) {
         load(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
       } else {stop("No design rdata file found, must re-run step 1")}
-    }  
+    
     
     #let's subset this 
     small.sub<-lapply(as.list(allsub_design), function(x) {
@@ -207,12 +207,12 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     if(argu$lvl1_run_on_pbs){
       #PBS
       workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc","lvl1_fsf")
-      dir.create(file.path(workingdir,"log"),showWarnings = F,recursive = F)
+      dir.create(file.path(workingdir,"log"),showWarnings = F,recursive = T)
       setwd(file.path(workingdir,"log"))
-      df <- data.frame(cmd=step2commands, job=rep(1:njobs, each=argu$nprocess*runsperproc, length.out=length(torun)), stringsAsFactors=FALSE)
+      df <- data.frame(cmd=step2commands, job=rep(1:4, each=argu$nprocess*2, length.out=length(step2commands)), stringsAsFactors=FALSE)
       df <- df[order(df$job),]
       joblist<-unlist(lapply(step2commands,function(cmdx){
-          outfile <- paste0(workingdir, "/qsub_featsep_", j, "_", basename(tempfile()), ".pbs")
+          outfile <- paste0(workingdir, "/qsub_featsep_", basename(tempfile()), ".pbs")
           pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx;pbs_torun$ppn<-argu$nprocess
           writeLines(do.call(pbs_cmd,pbs_torun),outfile)
           return(dependlab::qsub_file(outfile))
