@@ -209,7 +209,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       df <- data.frame(cmd=step2commands, job=rep(1:4, each=argu$nprocess*2, length.out=length(step2commands)), stringsAsFactors=FALSE)
       df <- df[order(df$job),]
       joblist<-unlist(lapply(step2commands,function(cmdx){
-          outfile <- paste0(workingdir, "/qsub_featsep_", j, "_", basename(tempfile()), ".pbs")
+          outfile <- paste0(workingdir, "/qsub_featsep_", basename(tempfile()), ".pbs")
           pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx;pbs_torun$ppn<-argu$nprocess
           writeLines(do.call(pbs_cmd,pbs_torun),outfile)
           return(dependlab::qsub_file(outfile))
