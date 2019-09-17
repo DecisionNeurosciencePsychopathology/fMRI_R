@@ -12,7 +12,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   ###STEP 0: Source necessary scripts:
   #devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/dnpl_utility.R")
-
+  
   require("devtools")
   if("dependlab" %in% installed.packages()){"GREAT, DEPENDLAB PACK IS INSTALLED"}else{devtools::install_github("PennStateDEPENdLab/dependlab")}
   fsl_2_sys_env(force = T)
@@ -210,33 +210,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     if(length(step2commands)>0){
       if(argu$run_on_pbs){
         #PBS
-        workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc","lvl1_fsf")
-        dir.create(file.path(workingdir,"log"),showWarnings = F,recursive = T)
-        setwd(file.path(workingdir,"log"))
-        
-        df <- data.frame(cmd=step2commands, job=rep(1:(length(step2commands)/argu$job_per_qsub), 
-                                                    each=argu$job_per_qsub, 
-                                                    length.out=length(step2commands)), stringsAsFactors=FALSE)
-        df <- df[order(df$job),]
-        
-        if((length(step2commands)/argu$job_per_qsub)>30) {
-          argu$job_per_qsub = round(length(step2commands)/30,digits = 0)
-        }
-        
-        df <- data.frame(cmd=step2commands, job=rep(1:(length(step2commands)/argu$job_per_qsub), 
-                                                    each=argu$job_per_qsub, 
-                                                    length.out=length(step2commands)), stringsAsFactors=FALSE)
-        sp_df <- split(df,df$job)
-        
-        
-        joblist<-unlist(lapply(sp_df,function(cmdx){
-          message("Setting up job#: ",unique(cmdx$job))
-          outfile <- paste0(workingdir, "/qsub_featsep_", basename(tempfile()), ".pbs")
-          pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx$cmd;pbs_torun$ppn<-argu$nprocess
-          writeLines(do.call(pbs_cmd,pbs_torun),outfile)
-          return(dependlab::qsub_file(outfile))
-        }))
-        dependlab::wait_for_job(joblist)
+        lvl1_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc","log")
+        qsub_commands(cmds = step2commands,jobperqsub = argu$job_per_qsub,workingdir = lvl1_workingdir,tagname = "lvl1")
+      
       }else{
         #run localy
         cluster_step2<-makeCluster(num_cores,outfile="",type = "FORK")
@@ -320,48 +296,28 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     lvl2_arg$fsltemplate <- readLines(system.file("extdata", "fsl_flame_general_adaptive_template.fsf", package="fslpipe"))
     lvl2_alldf <- do.call(gen_fsf_highlvl,lvl2_arg)
     
-    
-    if(argu$run_on_pbs){
-      #PBS
-      workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl2_misc","log")
-      dir.create(workingdir,showWarnings = F,recursive = T)
-      setwd(workingdir)
-      
-      if((length(lvl2_alldf$FSF_PATH)/argu$job_per_qsub)>30) {
-        argu$job_per_qsub = round(length(lvl2_alldf$FSF_PATH)/30,digits = 0)
-      }
-      
-      df <- data.frame(cmd=lvl2_alldf$FSF_PATH, job=rep(1:(length(lvl2_alldf$FSF_PATH)/argu$job_per_qsub), 
-                                                  each=argu$job_per_qsub, 
-                                                  length.out=length(lvl2_alldf$FSF_PATH)), stringsAsFactors=FALSE)
-      sp_df <- split(df,df$job)
-      
-      joblist<-unlist(lapply(sp_df,function(cmdx){
-        message("Setting up job#: ",unique(cmdx$job))
-        outfile <- paste0(workingdir, "/qsub_lvl2_featsep_", basename(tempfile()), ".pbs")
-        pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx$cmd;pbs_torun$ppn<-argu$nprocess
-        writeLines(do.call(pbs_cmd,pbs_torun),outfile)
-        return(dependlab::qsub_file(outfile))
-      }))
-      dependlab::wait_for_job(joblist)
-    } else {
-      lvl2_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
-      NU<-parallel::parSapply(lvl2_cluster,unique(lvl2_alldf$FSF_PATH), function(y) {
-        fsl_2_sys_env()
-        message("starting feat /n ",y)
-        tryCatch(
-          {system(command = paste("feat",y,sep = " "),intern = T)
-            message("DONE")
-          }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
-        )
+    if(nrow(lvl2_alldf)>0){
+      if(argu$run_on_pbs){
+        #PBS
+        lvl2_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl2_misc","log")
+        qsub_commands(cmds = unique(lvl2_alldf$FSF_PATH),jobperqsub = argu$job_per_qsub,workingdir = lvl2_workingdir,tagname = "lvl2")
         
-      })
-      parallel::stopCluster(lvl2_cluster)
+      } else {
+        lvl2_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
+        NU<-parallel::parSapply(lvl2_cluster,unique(lvl2_alldf$FSF_PATH), function(y) {
+          fsl_2_sys_env()
+          message("starting feat /n ",y)
+          tryCatch(
+            {system(command = paste("feat",y,sep = " "),intern = T)
+              message("DONE")
+            }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
+          )
+          
+        })
+        parallel::stopCluster(lvl2_cluster)
+      }
     }
-    
-    
 
-    
     ################END of step 4
   }
   
@@ -466,32 +422,29 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       lvl3_alldf <- do.call(gen_fsf_highlvl,lvl3_arg)
       lvl3_alldf <- lvl3_alldf[!grepl("_evt",lvl3_alldf$NAME),]
       
-      lvl3_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
-      NU<-parallel::parSapply(lvl3_cluster,unique(lvl3_alldf$FSF_PATH), function(y) {
-        fsl_2_sys_env()
-        message("starting lvl3 feat: /n ",y)
-        tryCatch(
-          {system(command = paste("feat",y,sep = " "),intern = T)
-            message("DONE")
-          }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
-        )
-        
-      })
-      parallel::stopCluster(lvl3_cluster)
+      if(argu$run_on_pbs){
+        #PBS
+        workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl3_misc","log")
+        qsub_commands(cmds = unique(lvl3_alldf$FSF_PATH),jobperqsub = argu$job_per_qsub,workingdir = workingdir,tagname = "lvl3")
+      } else {
+        lvl3_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
+        NU<-parallel::parSapply(lvl3_cluster,unique(lvl3_alldf$FSF_PATH), function(y) {
+          fsl_2_sys_env()
+          message("starting lvl3 feat: /n ",y)
+          tryCatch(
+            {system(command = paste("feat",y,sep = " "),intern = T)
+              message("DONE")
+            }, error=function(e){stop(paste0("feat unsuccessful...error: ", e))}
+          )
+          
+        })
+        parallel::stopCluster(lvl3_cluster)
+      }
       
       
       
-      argu$lvl3_ref_df$dummy_ <- rnorm(nrow(argu$lvl3_ref_df))
-      mform <- as.formula(paste("dummy_ ~ -1 + ", paste(this_model, collapse=" + ")))
-      fit_lm <- lm(mform, argu$lvl3_ref_df)
-      dmat <- model.matrix(fit_lm) #eventually allow interactions and so on??
-      model_df$dummy_ <- NULL #clean up
       
-      cmat <- diag(length(this_model))
-      rownames(cmat) <- this_model #just name the contrasts after the EVs themselves
-      #Variables to get:
-      #outputpath:
-      #
+      
       
       
     } else {stop("Higher level type ",argu$lvl3_type," is not supported, only 'randomize' or 'flame' is currently supported")}

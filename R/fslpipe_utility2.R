@@ -481,6 +481,26 @@ pbs_cmd<-function(account,nodes,ppn,memory,walltime,titlecmd,morecmd,cmd,wait_fo
 
 
 
+qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1") {
+  dir.create(workingdir,showWarnings = F,recursive = T)
+  setwd(workingdir)
+  if((length(cmds)/jobperqsub)>30) {
+    jobperqsub = round(length(cmds)/30,digits = 0)
+    message("Maximum qsub job can submit is around 30. Rejecting the job_per_qsub argument and will use the recalculated value: ",jobperqsub)
+  }
+  df <- data.frame(cmd=cmds, job=rep(1:(length(cmds)/jobperqsub),each=jobperqsub,length.out=length(cmds)), stringsAsFactors=FALSE)
+  sp_df <- split(df,df$job)
+  joblist<-unlist(lapply(sp_df,function(cmdx){
+    message("Setting up job#: ",unique(cmdx$job))
+    outfile <- paste0(workingdir, "/qsub_",tagname,"_featsep_", basename(tempfile()), ".pbs")
+    pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx$cmd;pbs_torun$ppn<-argu$nprocess
+    writeLines(do.call(pbs_cmd,pbs_torun),outfile)
+    return(dependlab::qsub_file(outfile))
+  }))
+  dependlab::wait_for_job(joblist)
+  return(NULL)
+}
+
 
 
 
