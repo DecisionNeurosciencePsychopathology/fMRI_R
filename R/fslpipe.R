@@ -6,7 +6,7 @@
 
 fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model should have a different one;
                    prep.call.func="", #This should be a character string that's the name of the prep proc function
-                   prep.call.allsub=list(ID=list(data=NULL)) #List of ID list of arguments for prep.call.
+                   prep.call.allsub=list(ID=list(data=NULL),initonly=F) #List of ID list of arguments for prep.call.
 ) {
   
   ###STEP 0: Source necessary scripts:
@@ -20,11 +20,13 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if(!exists("run_pipeline",envir = argu)){
     if(Sys.getenv("run_pipeline")==""){argu$run_pipeline<-TRUE}else{argu$run_pipeline<-Sys.getenv("run_pipeline")}
   }
+  if(!exists("run_steps",envir = argu)){
+    if(Sys.getenv("run_steps")==""){argu$run_steps<-NULL}else{argu$run_steps<-Sys.getenv("run_steps")}
+  }
   
   if (is.null(argu$nprocess)){
     if (detectCores()>12){
-      num_cores<-12 #Use 8 cores to minimize burden; if on throndike 
-      #Or if you are running this on laptop; whatever cores minus 2; I guess if it's a dual core...let's just don't do that (zero core will not paralle anything)
+      num_cores<-12 
     } else {num_cores<-detectCores()-2} 
   } else {argu$nprocess->num_cores}
   
@@ -50,8 +52,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
 
 
   
-  if (!exists("xmat",envir = argu)) {
-    message("Single subject design matrix is not specified, will use automatic generated one by using grid.")
+  if (!exists("lvl1_cmat",envir = argu)) {
+    message("Single subject contrast matrix is not specified, will use automatic generated one by using grid.")
     ogLength<-length(argu$dsgrid$name)
     negNum<-(which(argu$dsgrid$AddNeg))
     if(length(negNum)>0){
@@ -60,7 +62,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       argu$xmat<-rbind(diag(x=1,ogLength),negMat)
       
     } else {
-      argu$xmat<-diag(x=1,ogLength)
+      argu$lvl1_cmat<-diag(x=1,ogLength)
     }
   } 
   
@@ -78,6 +80,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #Renaming;
   if(argu$adaptive_ssfeat){argu$ssub_fsl_templatepath<-system.file("extdata", "fsl_ssfeat_general_adaptive_template_R.fsf", package="fslpipe")}
   if(!argu$run_pipeline){return(NULL)}
+  if(initonly) {return(argu)}
   #############STEP 1: Regressor generation####################
   #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
   stepnow<-1
@@ -179,7 +182,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           aarg$nuisa<-file.path(argu$regpath,argu$model_name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
           
           if(argu$adaptive_ssfeat){
-            for (mv in 1:ncol(argu$xmat)) {
+            for (mv in 1:ncol(argu$lvl1_cmat)) {
               assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model_name),idx,paste0("run",runnum,"_",argu$model.varinames[mv],argu$regtype)),envir = aarg)
             }
           } else {
@@ -376,7 +379,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       lvl3_rawdf<-do.call(rbind,lapply(raw.split,function(x){
         data.frame(
           ID=x[grep(lowlvl_featreg,x)-1],
-          COPENUM=gsub("cope","",gsub(".feat","",last(x))),
+          COPENUM=gsub("cope","",gsub(".feat","",dplyr::last(x))),
           PATH = paste(x,collapse = .Platform$file.sep),
           Intercept=1,
           stringsAsFactors = F)
@@ -398,8 +401,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                          thresh_type = 3, #0 : None \n # 1 : Uncorrected \n# 2 : Voxel \n # 3 : Cluster \n"
                          z_thresh = 3.09, #1.96 for subj lvl, 2.3 for sess lvl and 3.09 for grp lvl
                          p_thresh = 0.05, #0.05 default for both;
-                         overwrite = F,
-                         vari_to_run=c("Intercept")
+                         overwrite = F,Pairred_Group=FALSE,custom_evmat=NULL,custom_ctmat=NULL,
+                         covariate_names=c("Intercept")
       )
       
       # lvl3_reg_default<-list(reg2main=0,reg2initial=0,reg2standard=1)
@@ -411,7 +414,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       lvl3_arg$proc_ls_fsf <- lvl3_raw_sp 
       lvl3_arg$template_brain <- argu$templatebrain_path
       lvl3_arg$fsltemplate <- readLines(system.file("extdata", "fsl_flame_general_adaptive_template.fsf", package="fslpipe"))
-      lvl3_arg$covariate_names<-argu$lvl3_covarnames
+      #lvl3_arg$covariate_names<-argu$lvl3_covarnames
       lvl3_alldf <- do.call(gen_fsf_highlvl,lvl3_arg)
       lvl3_alldf <- lvl3_alldf[!grepl("_evt",lvl3_alldf$NAME),]
       

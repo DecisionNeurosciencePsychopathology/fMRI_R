@@ -188,8 +188,45 @@ pasteFSF<-function(fsfvari="",value="",addComment=NULL,quotevalue=F,featfile=F){
   c(addComment,paste0("set ",syx,fsfvari,")"," ",value))
 }
 
-gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thresh = 2.3, p_thresh = 0.05,vari_to_run=c("SUBJMEAN"),
-                          
+emat_cmat_FSF<-function(ev_mat=NULL,ct_mat=NULL){
+  
+  Ev_text_re<-unlist(lapply(1:ncol(ev_mat),function(evnum) {
+    base_text<-c(paste0("# EV ",evnum),
+                 pasteFSF(fsfvari = paste0("evtitle",evnum),value = colnames(ev_mat)[evnum],addComment =NULL,quotevalue = T),
+                 pasteFSF(fsfvari = paste0("shape",evnum),value = 2,addComment =NULL,quotevalue = F),
+                 pasteFSF(fsfvari = c(paste0("convolve",evnum),paste0("convolve_phase",evnum),paste0("tempfilt_yn",evnum),paste0("deriv_yn",evnum)
+                 ),value = 0,addComment =NULL,quotevalue = F),
+                 pasteFSF(fsfvari = paste0("custom",evnum),value = "dummy",addComment =NULL,quotevalue = T)
+    )
+    ortho_text<-unlist(lapply(0:ncol(ev_mat),function(nc){pasteFSF(fsfvari = paste0("ortho",evnum,".",nc),value = 0,addComment =NULL,quotevalue = F)}))
+    input_text<-unlist(lapply(1:nrow(ev_mat),function(ns){
+      pasteFSF(fsfvari = paste0("evg",ns,".",evnum),value = ev_mat[ns,evnum],addComment =NULL,quotevalue = F)
+    }))
+    return(c(base_text,ortho_text,input_text))
+  })
+  )
+  Ev_text<-c(Ev_text_re,pasteFSF(fsfvari = c("evs_orig","evs_real"),value = ncol(ev_mat),addComment =NULL,quotevalue = F),
+             pasteFSF(fsfvari = "evs_vox",value = 0,addComment =NULL,quotevalue = F)
+  )
+  #Contrast
+  Contrast_text<-c(unlist(lapply(1:nrow(ct_mat),function(ctnum){
+    c(paste0("# Contrast ",ctnum),
+      pasteFSF(fsfvari = paste("conpic_real",ctnum,sep = "."),value = 1,addComment =NULL,quotevalue = F),
+      pasteFSF(fsfvari = paste("conname_real",ctnum,sep = "."),value = colnames(ct_mat)[ctnum],addComment =NULL,quotevalue = T),
+      unlist(lapply(1:ncol(ct_mat),function(ny){pasteFSF(fsfvari = paste0("con_real",ctnum,".",ny),value = ct_mat[ctnum,ny],addComment =NULL,quotevalue = F)})),
+      pasteFSF(fsfvari = paste0("conmask",ctnum,"_",which(!1:nrow(ct_mat) %in% ctnum)),value = 0,addComment ="##F-Test Variables",quotevalue = F)
+    )
+  })),
+  pasteFSF(fsfvari = c("con_mode_old","con_mode"),value = "real",addComment = "######### Display images for contrast_real",quotevalue = F),
+  pasteFSF(fsfvari = c("ncon_orig","ncon_real"),value = nrow(ct_mat),addComment = "######### number of contrasts",quotevalue = F),
+  pasteFSF(fsfvari = c("nftests_orig","nftests_real"),value = 0,addComment = "######### number of F tests",quotevalue = F)
+  )
+  return(c(Ev_text,Contrast_text))
+}
+
+
+gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thresh = 2.3, p_thresh = 0.05,covariate_names=c("SUBJMEAN"),
+                          Pairred_Group=FALSE, custom_evmat=NULL,custom_ctmat=NULL,
                           template_brain = "/Volumes/bek/Newtemplate_may18/fsl_mni152/MNI152_T1_2mm_brain.nii",lowlvlcopenum=NULL,overwrite=F,
                           fsltemplate=readLines("/Volumes/bek/helper_scripts/fsl_pipe/templates/fsl_flame_general_adaptive_template.fsf")){
   if(length(fsltemplate)<1) {stop("No template provided.")}
@@ -214,12 +251,11 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
   
   #split info into single fsf
   alldf<-do.call(rbind,lapply(proc_ls_fsf,function(gvar_cope_df){
-    if(any(!vari_to_run %in% names(gvar_cope_df))){stop("One or more vaariables to run is not included in the input data frame")}
+    if(any(!covariate_names %in% names(gvar_cope_df))){stop("One or more vaariables to run is not included in the input data frame")}
     if(flame_type %in% c(1,2)){f_text<-"FLAME"}else{f_text<-"HIGHER LEVEL"}
-    
-    
-    
     if(is.null(gvar_cope_df$Group_Membership)) {gvar_cope_df$Group_Membership<-1}
+    
+    
     num_lowerlvl<-unique(as.numeric(sapply(lapply(sapply(gvar_cope_df$PATH,list.files,pattern = "design.con",full.name=T),readLines),function(x){
       as.numeric(gsub("\\D", "", x[grepl("/NumContrasts",x)]))
     })))
@@ -245,49 +281,84 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
       gvar_cope_df<-na.omit(gvar_cope_df)
     }
     
+    
+    
+    if(!is.null(custom_ctmat) && !is.null(custom_evmat)) {
+      message("Skipping EV and Contrast making. Custom versions supplied.")
+      ev_mat<-custom_ctmat;ct_mat<-custom_ctmat
+    } else {
+      #Intercept only
+      if(length(covariate_names)==1 && covariate_names=="Intercept") {
+        #numev<-length(covariate_names)
+        #Do one sample here:
+        ev_mat<-as.matrix(gvar_cope_df[covariate_names])
+        ct_mat<-  diag(x = 1,nrow = ncol(gvar_cope_df[covariate_names]),ncol = ncol(gvar_cope_df[covariate_names]))
+        colnames(ct_mat)<-colnames(ev_mat)
+        rownames(ct_mat)<-covariate_names
+        
+      } else if(Pairred_Group){
+        message("RUNNING MOD: Pairred Group")
+        if(is.null(gvar_cope_df$uID)){stop("'uID' variable is required in the group variable data frame. Please make sure it is included.")}
+        if(is.null(gvar_cope_df$Group)){stop("'Group' variable is required in the group variable data frame. Please make sure it is included.")}
+        
+        paired_m<-diag(x = 1,nrow = length(gvar_cope_df$uID),ncol = length(gvar_cope_df$uID))
+        colnames(paired_m)<-rownames(paired_m)<-gvar_cope_df$uID
+        paired_mx<-lapply(unique(colnames(paired_m)),function(x){
+          if(length(which(colnames(paired_m)==x))>1){
+            apply(paired_m[,which(colnames(paired_m)==x)],1,sum,na.rm=T)
+          }else{return(NULL)}
+        })
+        names(paired_mx)<-unique(colnames(paired_m))
+        paired_my<-do.call(cbind,paired_mx)
+        ev_mat<-cbind(ev_mat,paired_my)
+        ev_mat<-ev_mat[-which(!apply(paired_my,1,function(x){any(x!=0)})),]
+        
+        ct_mat<-cbind(ct_mat,matrix(ncol = ncol(paired_my),nrow = nrow(ct_mat),data = 0))
+        
+        gvar_cope_df<-gvar_cope_df[-which(gvar_cope_df$uID %in% names(which(!apply(paired_my,1,function(x){any(x!=0)})))),]
+      } else {
+        gvar_cope_df$dummy<-rnorm(nrow(gvar_cope_df))
+        formula_dum<-as.formula(paste("dummy~",paste(covariate_names,collapse = "+"),sep = "+"))
+        dummy_model <- lm(formula_dum, gvar_cope_df)
+        ev_mat<-as.data.frame(model.matrix(dummy_model))
+        if("(Intercept)" %in% colnames(ev_mat) && "Intercept" %in% colnames(ev_mat)){
+          ev_mat<-ev_mat[-which(colnames(ev_mat) %in% "(Intercept)")]
+        }
+        
+        
+        if(!any(attr(dummy_model$terms,"dataClasses") %in% c("character","factor"))){
+          ct_mat<-  diag(x = 1,nrow = ncol(gvar_cope_df[covariate_names]),ncol = ncol(gvar_cope_df[covariate_names]))
+          colnames(ct_mat)<-colnames(ev_mat)
+          rownames(ct_mat)<-covariate_names
+        } else {
+          factorvar = attr(dummy_model$terms,"term.labels")[which(attr(dummy_model$terms,"dataClasses") %in% c("character","factor"))-1]
+          v <- emmeans::emmeans(dummy_model, list(as.formula(paste0("pairwise ~ ",paste(factorvar,collapse = "+")))))
+          condmeans <- v[[1]]@linfct #condition means
+          #(condmeans)
+          rownames(condmeans) <- summary(v[[1]])$group
+          contrasts <- v[[2]]@linfct #emo diffs (pairwise)
+          rownames(contrasts) <- sub(" - ", "_gt_", summary(v[[2]])$contrast, fixed=TRUE)
+          ct_mat<-as.data.frame(contrasts,stringsAsFactors = F)
+          if("(Intercept)" %in% colnames(ct_mat) && "Intercept" %in% colnames(ct_mat)){
+            ct_mat<-ct_mat[-which(colnames(ct_mat) %in% "(Intercept)")]
+            ct_mat[nrow(ct_mat)+1,]<-as.numeric(colnames(ct_mat) %in% "Intercept")
+            rownames(ct_mat)[nrow(ct_mat)]<-"Intercept"
+          }
+          for (xname in names(attr(dummy_model$terms,"dataClasses"))[!names(attr(dummy_model$terms,"dataClasses")) %in% c(factorvar,"dummy","Intercept")]) {
+            ct_mat[nrow(ct_mat)+1,]<-as.numeric(colnames(ct_mat) %in% xname)
+            rownames(ct_mat)[nrow(ct_mat)]<-xname
+          }
+        }
+        
+        
+      }
+    }
+    
     message("Setting up ",f_text," for '",unique(gvar_cope_df$NAME),"'. Number of data point: ",nrow(gvar_cope_df),
-            ".\n","For IDs: ",paste(unique(gvar_cope_df$ID),collapse = ", "),"\n")
+            ".\n","For IDs: ",paste(unique(gvar_cope_df$ID),collapse = ", "),"\n",
+            "With covariate: ",paste(covariate_names,collapse = ", "))
     
-    numev<-length(vari_to_run)
-    
-    #Do one sample here:
-    ev_mat<-as.matrix(gvar_cope_df[vari_to_run])
-    ct_mat<-  diag(x = 1,nrow = ncol(gvar_cope_df[vari_to_run]),ncol = ncol(gvar_cope_df[vari_to_run]))
-    colnames(ct_mat)<-colnames(ev_mat)
-    rownames(ct_mat)<-vari_to_run
-    
-    
-    Ev_text_re<-unlist(lapply(1:ncol(ev_mat),function(evnum) {
-      base_text<-c(paste0("# EV ",evnum),
-                   pasteFSF(fsfvari = paste0("evtitle",evnum),value = colnames(ev_mat)[evnum],addComment =NULL,quotevalue = T),
-                   pasteFSF(fsfvari = paste0("shape",evnum),value = 2,addComment =NULL,quotevalue = F),
-                   pasteFSF(fsfvari = c(paste0("convolve",evnum),paste0("convolve_phase",evnum),paste0("tempfilt_yn",evnum),paste0("deriv_yn",evnum)
-                   ),value = 0,addComment =NULL,quotevalue = F),
-                   pasteFSF(fsfvari = paste0("custom",evnum),value = "dummy",addComment =NULL,quotevalue = T)
-      )
-      ortho_text<-unlist(lapply(0:ncol(ev_mat),function(nc){pasteFSF(fsfvari = paste0("ortho",evnum,".",nc),value = 0,addComment =NULL,quotevalue = F)}))
-      input_text<-unlist(lapply(1:nrow(ev_mat),function(ns){
-        pasteFSF(fsfvari = paste0("evg",ns,".",evnum),value = ev_mat[ns,evnum],addComment =NULL,quotevalue = F)
-      }))
-      return(c(base_text,ortho_text,input_text))
-    })
-    )
-    Ev_text<-c(Ev_text_re,pasteFSF(fsfvari = c("evs_orig","evs_real"),value = ncol(ev_mat),addComment =NULL,quotevalue = F),
-               pasteFSF(fsfvari = "evs_vox",value = 0,addComment =NULL,quotevalue = F)
-    )
-    #Contrast
-    Contrast_text<-c(unlist(lapply(1:nrow(ct_mat),function(ctnum){
-      c(paste0("# Contrast ",ctnum),
-        pasteFSF(fsfvari = paste("conpic_real",ctnum,sep = "."),value = 1,addComment =NULL,quotevalue = F),
-        pasteFSF(fsfvari = paste("conname_real",ctnum,sep = "."),value = colnames(ct_mat)[ctnum],addComment =NULL,quotevalue = T),
-        unlist(lapply(1:ncol(ct_mat),function(ny){pasteFSF(fsfvari = paste0("con_real",ctnum,".",ny),value = ct_mat[ctnum,ny],addComment =NULL,quotevalue = F)})),
-        pasteFSF(fsfvari = paste0("conmask",ctnum,"_",which(!1:nrow(ct_mat) %in% ctnum)),value = 0,addComment ="##F-Test Variables",quotevalue = F)
-      )
-    })),
-    pasteFSF(fsfvari = c("con_mode_old","con_mode"),value = "real",addComment = "######### Display images for contrast_real",quotevalue = F),
-    pasteFSF(fsfvari = c("ncon_orig","ncon_real"),value = nrow(ct_mat),addComment = "######### number of contrasts",quotevalue = F),
-    pasteFSF(fsfvari = c("nftests_orig","nftests_real"),value = 0,addComment = "######### number of F tests",quotevalue = F)
-    )
+    EvContrast_text<-emat_cmat_FSF(ev_mat = ev_mat, ct_mat = ct_mat)
     
     #Group input
     Groupinput_text<-c(
@@ -306,7 +377,7 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
     
     fsf_final<-c(fsltemplate,
                  pasteFSF(fsfvari = "outputdir",value = file.path(unique(gvar_cope_df$OUTPUTPATH),unique(gvar_cope_df$NAME)),addComment = "# Output directory",quotevalue = T),
-                 Head_text,Groupinput_text,Ev_text,Contrast_text)
+                 Head_text,Groupinput_text,EvContrast_text)
     gvar_cope_df$FSF_PATH<-file.path(unique(gvar_cope_df$OUTPUTPATH),"fsf_files",paste0(unique(gvar_cope_df$NAME),".fsf"))
     dir.create(dirname(unique(gvar_cope_df$FSF_PATH)),recursive = T,showWarnings = F)
     writeLines(fsf_final,con = unique(gvar_cope_df$FSF_PATH))
@@ -407,6 +478,8 @@ pbs_cmd<-function(account,nodes,ppn,memory,walltime,titlecmd,morecmd,cmd,wait_fo
              "",titlecmd,morecmd,cmd)
   return(heading)
 }
+
+
 
 
 

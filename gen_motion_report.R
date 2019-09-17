@@ -1,17 +1,22 @@
 infilepath<-file.choose()
 dvar_thresh<-20
 fd_thresh<-0.9
-masterdemo<-bsrc::bsrc.checkdatabase2(protocol = ptcs$masterdemo,batch_size=1000L)
 
+
+getMotion_report<-function(infilepath=file.choose(),dvar_thresh=20,fd_thresh=0.9){
+masterdemo<-bsrc::bsrc.checkdatabase2(protocol = ptcs$masterdemo,batch_size=1000L)
 dfa<-read.csv(infilepath,stringsAsFactors = F)
 dfa$X<-NULL
 sp_a<-split(dfa,paste(dfa$ID,dfa$session,sep = "_"))
 outdf<-do.call(rbind,lapply(sp_a,function(dfb){
   data.frame(per_fd=length(which(as.numeric(dfb$fd) >= fd_thresh))/nrow(dfb),
-             per_dvar=length(which(dfb$dvars <= dvar_thresh))/nrow(dfb),
+             per_dvar=length(which(as.numeric(dfb$dvars) <= dvar_thresh))/nrow(dfb),
+             max_fd = max(as.numeric(dfb$fd)),
+             max_dvar = max(as.numeric(dfb$dvar)),
              modelname=unique(dfb$modelname),ID=unique(dfb$ID),session=unique(dfb$session),stringsAsFactors = F)
 
 }))
+outdf<-outdf[outdf$max_fd <= 10,]
 outdf<-bsrc::bsrc.findid(df = outdf,idmap = masterdemo$data[c("registration_redcapid","registration_wpicid","registration_soloffid",
                                                               "registration_group","registration_lethality")],id.var = "ID")
 outdf$Group<-outdf$registration_group
@@ -25,12 +30,7 @@ outdf2<-do.call(rbind,lapply(sp_b,function(dfc){
   reshape2::dcast(data = gat,formula = ID+modelname+Group+Lethality~vari,value.var = "value")
 }))
 outdf2$Group[which(outdf2$Group=="")]<-NA
-print("No Group:")
-outdf2$ID[is.na(outdf2$Group)]
-table(outdf2$Group)
-table(outdf2[outdf2$per_fd_mean <= 0.1,]$Group)
-table(outdf2[outdf2$per_fd_mean <= 0.1,]$Lethality)
-
-
+return(outdf2)
+}
 
 
