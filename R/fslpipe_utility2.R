@@ -481,11 +481,11 @@ pbs_cmd<-function(account,nodes,ppn,memory,walltime,titlecmd,morecmd,cmd,wait_fo
 
 
 
-qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1") {
+qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1",qsublimit=30) {
   dir.create(workingdir,showWarnings = F,recursive = T)
   setwd(workingdir)
-  if((length(cmds)/jobperqsub)>30) {
-    jobperqsub = round(length(cmds)/30,digits = 0)
+  if((length(cmds)/jobperqsub)>qsublimit) {
+    jobperqsub = round(length(cmds)/qsublimit,digits = 0)
     message("Maximum qsub job can submit is around 30. Rejecting the job_per_qsub argument and will use the recalculated value: ",jobperqsub)
   }
   df <- data.frame(cmd=cmds, job=rep(1:(length(cmds)/jobperqsub),each=jobperqsub,length.out=length(cmds)), stringsAsFactors=FALSE)
