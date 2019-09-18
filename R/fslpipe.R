@@ -211,7 +211,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       if(argu$run_on_pbs){
         #PBS
         lvl1_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
-        qsub_commands(cmds = step2commands,jobperqsub = argu$job_per_qsub,workingdir = lvl1_workingdir,tagname = "lvl1")
+        qsub_commands(cmds = step2commands,jobperqsub = argu$job_per_qsub,workingdir = lvl1_workingdir,tagname = "lvl1",ppn = 4)
       
       }else{
         #run localy
@@ -284,7 +284,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                        thresh_type = 3, #0 : None \n # 1 : Uncorrected \n# 2 : Voxel \n # 3 : Cluster \n"
                        z_thresh = 2.3, #1.96 for subj lvl, 2.3 for sess lvl and 3.09 for grp lvl
                        p_thresh = 0.05, #0.05 default for both;
-                       overwrite = F,
+                       overwrite = F,Pairred_Group=FALSE,
                        covariate_names=c("SUBJMEAN")
     )
     lvl2_arg<-lapply(names(lvl2_default),function(xa){
@@ -300,7 +300,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       if(argu$run_on_pbs){
         #PBS
         lvl2_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl2_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
-        qsub_commands(cmds = unique(lvl2_alldf$FSF_PATH),jobperqsub = argu$job_per_qsub,workingdir = lvl2_workingdir,tagname = "lvl2")
+        qsub_commands(cmds = unique(lvl2_alldf$FSF_PATH),jobperqsub = argu$job_per_qsub,workingdir = lvl2_workingdir,tagname = "lvl2",ppn = 4)
         
       } else {
         lvl2_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
@@ -425,7 +425,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       if(argu$run_on_pbs){
         #PBS
         lvl3_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl3_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
-        qsub_commands(cmds = unique(lvl3_alldf$FSF_PATH),jobperqsub = argu$job_per_qsub,workingdir = lvl3_workingdir,tagname = "lvl3")
+        qsub_commands(cmds = unique(lvl3_alldf$FSF_PATH),jobperqsub = argu$job_per_qsub,workingdir = lvl3_workingdir,tagname = "lvl3",ppn = 4)
       } else {
         lvl3_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
         NU<-parallel::parSapply(lvl3_cluster,unique(lvl3_alldf$FSF_PATH), function(y) {

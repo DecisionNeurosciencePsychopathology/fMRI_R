@@ -479,7 +479,7 @@ pbs_cmd<-function(account,nodes,ppn,memory,walltime,titlecmd,morecmd,cmd,wait_fo
 
 
 
-qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1",qsublimit=30) {
+qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1",qsublimit=30,ppn=argu$nprocess) {
   dir.create(workingdir,showWarnings = F,recursive = T)
   setwd(workingdir)
   if((length(cmds)/jobperqsub)>qsublimit) {
@@ -491,7 +491,7 @@ qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1"
   joblist<-unlist(lapply(sp_df,function(cmdx){
     message("Setting up job#: ",unique(cmdx$job))
     outfile <- paste0(workingdir, "/qsub_",tagname,"_featsep_", basename(tempfile()), ".pbs")
-    pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx$cmd;pbs_torun$ppn<-argu$nprocess
+    pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx$cmd;pbs_torun$ppn=ppn
     writeLines(do.call(pbs_cmd,pbs_torun),outfile)
     return(dependlab::qsub_file(outfile))
   }))
