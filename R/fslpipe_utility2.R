@@ -288,14 +288,12 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
       ev_mat<-custom_ctmat;ct_mat<-custom_ctmat
     } else {
       #Intercept only
-      if(length(covariate_names)==1 && covariate_names=="Intercept") {
-        #numev<-length(covariate_names)
+      if(length(covariate_names)==1) {
         #Do one sample here:
         ev_mat<-as.matrix(gvar_cope_df[covariate_names])
         ct_mat<-  diag(x = 1,nrow = ncol(gvar_cope_df[covariate_names]),ncol = ncol(gvar_cope_df[covariate_names]))
         colnames(ct_mat)<-colnames(ev_mat)
         rownames(ct_mat)<-covariate_names
-        
       } else if(Pairred_Group){
         message("RUNNING MOD: Pairred Group")
         if(is.null(gvar_cope_df$uID)){stop("'uID' variable is required in the group variable data frame. Please make sure it is included.")}
