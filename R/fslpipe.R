@@ -285,7 +285,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                        z_thresh = 2.3, #1.96 for subj lvl, 2.3 for sess lvl and 3.09 for grp lvl
                        p_thresh = 0.05, #0.05 default for both;
                        overwrite = F,
-                       vari_to_run=c("SUBJMEAN")
+                       covariate_names=c("SUBJMEAN")
     )
     lvl2_arg<-lapply(names(lvl2_default),function(xa){
       if(exists(paste0("lvl2_",xa),envir = argu)){get(paste0("lvl2_",xa),envir = argu)}else{lvl2_default[[xa]]}
