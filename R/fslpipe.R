@@ -301,7 +301,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       if(argu$run_on_pbs){
         #PBS
         lvl2_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl2_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
-        qsub_commands(cmds = unique(lvl2_alldf$FSF_PATH),jobperqsub = argu$job_per_qsub,
+        qsub_commands(cmds = paste("feat",unique(lvl2_alldf$FSF_PATH)),jobperqsub = argu$job_per_qsub,
                       workingdir = lvl2_workingdir,tagname = "lvl2",ppn = 4,qsublimit = argu$qsub_limits)
         
       } else {
@@ -427,7 +427,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       if(argu$run_on_pbs){
         #PBS
         lvl3_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl3_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
-        qsub_commands(cmds = unique(lvl3_alldf$FSF_PATH),jobperqsub = argu$job_per_qsub,
+        qsub_commands(cmds = paste("feat",unique(lvl3_workingdir$FSF_PATH)),jobperqsub = argu$job_per_qsub,
                       workingdir = lvl3_workingdir,tagname = "lvl3",ppn = 4,qsublimit = argu$qsub_limits)
       } else {
         lvl3_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
