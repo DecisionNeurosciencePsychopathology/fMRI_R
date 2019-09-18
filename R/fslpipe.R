@@ -67,7 +67,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
   } 
   
-  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,
+  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,qsub_limits=20,
                    nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",job_per_qsub=as.numeric(argu$cfg$n_expected_funcruns),
                    lvl3_type="flame",adaptive_ssfeat=TRUE)
   default_ls<-default_ls[!names(default_ls) %in% names(argu)]
@@ -211,7 +211,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       if(argu$run_on_pbs){
         #PBS
         lvl1_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
-        qsub_commands(cmds = step2commands,jobperqsub = argu$job_per_qsub,workingdir = lvl1_workingdir,tagname = "lvl1",ppn = 4)
+        qsub_commands(cmds = step2commands,jobperqsub = argu$job_per_qsub,workingdir = lvl1_workingdir,
+                      tagname = "lvl1",ppn = 4,qsublimit = argu$qsub_limits)
       
       }else{
         #run localy
@@ -300,7 +301,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       if(argu$run_on_pbs){
         #PBS
         lvl2_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl2_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
-        qsub_commands(cmds = unique(lvl2_alldf$FSF_PATH),jobperqsub = argu$job_per_qsub,workingdir = lvl2_workingdir,tagname = "lvl2",ppn = 4)
+        qsub_commands(cmds = unique(lvl2_alldf$FSF_PATH),jobperqsub = argu$job_per_qsub,
+                      workingdir = lvl2_workingdir,tagname = "lvl2",ppn = 4,qsublimit = argu$qsub_limits)
         
       } else {
         lvl2_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
@@ -425,7 +427,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       if(argu$run_on_pbs){
         #PBS
         lvl3_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl3_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
-        qsub_commands(cmds = unique(lvl3_alldf$FSF_PATH),jobperqsub = argu$job_per_qsub,workingdir = lvl3_workingdir,tagname = "lvl3",ppn = 4)
+        qsub_commands(cmds = unique(lvl3_alldf$FSF_PATH),jobperqsub = argu$job_per_qsub,
+                      workingdir = lvl3_workingdir,tagname = "lvl3",ppn = 4,qsublimit = argu$qsub_limits)
       } else {
         lvl3_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
         NU<-parallel::parSapply(lvl3_cluster,unique(lvl3_alldf$FSF_PATH), function(y) {
