@@ -248,7 +248,7 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
     
   )
   
-  
+  save(ls(),file = "~/debug_fsl_3.rdata")
   #split info into single fsf
   alldf<-do.call(rbind,lapply(proc_ls_fsf,function(gvar_cope_df){
     if(any(!covariate_names %in% names(gvar_cope_df))){stop("One or more vaariables to run is not included in the input data frame")}
