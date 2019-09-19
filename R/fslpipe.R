@@ -424,11 +424,13 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       lvl3_arg$template_brain <- argu$templatebrain_path
       lvl3_arg$fsltemplate <- readLines(system.file("extdata", "fsl_flame_general_adaptive_template.fsf", package="fslpipe"))
       #lvl3_arg$covariate_names<-argu$lvl3_covarnames
+      
       lvl3_alldf <- do.call(gen_fsf_highlvl,lvl3_arg)
       lvl3_alldf <- lvl3_alldf[!grepl("_evt",lvl3_alldf$NAME),]
       save.image(file = "~/debug_lvl3.rdata")
       if(argu$run_on_pbs){
         #PBS
+        stop()
         message("Running LEVEL 3 analysis.")
         lvl3_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl3_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
         qsub_commands(cmds = paste("feat",unique(lvl3_alldf$FSF_PATH)),jobperqsub = argu$job_per_qsub,
