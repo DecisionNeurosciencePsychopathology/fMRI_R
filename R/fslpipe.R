@@ -61,9 +61,12 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       negMat<-diag(x=-1,ogLength)
       negMat<-negMat[negNum,]
       argu$lvl1_cmat<-rbind(diag(x=1,ogLength),negMat)
-      
+      colnames(argu$lvl1_cmat)<-argu$dsgrid$name
+      rownames(argu$lvl1_cmat)<-c(argu$dsgrid$name,paste(argu$dsgrid$name[negNum],"neg",sep = "_"))
     } else {
       argu$lvl1_cmat<-diag(x=1,ogLength)
+      rownames(argu$lvl1_cmat)<-argu$dsgrid$name
+      colnames(argu$lvl1_cmat)<-argu$dsgrid$name
     }
   } 
   
@@ -147,7 +150,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     
     if(argu$adaptive_ssfeat){
       argu$model_varinames<-argu$dsgrid$name
-      argu$copenames<-c(argu$model_varinames,paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
+      argu$copenames<-rownames(argu$lvl1_cmat)
       xarg$evnum<-1:ncol(argu$lvl1_cmat)
       xarg$copenum<-1:nrow(argu$lvl1_cmat)
       xarg$maxevnum<-ncol(argu$lvl1_cmat)
