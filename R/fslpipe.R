@@ -431,7 +431,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       # save(xaj,file = "~/debug_lvl3.rdata")
       if(argu$run_on_pbs){
         #PBS
-        stop()
+        #stop()
         message("Running LEVEL 3 analysis.")
         lvl3_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl3_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
         qsub_commands(cmds = paste("feat",unique(lvl3_alldf$FSF_PATH)),jobperqsub = argu$job_per_qsub,
