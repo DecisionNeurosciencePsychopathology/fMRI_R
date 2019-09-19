@@ -400,6 +400,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
     ID = output$ID
     signalx$ID<-NULL
     output$regpath<-file.path(reg_rootpath,model_name,ID)
+    dir.create(output$regpath,recursive = T,showWarnings = F)
     if(file.exists(file.path(output$regpath,"gendesign_failed")) && !forcererun) {
       system(paste0("echo This person: ",ID," has failed regressor generation previously. Will Skip."))
       return(NULL)}
@@ -420,8 +421,8 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
                                                     events = ls_out[[ID]]$event.list$allconcat,write_timing_files = c("convolved", "FSL","AFNI"),
                                                     tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
                                                     output_directory = file.path(reg_rootpath,model_name,ID))
-    },error=function(e){print(e);writeLines("FAILED",file.path(output$regpath,"gendesign_failed"));return(NULL)})
-    if(is.null(output$design)){writeLines("FAILED",file.path(output$regpath,"gendesign_failed"));return(NULL)}
+    },error=function(e){print(e);writeLines("FAILED",con = file.path(output$regpath,"gendesign_failed"));return(NULL)})
+    if(is.null(output$design)){writeLines("FAILED",con = file.path(output$regpath,"gendesign_failed"));return(NULL)}
     if (!is.null(output$nuisan)){
       for (k in 1:length(output$nuisan)) {
         write.table(as.matrix(output$nuisan[[k]]),file.path(reg_rootpath,model_name,ID,
