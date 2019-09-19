@@ -212,7 +212,7 @@ emat_cmat_FSF<-function(ev_mat=NULL,ct_mat=NULL){
   Contrast_text<-c(unlist(lapply(1:nrow(ct_mat),function(ctnum){
     c(paste0("# Contrast ",ctnum),
       pasteFSF(fsfvari = paste("conpic_real",ctnum,sep = "."),value = 1,addComment =NULL,quotevalue = F),
-      pasteFSF(fsfvari = paste("conname_real",ctnum,sep = "."),value = colnames(ct_mat)[ctnum],addComment =NULL,quotevalue = T),
+      pasteFSF(fsfvari = paste("conname_real",ctnum,sep = "."),value = rownames(ct_mat)[ctnum],addComment =NULL,quotevalue = T),
       unlist(lapply(1:ncol(ct_mat),function(ny){pasteFSF(fsfvari = paste0("con_real",ctnum,".",ny),value = ct_mat[ctnum,ny],addComment =NULL,quotevalue = F)})),
       pasteFSF(fsfvari = paste0("conmask",ctnum,"_",which(!1:nrow(ct_mat) %in% ctnum)),value = 0,addComment ="##F-Test Variables",quotevalue = F)
     )
@@ -247,8 +247,8 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
     # pasteFSF(fsfvari = "regstandard_yn",value = reg2standard,addComment = "  # Registration to standard image?",quotevalue = F)
     
   )
-  
-  save(list = ls(),file = "~/debug_fsl_3.rdata")
+  # xaj<-ls()
+  # save(list = xaj,file = "~/debug_fsl_3.rdata")
   #split info into single fsf
   alldf<-do.call(rbind,lapply(proc_ls_fsf,function(gvar_cope_df){
     if(any(!covariate_names %in% names(gvar_cope_df))){stop("One or more vaariables to run is not included in the input data frame")}
