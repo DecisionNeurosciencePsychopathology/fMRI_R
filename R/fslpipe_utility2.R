@@ -479,7 +479,7 @@ pbs_cmd<-function(account,nodes,ppn,memory,walltime,titlecmd,morecmd,cmd,wait_fo
 
 
 
-qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1",qsublimit=30,ppn=argu$nprocess) {
+qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1",qsublimit=30,ppn=4) {
   dir.create(workingdir,showWarnings = F,recursive = T)
   setwd(workingdir)
   if((length(cmds)/jobperqsub)>qsublimit) {
@@ -496,6 +496,7 @@ qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1"
     pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx$cmd;pbs_torun$ppn=ppn
     writeLines(do.call(pbs_cmd,pbs_torun),outfile)
     joblist[ix]<-dependlab::qsub_file(outfile)
+    cmdx<-NULL
   }
   dependlab::wait_for_job(joblist)
   return(NULL)

@@ -423,7 +423,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       #lvl3_arg$covariate_names<-argu$lvl3_covarnames
       lvl3_alldf <- do.call(gen_fsf_highlvl,lvl3_arg)
       lvl3_alldf <- lvl3_alldf[!grepl("_evt",lvl3_alldf$NAME),]
-      
+      save.image(file = "~/debug_lvl3.rdata")
       if(argu$run_on_pbs){
         #PBS
         message("Running LEVEL 3 analysis.")
