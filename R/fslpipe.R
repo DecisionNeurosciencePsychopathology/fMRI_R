@@ -177,11 +177,16 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       idx<-x$ID
       aarg<-xarg
       cmmd<-unlist(lapply(1:length(x$run_volumes), function(runnum) {
+        
         aarg$outputpath<-file.path(argu$subj_outputroot,argu$model_name,idx,paste0("run",runnum,"_output"))
         if (!file.exists(file.path(paste0(aarg$outputpath,".feat"),"stats","zstat1.nii.gz")) ) {
+          message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
+          if(dir.exists(file.path(paste0(aarg$outputpath,".feat"))) ){
+            message("Found another folder...Removing...")
+            unlink(file.path(paste0(aarg$outputpath,".feat")),recursive = T,force = T)}
           if(is.null(argu$ss_zthreshold)) {aarg$zthreshold<-3.2} else {aarg$zthreshold<-argu$ss_zthreshold}
           if(is.null(argu$ss_pthreshold)) {aarg$pthreshold<-0.05} else {aarg$pthreshold<-argu$ss_pthreshold}
-          message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
+          
           aarg$runnum<-runnum   
           aarg$volumes<-x$run_volumes[runnum]
           aarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfg = argu$cfg,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
