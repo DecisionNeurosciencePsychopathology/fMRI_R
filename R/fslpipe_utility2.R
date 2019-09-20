@@ -264,7 +264,7 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
     }
     #gvar_cope_df <- merge(single_fsf,input_df,by = "ID",all.x = T)
     if(length(unique(gvar_cope_df$OUTPUTPATH))>1){stop("Incorrect output path length")}
-    if(dir.exists(file.path(unique(gvar_cope_df$OUTPUTPATH),paste0(unique(gvar_cope_df$NAME),".gfeat"))) ){
+    if(file.exists( file.path(unique(gvar_cope_df$OUTPUTPATH),paste0(unique(gvar_cope_df$NAME),".gfeat"),"cope1.feat","stats","zstat1.nii.gz") )){
       if(overwrite){
         message("For IDs: ",paste(unique(gvar_cope_df$ID),collapse = ", "),
                 "\n","Found ",f_text," for '",unique(gvar_cope_df$NAME),"' and overwrite is set to TRUE Will REMOVE & RE-RUN",
