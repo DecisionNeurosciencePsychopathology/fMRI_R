@@ -498,8 +498,8 @@ qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1"
     message("Setting up job#: ",unique(cmdx$job))
     outfile <- paste0(workingdir, "/qsub_",tagname,"_featsep_", basename(tempfile()), ".pbs")
     if(is.null(pbs_args)){pbs_args<-get_pbs_default();}
-    pbs_torun$cmd<-cmdx$cmd
-    writeLines(do.call(pbs_cmd,pbs_torun),outfile)
+    pbs_args$cmd<-cmdx$cmd
+    writeLines(do.call(pbs_cmd,pbs_args),outfile)
     joblist[ix]<-dependlab::qsub_file(outfile)
     cmdx<-NULL
   }
