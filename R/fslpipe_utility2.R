@@ -444,7 +444,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
 
 
 get_pbs_default<-function(){
-  pbs_default<-list(account="mnh5174_a_g_hc_default",nodes=1,ppn=20,memory=8,walltime="20:00:00",titlecmd="cd $PBS_O_WORKDIR
+  pbs_default<-list(account="mnh5174_a_g_hc_default",nodes=1,ppn=4,memory=8,walltime="40:00:00",titlecmd="cd $PBS_O_WORKDIR
 
 export G=/gpfs/group/mnh5174/default
 
@@ -483,7 +483,7 @@ pbs_cmd<-function(account,nodes,ppn,memory,walltime,titlecmd,morecmd,cmd,wait_fo
 
 
 
-qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1",qsublimit=30,ppn=4) {
+qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1",qsublimit=30,ppn=4,pbs_args=NULL) {
   dir.create(workingdir,showWarnings = F,recursive = T)
   setwd(workingdir)
   if((length(cmds)/jobperqsub)>qsublimit) {
@@ -497,7 +497,8 @@ qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1"
     cmdx<-sp_df[[ix]]
     message("Setting up job#: ",unique(cmdx$job))
     outfile <- paste0(workingdir, "/qsub_",tagname,"_featsep_", basename(tempfile()), ".pbs")
-    pbs_torun<-get_pbs_default();pbs_torun$cmd<-cmdx$cmd;pbs_torun$ppn=ppn
+    if(is.null(pbs_args)){pbs_args<-get_pbs_default();}
+    pbs_torun$cmd<-cmdx$cmd
     writeLines(do.call(pbs_cmd,pbs_torun),outfile)
     joblist[ix]<-dependlab::qsub_file(outfile)
     cmdx<-NULL

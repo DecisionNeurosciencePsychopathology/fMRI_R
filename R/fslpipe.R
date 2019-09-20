@@ -309,8 +309,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       if(argu$run_on_pbs){
         #PBS
         lvl2_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl2_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
-        qsub_commands(cmds = paste("feat",unique(lvl2_alldf$FSF_PATH)),jobperqsub = argu$job_per_qsub,
-                      workingdir = lvl2_workingdir,tagname = "lvl2",ppn = 4,qsublimit = argu$qsub_limits)
+        pbs_args <- get_pbs_default(); pbs_args$ppn<-4; pbs_args$walltime="40:00:00";
+        qsub_commands(cmds = paste("feat",unique(lvl2_alldf$FSF_PATH)),jobperqsub = argu$job_per_qsub,pbs_args=pbs_args,
+                      workingdir = lvl2_workingdir,tagname = "lvl2",qsublimit = argu$qsub_limits)
         
       } else {
         lvl2_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
@@ -439,8 +440,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         #stop()
         message("Running LEVEL 3 analysis.")
         lvl3_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl3_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
+        pbs_args <- get_pbs_default(); pbs_args$ppn<-4; pbs_args$walltime="40:00:00";
         qsub_commands(cmds = paste("feat",unique(lvl3_alldf$FSF_PATH)),jobperqsub = argu$job_per_qsub,
-                      workingdir = lvl3_workingdir,tagname = "lvl3",ppn = 4,qsublimit = argu$qsub_limits)
+                      workingdir = lvl3_workingdir,tagname = "lvl3",qsublimit = argu$qsub_limits)
       } else {
         lvl3_cluster<-parallel::makeCluster(argu$nprocess,outfile="",type = "FORK")
         NU<-parallel::parSapply(lvl3_cluster,unique(lvl3_alldf$FSF_PATH), function(y) {
