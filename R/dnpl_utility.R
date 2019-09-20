@@ -326,7 +326,7 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
                        wrt.timing=c("convolved", "FSL","AFNI"),model.name=NULL,model.varinames=NULL,
                        nuisa_motion=c("nuisance","motion_par","motion_outlier"),motion_type="fd",centerscaleall=FALSE,
                        motion_threshold="default",convlv_nuisa=F,argu=NULL) {
-  
+  message("Depreciated! Is probably useless; Will keep for 3 versions before deleting")
   #Read config file:
   # #cfg<-cfg_info(cfgpath)
   # argu$cfg<-cfg
