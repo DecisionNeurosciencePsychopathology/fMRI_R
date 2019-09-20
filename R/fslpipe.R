@@ -70,7 +70,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
   } 
   
-  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,qsub_limits=20,
+  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,qsub_limits=20,lvl2_force_prep=FALSE,
                    nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",job_per_qsub=as.numeric(argu$cfg$n_expected_funcruns),
                    lvl3_type="flame",adaptive_ssfeat=TRUE)
   default_ls<-default_ls[!names(default_ls) %in% names(argu)]
