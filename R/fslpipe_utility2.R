@@ -488,7 +488,7 @@ qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1"
   setwd(workingdir)
   if((length(cmds)/jobperqsub)>qsublimit) {
     jobperqsub = round(length(cmds)/qsublimit,digits = 0)
-    message("Maximum qsub job can submit is around 30. Rejecting the job_per_qsub argument and will use the recalculated value: ",jobperqsub)
+    message("Maximum qsub job can submit is set to ",qsublimit,". Rejecting the job_per_qsub argument and will use the recalculated value: ",jobperqsub)
   }
   df <- data.frame(cmd=cmds, job=rep(1:(length(cmds)/jobperqsub),each=jobperqsub,length.out=length(cmds)), stringsAsFactors=FALSE)
   sp_df <- split(df,df$job)
