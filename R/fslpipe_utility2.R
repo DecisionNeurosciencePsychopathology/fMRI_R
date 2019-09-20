@@ -178,7 +178,7 @@ prep_session_lvl<-function(subj_rootpath=NULL,subj_folderreg=NULL,template_brain
   fsldir<-Sys.getenv("FSLDIR")
   NXU<-file.symlink(from = file.path(fsldir,"/etc/flirtsch/ident.mat"),to = file.path(featlist,"reg","example_func2standard.mat"))
   NXU<-file.symlink(from = file.path(fsldir,"/etc/flirtsch/ident.mat"),to = file.path(featlist,"reg","example_standard2example_func.mat"))
-  NXU<-file.symlink(from = template_brainpath,to = file.path(featlist,"reg","standard.nii"))
+  NXU<-file.symlink(from = template_brainpath,to = file.path(featlist,"reg","standard.nii.gz"))
   return(featlist)
 }
 
