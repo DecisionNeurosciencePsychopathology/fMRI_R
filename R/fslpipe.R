@@ -71,7 +71,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   } 
   
   default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,qsub_limits=20,lvl2_force_prep=FALSE,
-                   nuisa_motion=c("nuisance","motion_par"),motion_type="fd",motion_threshold="default",job_per_qsub=as.numeric(argu$cfg$n_expected_funcruns),
+                   nuisa_motion=c("nuisance","motion_par"),lvl3_lowlvlfeatreg="average.gfeat",motion_type="fd",motion_threshold="default",job_per_qsub=as.numeric(argu$cfg$n_expected_funcruns),
                    lvl3_type="flame",adaptive_ssfeat=TRUE)
   default_ls<-default_ls[!names(default_ls) %in% names(argu)]
   if (length(default_ls)>0){
@@ -80,7 +80,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
     argu<-list2env(default_ls,envir = argu)
   }
-  
+  argu$lvl3_lowlvlfeatreg
   #Renaming;
   if(argu$adaptive_ssfeat){argu$ssub_fsl_templatepath<-system.file("extdata", "fsl_ssfeat_general_adaptive_template_R.fsf", package="fslpipe")}
   if(!argu$run_pipeline){return(NULL)}
@@ -386,7 +386,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     } else if(tolower(argu$lvl3_type)=="flame") {
       #Run flame here:
       
-      lowlvl_featreg<-"average.gfeat"
+      lowlvl_featreg<-argu$lvl3_lowlvlfeatreg
+      
       raw<-system(paste0("find ",
                          file.path(argu$subj_outputroot,argu$model_name,"*/",lowlvl_featreg),
                          " -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
