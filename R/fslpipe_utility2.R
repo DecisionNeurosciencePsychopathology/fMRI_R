@@ -278,6 +278,14 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
         return(NULL)
       }
     }
+    
+    if (file.exists( file.path(unique(gvar_cope_df$OUTPUTPATH),paste0(unique(gvar_cope_df$NAME),".gfeat") ) ) ) {
+      message("For IDs: ",paste(unique(gvar_cope_df$ID),collapse = ", "),
+                "\n","Found ",f_text," folder but not completed, for '",unique(gvar_cope_df$NAME),"' Will REMOVE & RE-RUN",
+                "\n")
+      unlink(file.path(unique(gvar_cope_df$OUTPUTPATH),paste0(unique(gvar_cope_df$NAME),".gfeat")),recursive = T,force = T)
+      }
+    
     if(any(is.na(gvar_cope_df))) {
       message("Found NA in the entry, the whole data point will be removed. If wish to include, change the NA in the input data frame to 0")
       gvar_cope_df<-na.omit(gvar_cope_df)
