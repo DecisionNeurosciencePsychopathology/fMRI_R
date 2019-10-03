@@ -170,17 +170,17 @@ get_preproc_info<-function(id=NULL,cfg=argu$cfg,reg.nii.name=argu$funcimg.namepa
 prep_session_lvl<-function(subj_rootpath=NULL,subj_folderreg=NULL,template_brainpath=NULL,overwrite=T) {
   if (is.null(subj_rootpath) | is.null(template_brainpath) ){stop("not enough info to run")}
   featlist<-system(paste0("find ",subj_rootpath," -iname ",subj_folderreg," -maxdepth 4 -mindepth 1 -type d"),intern = T)
-  if(overwrite){unlink(file.path(featlist,"reg"),recursive = T,force = T)}
+    if(overwrite){unlink(file.path(featlist,"reg"),recursive = T,force = T);unlink(file.path(featlist,"reg_standard"),recursive = T,force = T)}
   NXU<-lapply(file.path(featlist,"reg"),dir.create,showWarnings = F,recursive = T)
-  NXU<-file.symlink(from = file.path(featlist,"example_func.nii.gz"),to = file.path(featlist,"reg","example_func.nii.gz"))
-  NXU<-file.symlink(from = file.path(featlist,"example_func.nii.gz"),to = file.path(featlist,"reg","example_func2standard.nii.gz"))
+  NXU<-file.copy(from = file.path(featlist,"example_func.nii.gz"),to = file.path(featlist,"reg","example_func.nii.gz"),overwrite = overwrite)
+  NXU<-file.copy(from = file.path(featlist,"example_func.nii.gz"),to = file.path(featlist,"reg","example_func2standard.nii.gz"),overwrite = overwrite)
   fslpipe::fsl_2_sys_env()
   fsldir<-Sys.getenv("FSLDIR")
-  NXU<-file.symlink(from = file.path(fsldir,"/etc/flirtsch/ident.mat"),to = file.path(featlist,"reg","example_func2standard.mat"))
-  NXU<-file.symlink(from = file.path(fsldir,"/etc/flirtsch/ident.mat"),to = file.path(featlist,"reg","example_standard2example_func.mat"))
+  NXU<-file.copy(from = file.path(fsldir,"/etc/flirtsch/ident.mat"),to = file.path(featlist,"reg","example_func2standard.mat"),overwrite = overwrite)
+  NXU<-file.copy(from = file.path(fsldir,"/etc/flirtsch/ident.mat"),to = file.path(featlist,"reg","example_standard2example_func.mat"),overwrite = overwrite)
   if(tools::file_ext(template_brainpath)=="gz"){ex_t=".nii.gz"}else{ex_t=".nii"}
   
-  NXU<-file.symlink(from = template_brainpath,to = file.path(featlist,"reg",paste0("standard",ex_t)))
+  NXU<-file.copy(from = template_brainpath,to = file.path(featlist,"reg",paste0("standard",ex_t)),overwrite = overwrite)
   return(featlist)
 }
 
@@ -476,6 +476,7 @@ export PATH MRI_STDDIR
 ",morecmd="")
   return(pbs_default)
 }
+
 pbs_cmd<-function(account,nodes,ppn,memory,walltime,titlecmd,morecmd,cmd,wait_for=""){
   heading<-c("#!/usr/bin/env sh",
              "",
