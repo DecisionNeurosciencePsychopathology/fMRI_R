@@ -454,7 +454,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
 
 
 get_pbs_default<-function(){
-  pbs_default<-list(account="mnh5174_a_g_hc_default",nodes=1,ppn=4,memory=8,walltime="40:00:00",titlecmd="cd $PBS_O_WORKDIR
+  pbs_default<-list(account="mnh5174_c_g_sc_default",nodes=1,ppn=4,memory=8,walltime="40:00:00",titlecmd="cd $PBS_O_WORKDIR
 
 export G=/gpfs/group/mnh5174/default
 
