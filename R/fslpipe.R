@@ -31,6 +31,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     } else {num_cores<-detectCores()-2} 
   } else {argu$nprocess->num_cores}
   
+  
+  IDTORUN <- names(prep.call.allsub)
+  
   ###Initializing argu;
   argu$cfg<-cfg_info(cfgpath = argu$cfgpath)
   argu$dsgrid<-read.table(argu$gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
@@ -96,6 +99,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     #Create the directory if not existed
     #print(argu$subj_outputroot, argu$model_name)
     argu$lvl1_datalist<-prep.call.allsub;argu$lvl1_procfunc<-get(prep.call.func)
+    
+    argu$lvl1_datalist<-argu$lvl1_datalist[which(names(argu$lvl1_datalist) %in% IDTORUN)]
     dir.create(file.path(argu$subj_outputroot,argu$model_name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
     step1_cmd<-substitute({
@@ -143,6 +148,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         preprocID=x$preprocID)
     })
     
+    small.sub <- small.sub[which(sapply(small.sub,`[[`,'ID') %in% IDTORUN)]
     #IT's the same for all participants!!!! WHY DO YOU RE RUN IT FOR EVERYONE!!!
     xarg<-as.environment(list())
     xarg$templatebrain<-argu$templatedir
@@ -305,6 +311,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     lvl2_arg$fsltemplate <- readLines(system.file("extdata", "fsl_flame_general_adaptive_template.fsf", package="fslpipe"))
     lvl2_alldf <- do.call(gen_fsf_highlvl,lvl2_arg)
     
+    lvl2_alldf[which(lvl2_alldf$uID %in% IDTORUN),]
+    
     if(nrow(lvl2_alldf)>0){
       if(argu$run_on_pbs){
         #PBS
@@ -433,6 +441,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       #lvl3_arg$covariate_names<-argu$lvl3_covarnames
       
       lvl3_alldf <- do.call(gen_fsf_highlvl,lvl3_arg)
+      
+      lvl3_alldf[which(lvl3_alldf$ID %in% IDTORUN),]
       #lvl3_alldf <- lvl3_alldf[!grepl("_evt",lvl3_alldf$NAME),]
       # xaj<-ls()
       # save(xaj,file = "~/debug_lvl3.rdata")
