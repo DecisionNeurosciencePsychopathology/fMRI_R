@@ -32,7 +32,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   } else {argu$nprocess->num_cores}
   
   
-  IDTORUN <- names(prep.call.allsub)
+  #IDTORUN <- names(prep.call.allsub)
   
   ###Initializing argu;
   argu$cfg<-cfg_info(cfgpath = argu$cfgpath)
@@ -100,14 +100,14 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     #print(argu$subj_outputroot, argu$model_name)
     argu$lvl1_datalist<-prep.call.allsub;argu$lvl1_procfunc<-get(prep.call.func)
     
-    argu$lvl1_datalist<-argu$lvl1_datalist[which(names(argu$lvl1_datalist) %in% IDTORUN)]
+    #argu$lvl1_datalist<-argu$lvl1_datalist[which(names(argu$lvl1_datalist) %in% IDTORUN)]
     dir.create(file.path(argu$subj_outputroot,argu$model_name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
     step1_cmd<-substitute({
       allsub_design<-fslpipe::do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,forcererun = argu$lvl1_forcegenreg,
-                                        dsgrid=argu$dsgrid,func_nii_name=argu$func.nii.name,nprocess=argu$nprocess,
-                                        cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,
-                                        reg_rootpath=argu$regpath,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
+                                                 dsgrid=argu$dsgrid,func_nii_name=argu$func.nii.name,nprocess=argu$nprocess,
+                                                 cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,
+                                                 reg_rootpath=argu$regpath,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
       save(allsub_design,file = file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
     })
     
@@ -148,7 +148,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         preprocID=x$preprocID)
     })
     
-    small.sub <- small.sub[which(sapply(small.sub,`[[`,'ID') %in% IDTORUN)]
+    #small.sub <- small.sub[which(sapply(small.sub,`[[`,'ID') %in% IDTORUN)]
     #IT's the same for all participants!!!! WHY DO YOU RE RUN IT FOR EVERYONE!!!
     xarg<-as.environment(list())
     xarg$templatebrain<-argu$templatedir
@@ -227,7 +227,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         lvl1_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
         qsub_commands(cmds = step2commands,jobperqsub = argu$job_per_qsub,workingdir = lvl1_workingdir,
                       tagname = "lvl1",ppn = 4,qsublimit = argu$qsub_limits)
-      
+        
       }else{
         #run localy
         cluster_step2<-makeCluster(num_cores,outfile="",type = "FORK")
@@ -311,7 +311,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     lvl2_arg$fsltemplate <- readLines(system.file("extdata", "fsl_flame_general_adaptive_template.fsf", package="fslpipe"))
     lvl2_alldf <- do.call(gen_fsf_highlvl,lvl2_arg)
     
-    lvl2_alldf[which(lvl2_alldf$uID %in% IDTORUN),]
+    #lvl2_alldf[which(lvl2_alldf$uID %in% IDTORUN),]
     
     if(nrow(lvl2_alldf)>0){
       if(argu$run_on_pbs){
@@ -336,7 +336,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         parallel::stopCluster(lvl2_cluster)
       }
     }
-
+    
     ################END of step 4
   }
   
@@ -442,7 +442,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       
       lvl3_alldf <- do.call(gen_fsf_highlvl,lvl3_arg)
       
-      lvl3_alldf[which(lvl3_alldf$ID %in% IDTORUN),]
+      #lvl3_alldf[which(lvl3_alldf$ID %in% IDTORUN),]
       #lvl3_alldf <- lvl3_alldf[!grepl("_evt",lvl3_alldf$NAME),]
       # xaj<-ls()
       # save(xaj,file = "~/debug_lvl3.rdata")
