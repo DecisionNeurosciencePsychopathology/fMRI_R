@@ -38,7 +38,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   argu$cfg<-cfg_info(cfgpath = argu$cfgpath)
   argu$dsgrid<-read.table(argu$gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
   if(is.null(argu$dsgrid$AddNeg)){argu$dsgrid$AddNeg<-FALSE}
+  if(is.null(argu$dsgrid$RunGrpLvl)){argu$dsgrid$RunGrpLvl<-TRUE}
   argu$dsgrid$AddNeg<-as.logical(argu$dsgrid$AddNeg)
+  argu$dsgrid$RunGrpLvl <- as.logical(argu$dsgrid$RunGrpLvl)
   # if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
   
   ###Version upgrade safe keeping
@@ -442,7 +444,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       
       lvl3_alldf <- do.call(gen_fsf_highlvl,lvl3_arg)
       
-      #lvl3_alldf[which(lvl3_alldf$ID %in% IDTORUN),]
+      if(!is.null(argu$run_these_ID)) {
+        lvl3_alldf <- lvl3_alldf[which(lvl3_alldf$ID %in% argu$run_these_ID),]
+      }
       #lvl3_alldf <- lvl3_alldf[!grepl("_evt",lvl3_alldf$NAME),]
       # xaj<-ls()
       # save(xaj,file = "~/debug_lvl3.rdata")
