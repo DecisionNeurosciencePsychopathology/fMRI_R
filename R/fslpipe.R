@@ -413,9 +413,10 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       )
       # NAME = ?
       # OUTPUTPATH = ?
-      
+    
       lvl3_raw_sp<-split(lvl3_rawdf,lvl3_rawdf$COPENUM)
-      
+      lvl3_raw_sp<-lvl3_raw_sp[which(argu$dsgrid$RunGrpLvl)]
+    
       lvl3_raw_sp<-lapply(lvl3_raw_sp,function(x){
         if(!is.null(argu$lvl3_ref_df)){x<-merge(x,argu$lvl3_ref_df,all.x=T,by="ID")}
         x$NAME = unique(readLines(file.path(x$PATH[1],"design.lev")))
