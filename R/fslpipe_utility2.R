@@ -448,7 +448,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
   })
   parallel::stopCluster(cluster_step1)                 
   ls_ds_matrix<-ls_ds_matrix[!sapply(ls_ds_matrix,is.null)]  
-  message("Total of '",length(ls_ds_matrix),"' participants finished regressor generation: /n",paste(names(ls_ds_matrix),collapse = ", "))
+  message("Total of [",length(ls_ds_matrix),"] participants has completed regressor generation: /n",paste(names(ls_ds_matrix),collapse = ", "))
   return(ls_ds_matrix)
 }
 
