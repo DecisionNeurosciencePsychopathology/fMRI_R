@@ -190,7 +190,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         if (!file.exists(file.path(paste0(aarg$outputpath,".feat"),"stats","zstat1.nii.gz")) ) {
           message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
           if(dir.exists(file.path(paste0(aarg$outputpath,".feat"))) ){
-            message("Found another folder...Removing...")
+            message("Found an incomplete folder...Removing...")
             unlink(file.path(paste0(aarg$outputpath,".feat")),recursive = T,force = T)}
           if(is.null(argu$ss_zthreshold)) {aarg$zthreshold<-3.2} else {aarg$zthreshold<-argu$ss_zthreshold}
           if(is.null(argu$ss_pthreshold)) {aarg$pthreshold<-0.05} else {aarg$pthreshold<-argu$ss_pthreshold}
@@ -521,11 +521,4 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   
   #############End of function fsl_pipe#####################
-}
-
-
-#In development:
-if (FALSE) {
-  #Flame
-  
 }

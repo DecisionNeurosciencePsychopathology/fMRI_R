@@ -228,7 +228,7 @@ emat_cmat_FSF<-function(ev_mat=NULL,ct_mat=NULL){
 
 
 gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thresh = 2.3, p_thresh = 0.05,covariate_names=c("SUBJMEAN"),
-                          Pairred_Group=FALSE, custom_evmat=NULL,custom_ctmat=NULL,retry=F,
+                          Pairred_Group=FALSE, custom_evmat=NULL,custom_ctmat=NULL,
                           template_brain = "/Volumes/bek/Newtemplate_may18/fsl_mni152/MNI152_T1_2mm_brain.nii",lowlvlcopenum=NULL,overwrite=F,
                           fsltemplate=readLines("/Volumes/bek/helper_scripts/fsl_pipe/templates/fsl_flame_general_adaptive_template.fsf")){
   if(length(fsltemplate)<1) {stop("No template provided.")}
@@ -396,7 +396,7 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
 }
 
 do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,func_nii_name=NULL,cfg=NULL,proc_id_subs=NULL,model_name=NULL,nprocess=4,forcererun=F,
-                             reg_rootpath=NULL,center_values=TRUE,nuisance_types=c("nuisance","motion_par")) {
+                             reg_rootpath=NULL,center_values=TRUE,nuisance_types=c("nuisance","motion_par"),retry=F) {
   ls_out<-lapply(lvl1_datalist,do.call,what=lvl1_proc_func)
   message("The lvl1 proc did not finish for the following participant(s): ",names(ls_out)[sapply(ls_out,is.null)])
   ls_out<-ls_out[!sapply(ls_out,is.null)]
