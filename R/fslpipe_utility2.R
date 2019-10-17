@@ -228,7 +228,7 @@ emat_cmat_FSF<-function(ev_mat=NULL,ct_mat=NULL){
 
 
 gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thresh = 2.3, p_thresh = 0.05,covariate_names=c("SUBJMEAN"),
-                          Pairred_Group=FALSE, custom_evmat=NULL,custom_ctmat=NULL,
+                          Pairred_Group=FALSE, custom_evmat=NULL,custom_ctmat=NULL,retry=F,
                           template_brain = "/Volumes/bek/Newtemplate_may18/fsl_mni152/MNI152_T1_2mm_brain.nii",lowlvlcopenum=NULL,overwrite=F,
                           fsltemplate=readLines("/Volumes/bek/helper_scripts/fsl_pipe/templates/fsl_flame_general_adaptive_template.fsf")){
   if(length(fsltemplate)<1) {stop("No template provided.")}
@@ -411,7 +411,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
     signalx$ID<-NULL
     output$regpath<-file.path(reg_rootpath,model_name,ID)
     dir.create(output$regpath,recursive = T,showWarnings = F)
-    if(file.exists(file.path(output$regpath,"gendesign_failed")) && !forcererun) {
+    if(file.exists(file.path(output$regpath,"gendesign_failed")) && !retry) {
       system(paste0("echo This person: ",ID," has failed regressor generation previously. Will Skip."))
       return(NULL)}
     if(file.exists(file.path(output$regpath,"design_output.rdata")) && !forcererun) {

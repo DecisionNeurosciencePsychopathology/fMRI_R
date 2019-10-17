@@ -75,7 +75,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
   } 
   
-  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,qsub_limits=20,lvl2_force_prep=FALSE,
+  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,qsub_limits=20,lvl2_force_prep=FALSE,lvl1_retry=FALSE,
                    nuisa_motion=c("nuisance","motion_par"),lvl3_lowlvlfeatreg="average.gfeat",motion_type="fd",motion_threshold="default",job_per_qsub=as.numeric(argu$cfg$n_expected_funcruns),
                    lvl3_type="flame",adaptive_ssfeat=TRUE)
   default_ls<-default_ls[!names(default_ls) %in% names(argu)]
@@ -108,7 +108,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     step1_cmd<-substitute({
       allsub_design<-fslpipe::do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,forcererun = argu$lvl1_forcegenreg,
                                                  dsgrid=argu$dsgrid,func_nii_name=argu$func.nii.name,nprocess=argu$nprocess,
-                                                 cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,
+                                                 cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,retry=argu$lvl1_retry,
                                                  reg_rootpath=argu$regpath,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
       save(allsub_design,file = file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
     })
