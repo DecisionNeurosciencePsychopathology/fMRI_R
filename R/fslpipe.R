@@ -288,6 +288,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     lvl2_rawdf<-do.call(rbind,lapply(raw.split,function(x){
       data.frame(
         uID=x[grep(lowlvl_featreg,x)-1],
+        RUNNUM = gsub("run","",gsub("_output.feat","",x[grep(lowlvl_featreg,x)],fixed = T)),
         ID=paste(x[grep(lowlvl_featreg,x)-1],gsub("run","",gsub("_output.feat","",x[grep(lowlvl_featreg,x)],fixed = T)),sep = "_"),
         PATH = paste(x,collapse = .Platform$file.sep),NAME="average",
         OUTPUTPATH = dirname(paste(x,collapse = .Platform$file.sep)),
@@ -295,8 +296,13 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         stringsAsFactors = F)
     })
     )
-    lvl2_raw_sp<-split(lvl2_rawdf,lvl2_rawdf$uID)
     
+    
+    if(!is.null(argu$lvl2_limitrun)){
+      lvl2_rawdf<-lvl2_rawdf[which(as.character(lvl2_rawdf$RUNNUM) %in% as.character(argu$lvl2_limitrun)),]
+    }
+    
+    lvl2_raw_sp<-split(lvl2_rawdf,lvl2_rawdf$uID)
     lvl2_default<-list(flame_type = 3, #FLAME 1 for sess_lvl and FLAME 1+2 for grp_lvl
                        thresh_type = 3, #0 : None \n # 1 : Uncorrected \n# 2 : Voxel \n # 3 : Cluster \n"
                        z_thresh = 2.3, #1.96 for subj lvl, 2.3 for sess lvl and 3.09 for grp lvl
