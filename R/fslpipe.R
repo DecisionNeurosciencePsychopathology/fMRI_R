@@ -426,7 +426,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       lvl3_raw_sp<-lapply(lvl3_raw_sp,function(x){
         if(!is.null(argu$lvl3_ref_df)){x<-merge(x,argu$lvl3_ref_df,all.x=T,by="ID")}
         x$NAME = unique(readLines(file.path(x$PATH[1],"design.lev")))
-        x$OUTPUTPATH = file.path(argu$glvl_output,argu$model_name)
+        x$OUTPUTPATH = file.path(argu$glvl_output,paste(argu$model_name,paste(argu$lvl3_covariate_names,collapse = "_"),sep = "_"))
         return(x)
       })
       
