@@ -451,8 +451,18 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       
       lvl3_alldf <- do.call(gen_fsf_highlvl,lvl3_arg)
       
+      #Now there isn't a good way to deal with this problem, we have to have two arguments;
+      #Sometimes two sample has to be combined but ran the same group level, but needs exclusion
+      #Sometimes it's easy to include only certarin people (HC only)
+      
       if(!is.null(argu$run_these_ID)) {
         lvl3_alldf <- lvl3_alldf[which(lvl3_alldf$ID %in% argu$run_these_ID),]
+      }
+      
+      if(!is.null(argu$exclude_these_ID)) {
+        message("The following IDs are excluded from the final analysis: ",paste(argu$exclude_these_ID,collapse = ", "))
+        lvl3_alldf <- lvl3_alldf[which(!lvl3_alldf$ID %in% argu$exclude_these_ID),]
+        
       }
       #lvl3_alldf <- lvl3_alldf[!grepl("_evt",lvl3_alldf$NAME),]
       # xaj<-ls()
