@@ -518,6 +518,181 @@ qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1"
   return(NULL)
 }
 
+feat2afni_single<-function(feat_dir=NULL,include_copestat=T,include_varcope=F,include_auxstats=F,outputdir=NULL,prefix=NULL,AFNIdir=NULL,template_path=NULL,verbos=F){
+  #This is a functionalized version of Dr. Michael Hallquists' Rscript. 
+  #Original script can be found here:
+  #https://github.com/PennStateDEPENdLab/fmri_processing_scripts
+  
+  #Safe keeping;
+  if(is.null(AFNIdir)){AFNIdir<-Sys.getenv("AFNIDIR")}
+  if(is.null(AFNIdir) | AFNIdir==""){AFNIdir<-"~/abin"}
+  if(!dir.exists(AFNIdir)) {stop("AFNI directory can not be found, please specify.")}
+  if(is.null(feat_dir) || !dir.exists(feat_dir) || length(feat_dir)>1){stop("Feat directory is either not supplied, not found or has a length greater than 1.")}
+  if(is.null(prefix)){message("Prefix is set to default");prefix="ss"}
+  
+  if (include_copestat){
+    prefix_statsfiles = paste(prefix,"stats",sep = "_")
+    prefix_auxfiles = paste(prefix,"auxstats",sep = "_")
+    
+    zfiles <- list.files(file.path(feat_dir,"stats"), pattern="zstat[0-9]+\\.nii.*", full.names=TRUE)
+    statnums <- as.numeric(sub(".*zstat(\\d+)\\.nii.*", "\\1", zfiles, perl=TRUE))
+    
+    design_contrasts <- readLines(file.path(feat_dir,"design.con"))
+    contrast_names <- sub("/ContrastName\\d+\\s+([\\w_.]+).*", "\\1", grep("/ContrastName", design_contrasts, value=TRUE), perl=TRUE)
+    
+    df_zstats<-data.frame(contrast_names=contrast_names,statnums=statnums,z=zfiles,stringsAsFactors = F)
+    df_zstats<-df_zstats[order(df_zstats$statnums),]
+    df_zstats$coef<-gsub("/zstat","/cope",df_zstats$z)
+    df_zstats$var<-gsub("/zstat","/varcope",df_zstats$z)
+    
+    
+    df_stats_melt<-reshape2::melt(df_zstats,id.vars=c("contrast_names","statnums"))
+    df_stats_melt$variable<-factor(df_stats_melt$variable,levels = c("coef","z","var"))
+    df_stats_melt<-df_stats_melt[order(df_stats_melt$statnums,df_stats_melt$variable),]
+    
+    nstats <- nrow(df_zstats)
+    message("Found ",nstats," stats files.")
+    
+    #outputdir<-file.path(feat_dir,"afni_stats")
+    dir.create(outputdir,showWarnings = F,recursive = T)
+    
+    if(include_varcope){toget_string<-c("coef","z","var")} else {toget_string<-c("coef","z")}
+    
+    df_stats_melt <- df_stats_melt[which(as.character(df_stats_melt$variable) %in% toget_string),]
+    df_stats_melt$bricknum<-1:nrow(df_stats_melt)
+    
+    
+    tcatcall <- paste("3dTcat -overwrite -prefix", file.path(outputdir,prefix_statsfiles),
+                      paste(df_stats_melt$value,collapse = " ")
+                      ,sep=" ")
+    
+    
+    refitcall <- paste("3drefit -fbuc", 
+                       paste("-substatpar", df_stats_melt$bricknum[which(as.character(df_stats_melt$variable) == "z")], "fizt", collapse=" "), 
+                       "-relabel_all_str", paste0("'",paste(df_stats_melt$contrast_names,df_stats_melt$variable,sep = ":",collapse = " "),"'"), 
+                       file.path(outputdir,paste0(prefix_statsfiles,"+tlrc"))) 
+    
+    system(command = paste(AFNIdir,tcatcall,sep = "/"),intern = F,ignore.stdout = !verbos,ignore.stderr = !verbos)
+    system(command = paste(AFNIdir,refitcall,sep = "/"),intern = F,ignore.stdout = !verbos,ignore.stderr = !verbos)
+    o_statsfile<-file.path(outputdir,paste0(prefix_statsfiles,"+tlrc"))
+  } else {
+    o_statsfile<-NA
+    } 
+  
+  if (include_auxstats) {
+    
+    ##read auxiliary files (PEs + error)
+    
+    auxfiles<-list(
+      pe = list.files(file.path(feat_dir,"stats"), pattern="^pe.*\\.nii.*", full.names=TRUE),
+      threshz = list.files(path = feat_dir,pattern="^thresh_zstat.*\\.nii.*", full.names=TRUE),
+      zfstat = list.files(path = file.path(feat_dir,"stats"), pattern="zfstat.*\\.nii.*", full.names=TRUE)
+    )
+    if ( file.exists(file.path(feat_dir,"stats","sigmasquareds.nii.gz")) ) {
+      auxfiles$sigmasquared <- file.path(feat_dir,"stats","sigmasquareds.nii.gz")
+    }
+    auxfiles = auxfiles[sapply(auxfiles,length)>0]
+    
+    aux_df<-do.call(rbind,lapply(names(auxfiles),function(x){
+      xa<-data.frame(type=x,file=auxfiles[[x]],stringsAsFactors = F)
+      xa$ifZ <- ifelse(x %in% c("threshz","zfstat"),T,F)
+      return(xa)
+    }))
+    aux_df$bricknum<-1:nrow(aux_df)
+    aux_df$name<-gsub(".nii.gz","",basename(aux_df$file))
+    
+    tcat_auxcall <- paste("3dTcat -overwrite -prefix", file.path(outputdir,prefix_auxfiles),paste(aux_df$file,collapse = " "),sep = " ")
+    
+    refit_auxcall <- paste("3drefit -fbuc", 
+                           paste("-substatpar", aux_df$bricknum[which(aux_df$ifZ)], "fizt", collapse=" "), 
+                           paste0("-relabel_all_str '", paste(aux_df$name,collapse = " "), "' "),
+                           file.path(outputdir,paste0(prefix_auxfiles,"+tlrc")),sep = " "
+    )
+    
+    
+    system(paste(AFNIdir,tcat_auxcall,sep = "/"),intern = F,ignore.stdout = !verbos,ignore.stderr = !verbos)
+    system(paste(AFNIdir,refit_auxcall,sep = "/"),intern = F,ignore.stdout = !verbos,ignore.stderr = !verbos)
+    o_auxstatsfile <- file.path(outputdir,paste0(prefix_auxfiles,"+tlrc"))
+  } else {
+    o_auxstatsfile <- NA
+  }
+  
+  
+  if(is.null(template_path)){
+    file.copy(from = template_path,to = file.path(outputdir,"template_brain.nii.gz"),overwrite = T)
+  }
+  #message("Completed")
+  return(list(statsfile = o_statsfile,auxstatsfile=o_auxstatsfile))
+}
 
-
-
+gfeat2afni <- function(gfeat_dir=NULL,include_varcope=F,copy_subj_cope=F,outputdir=NULL,prefix=NULL,AFNIdir=NULL,template_path=NULL,verbos=F){
+  #Safe keeping;
+  if(is.null(AFNIdir)){AFNIdir<-Sys.getenv("AFNIDIR")}
+  if(is.null(AFNIdir) | AFNIdir==""){AFNIdir<-"~/abin"}
+  if(!dir.exists(AFNIdir)) {stop("AFNI directory can not be found, please specify.")}
+  if(is.null(gfeat_dir) || !dir.exists(feat_dir) || length(feat_dir)>1){stop("Feat directory is either not supplied, not found or has a length greater than 1.")}
+  if(is.null(prefix)){message("Prefix is set to default");prefix="grp"}
+  
+  dir.create(outputdir,showWarnings = F,recursive = T)
+  
+  copedirs <- grep("/cope[0-9]+\\.feat", list.dirs(path=gfeat_dir, full.names=TRUE, recursive=FALSE), value=TRUE, perl=TRUE)
+  
+  if(length(copedirs)<1) {
+    message("Failed to locate any completed feat directory.")
+    return(NULL)
+  } else {
+    message("Located ",length(copedirs)," cope directories")
+  }
+  allafniout<-sapply(copedirs,function(dxa){
+    message("Processing: ",dxa)
+    afniout<-suppressMessages(feat2afni_single(feat_dir = dxa,include_copestat = T,include_varcope = include_varcope,include_auxstats = F,outputdir = dxa,
+                              prefix = "sfeat",verbos = verbos))$statsfile
+    
+    copename <- gsub(" ","_",readLines(file.path(dxa, "design.lev"))) #contains the L2 effect name (e.g., clock_onset)
+    #afniout <- file.path(dxa, "feat_stats+tlrc")
+    briklabels<-system(command = paste(AFNIdir,paste("3dinfo -label", afniout),sep = "/"),intern = T)
+    briklabels <- paste(copename, strsplit(briklabels, "|", fixed=TRUE)[[1]], sep="_", collapse=" ")
+    
+    ##need to add prefix for each cope to make the stats unique
+    system(command = paste(AFNIdir,
+                           paste0("3drefit -relabel_all_str '", briklabels, "' ", afniout)
+                           ,sep = "/"),intern = F,ignore.stdout = !verbos,ignore.stderr = !verbos)
+    
+    ##for now, eliminate the aux file (now handled by --no_auxstats above)
+    #system(paste("rm", file.path(copedirs[d], "feat_aux+tlrc*")))
+    
+    if (copy_subj_cope) {
+      ##filtered_func_data contains the cope from the lower level. Copy to output directory and rename
+      dir.create(path = file.path(outputdir,"subj_coef"),showWarnings = F,recursive = T)
+      system(command = paste(AFNIdir,
+                             paste("3dcopy -overwrite", file.path(dxa, "filtered_func_data.nii.gz"), file.path(outputdir,"subj_coef",paste0(prefix, "_", copename, "_cope.nii.gz")),sep = " ")
+                             ,sep = "/"),intern = F,ignore.stdout = !verbos,ignore.stderr = F)
+      if(include_varcope){
+        system(command = paste(AFNIdir,
+                               paste("3dcopy -overwrite", file.path(dxa, "var_filtered_func_data.nii.gz"), file.path(outputdir,"subj_coef",paste0(prefix, "_", copename, "_varcope.nii.gz")),sep = " ")
+                               ,sep = "/"),intern = F,ignore.stdout = !verbos,ignore.stderr = F)
+      }
+      
+    }
+    
+    return(afniout)
+  })
+  
+  
+  #glue together the stats files
+  system(command = paste(AFNIdir,
+                         paste("3dTcat -overwrite -prefix", file.path(outputdir,prefix), paste(allafniout, collapse=" "))
+                         ,sep = "/"),intern = F,ignore.stdout = !verbos,ignore.stderr = !verbos)
+  
+  if (file.exists(file.path(outputdir,paste0(prefix, "+tlrc.BRIK")))) {
+    system(paste0("gzip ",file.path(outputdir,paste0(prefix, "+tlrc.BRIK"))))
+  }
+  
+  #cleanup ingredients of individual cope aggregation
+  system(paste("rm", paste0(allafniout, "*", collapse=" ")))
+  
+  if(is.null(template_path)){
+    file.copy(from = template_path,to = file.path(outputdir,"template_brain.nii.gz"),overwrite = T)
+  }
+  return(file.path(outputdir,paste0(prefix, "+tlrc.BRIK")))
+}

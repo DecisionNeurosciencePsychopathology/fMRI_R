@@ -75,8 +75,10 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
   } 
   
-  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,qsub_limits=20,lvl2_force_prep=FALSE,lvl1_retry=FALSE,
-                   nuisa_motion=c("nuisance","motion_par"),lvl3_lowlvlfeatreg="average.gfeat",motion_type="fd",motion_threshold="default",job_per_qsub=as.numeric(argu$cfg$n_expected_funcruns),
+  default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,
+                   qsub_limits=20,lvl2_force_prep=FALSE,lvl1_retry=FALSE,lvl1_afnify=F,lvl2_afnify=F,lvl3_afnify=T,
+                   nuisa_motion=c("nuisance","motion_par"),lvl3_lowlvlfeatreg="average.gfeat",motion_type="fd",
+                   motion_threshold="default",job_per_qsub=as.numeric(argu$cfg$n_expected_funcruns),
                    lvl3_type="flame",adaptive_ssfeat=TRUE)
   default_ls<-default_ls[!names(default_ls) %in% names(argu)]
   if (length(default_ls)>0){
@@ -282,7 +284,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     
     lowlvl_featreg = "*output.feat"
     if(!exists("lvl2_featlist")) {
-      lvl2_featlist<-system(paste0("find ",file.path(argu$subj_outputroot,argu$model_name)," -iname ",lowlvl_featreg," -maxdepth 4 -mindepth 1 -type d"),intern = T)
+      lvl2_featlist<-system(paste0("find ",file.path(argu$subj_outputroot,argu$model_name)," -iname ",lowlvl_featreg," -maxdepth 2 -mindepth 1 -type d"),intern = T)
     }
     raw.split <- strsplit(lvl2_featlist,split = .Platform$file.sep) 
     lvl2_rawdf<-do.call(rbind,lapply(raw.split,function(x){
@@ -372,7 +374,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       }
       #Start Group Level Analysis:
       glvl_all_cope(rootdir=argu$subj_outputroot,
-                    outputdir=argu$glvl_outputroot,
+                    outputdir=argu$glvl_output,
                     modelname=argu$model_name,
                     grp_sep=argu$group_id_sep,
                     onesamplet_pergroup=onesamplet_pergroup,
@@ -386,7 +388,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                     paralleln = num_cores)
       # Use for debugging:
       # rootdir=argu$subj_outputroot
-      # outputdir=argu$glvl_outputroot
+      # outputdir=argu$glvl_output
       # modelname=argu$model_name
       # grp_sep=argu$group_id_sep
       # onesamplet_pergroup=onesamplet_pergroup
@@ -501,15 +503,65 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     #End Step 5
   } 
   
-  #############Step 6: Simple Graph and Info Extraction ###################
-  # Will not be compatible with new pipeline at all.
+  #############Step 6: AFNIfy and Simple Extraction of Informaiton ###################
+  stepnow<-6
+  if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
+    if(lvl1_afnify){
+      if(!exists("lvl2_featlist")) {
+        lvl2_featlist<-system(paste0("find ",file.path(argu$subj_outputroot,argu$model_name)," -iname ","*output.feat"," -maxdepth 2 -mindepth 1 -type d"),intern = T)
+      }
+      
+      ss_dirs<-data.frame(ss_path=lvl2_featlist,stringsAsFactors = F)
+      ss_dirs$ID<-basename(dirname(ss_dirs$ss_path))
+      ss_dirs$run<-gsub("_output.feat","",basename(ss_dirs$ss_path))
+      if(nrow(ss_dirs)<1) {message("No single subject folder found. Skip")} else {
+        dir.create(file.path(ss_rootdir,"ss_afni_view"),recursive = T,showWarnings = F)
+        file.copy(from = file.path(Sys.getenv("FSLDIR"),"data/standard/MNI152_T1_1mm_brain.nii.gz"),to = file.path(ss_rootdir,"ss_afni_view","template_brain.nii.gz"),overwrite = T)
+        
+        for (ssx in 1:nrow(ss_dirs)) {
+          message("Start to process ID:",ss_dirs$ID[ssx],", Run: ",ss_dirs$run[ssx])
+          feat2afni_single(feat_dir = ss_dirs$ss_path[ssx],include_copestat = T,include_varcope = T,include_auxstats = F,outputdir = file.path(ss_rootdir,"ss_afni_view"),prefix = paste(ss_dirs$ID[ssx],ss_dirs$run[ssx],sep = "_"))
+          message("\n")
+          }
+      }
+    }
+    if(lvl2_afnify){
+      avg_dirs<-system(paste0("find ",file.path(argu$subj_outputroot,argu$model_name)," -iname ","average.gfeat"," -maxdepth 2 -mindepth 1 -type d"),intern = T)
+      if(length(avg_dirs)<1) {message("No subject average gfeat folder found. Skip")} else {
+        dir.create(file.path(ss_rootdir,"avg_afni_view"),recursive = T,showWarnings = F)
+        file.copy(from = file.path(Sys.getenv("FSLDIR"),"data/standard/MNI152_T1_1mm_brain.nii.gz"),to = file.path(ss_rootdir,"avg_afni_view","template_brain.nii.gz"),overwrite = T)
+        for (avgx in avg_dirs) {
+          message("Start to process: ",avgx)
+          gfeat2afni(gfeat_dir = avgx,include_varcope = F,copy_subj_cope = F,outputdir = file.path(ss_rootdir,"avg_afni_view"),prefix = paste0("avg_",basename(dirname(avgx))),verbos = F)
+          message("\n")
+        }
+    }
+    if(lvl3_afnify){
+        fsf_ls<-list.files(path = file.path(file.path(argu$glvl_output,argu$model_name),"fsf_files"),pattern = ".*.fsf",full.names = T,recursive = F)
+        if(length(fsf_ls)>1){
+         
+          gxroot<-unique(file.path(dirname(dirname(fsf_ls)),"grp_afni_view"))
+          dir.create(gxroot,recursive = T,showWarnings = F)
+          file.copy(from = file.path(Sys.getenv("FSLDIR"),"data/standard/MNI152_T1_1mm_brain.nii.gz"),to = file.path(unique(file.path(dirname(dirname(fsf_ls)),"grp_afni_view")),"template_brain.nii.gz"),overwrite = T)
+          #system.file("extdata", "my_raw_data.csv", package="my_package")
+          for (fsf in fsf_ls){
+            message("Start to process: ",gsub(".fsf","",basename(fsf)))
+            gfeat2afni(gfeat_dir = file.path(dirname(dirname(fsf)),gsub(".fsf",".gfeat",basename(fsf)))
+                       ,include_varcope = F,copy_subj_cope = T,outputdir = gxroot,
+                       prefix = gsub(".fsf","_grpstat",basename(fsf)),verbos = F)
+            message("\n")
+          }
+ 
+     
+    }
+  }
   
   # stepnow<-6
   # if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
   #   library(oro.nifti)
   #   ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
   #   
-  #   plot_image_all(rootpath=argu$glvl_outputroot,
+  #   plot_image_all(rootpath=argu$glvl_output,
   #                  templatedir=argu$templatedir,
   #                  model.name=argu$model_name,
   #                  patt="*_tfce_corrp_tstat1.nii.gz",
@@ -523,14 +575,14 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #       data.frame(copenum=seq(from=length(argu$dsgrid$name)+1,along.with = which(argu$dsgrid$AddNeg)),
   #                  copename=paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
   #     )
-  #     write.table(xout,file = file.path(argu$glvl_outputroot,argu$model_name,"cope_title_index.txt"),row.names = F)
+  #     write.table(xout,file = file.path(argu$glvl_output,argu$model_name,"cope_title_index.txt"),row.names = F)
   #   }else{
   #     write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)]))),
   #                            title=gsub("\"","",gsub(pattern = "[0-9]*) \"",replacement = "",
   #                                                    x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
   #                                                             x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
   #                                                                      x = ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)+1],fixed = T),fixed = T),fixed = F))
-  #     ),file = file.path(argu$glvl_outputroot,argu$model_name,"cope_title_index.txt"),row.names = F)
+  #     ),file = file.path(argu$glvl_output,argu$model_name,"cope_title_index.txt"),row.names = F)
   #   }
   #   #End of Step 6
   # }
