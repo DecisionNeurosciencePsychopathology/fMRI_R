@@ -3,87 +3,7 @@
 #subj
 #sess
 #grp
-get_matrix<-function(raw_text,heading="/Matrix",ending=NULL,colnames=NULL,split=" "){
-  if(is.null(ending)){end_pos<-length(raw_text)}else{end_pos<-(grep(ending,raw_text)-1)}
-  if(is.null(heading)){end_pos<-0}else{start_pos<-(grep(heading,raw_text)+1)}
-  raw_mx<-raw_text[start_pos:end_pos]
-  matrix_df<-as.data.frame(do.call(rbind,strsplit(raw_mx,split = split)))
-  if(!is.null(colnames) && length(colnames)==ncol(matrix_df)){names(matrix_df)<-colnames} 
-  return(matrix_df)
-}
 
-check_argu<-function(argu=NULL,init=F){
-  requiresargus<-c("path.cfg","funcimg.namepatt","path.outroot","path.lvl1grid","ssub.func","ssub.datalist","modelname")
-  if(is.null(argu)) {argu<-list()}
-  if(!init & any(!requiresargus %in% names(argu)) ) {
-    stop("These arguments are required and not present: ",paste(requiresargus[!requiresargus %in% names(argu)],collapse = ", "))
-  }
-  defaultargus<-list(ncpus=4,runstep=NULL,forcererun=F,proc_id_subs="",
-                     #Level 1 arguements:
-                     lvl1.CenterScaleAll=F,lvl1.MotionMethod="",lvl1.ZThresh=1.96,lvl.PThresh=0.05,
-                     
-                     #Level 2 arguments:
-                     
-                     #Level 3 argumetns:
-                     lvl3.Test = "FLAME1+2",lvl3.AutoContrast=T,lvl3.SepGroupVari=F
-  )
-  
-  for(xi in names(defaultargus)){
-    if(is.null(argu[[xi]])){
-      argu[[xi]]<-defaultargus[[xi]]
-    }
-  }
-  
-  
-  if(!init){
-    #Path config:
-    argu$path.regroot<-file.path(argu$path.outroot,"regressors",argu$modelname)
-    argu$path.ssubroot<-file.path(argu$path.outroot,"single_subject",argu$modelname)
-    argu$path.grproot<-file.path(argu$path.outroot,"group_analysis",argu$modelname)
-    #######lvl 1 motion sensoring##########
-    if(argu$lvl1.MotionMethod=="spike_regression") {
-      message("First level motion method is selected to be spike_regression.")
-      if(is.null(argu$lvl1.SpikeRegType)){
-        message("Motion spike regressor's type is not provided, using default 'fd'")
-        argu$lvl1.SpikeRegType<-"fd"
-      }
-      if(argu$lvl1.SpikeRegType=="fd" & is.null(argu$SpikeRegThres)){
-        message("Motion spike regressor's (type FD) threshold is not provided, using default 0.9")
-        argu$SpikeRegThres<-0.9
-      }
-      
-      if(argu$lvl1.SpikeRegType=="dvar" & is.null(argu$SpikeRegThres)){
-        message("Motion spike regressor's (type DVAR) threshold is not provided, using default 20")
-        argu$SpikeRegThres<-20
-      }
-    }
-    
-    argu$cfg<-cfg_info(cfgpath = argu$path.cfg)
-    argu$lvl1grid<-read.table(argu$path.lvl1grid,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
-    ##############END OF LVL1################
-  }
-  #lvl 2
-  
-  #lvl 3
-  
-  
-  
-  
-  
-  
-  # 
-  # #DO NOT PROVIDE THOSE TWO AND IT WILL BE FINE;
-  # argu$randomize_p_threshold<-0.001
-  # argu$randomize_thresholdingways<-c("tfce","voxel-based","cluster-based-extent","cluster-based-mass")
-  # argu$ss_zthreshold<-3.2  #This controls the single subject z threshold (if enabled in template)
-  # argu$ss_pthreshold<-0.05 #This controls the single subject p threshold (if enabled in template)
-  
-  
-  return(argu)
-  
-  
-  
-}
 
 make_signal_with_grid<-function(outputdata=NULL,dsgrid=NULL,...) {
   #This new version is cleaner and more efficient than the old one!
@@ -498,8 +418,6 @@ pbs_cmd<-function(account,nodes,ppn,memory,walltime,titlecmd,morecmd,cmd,wait_fo
              "",titlecmd,morecmd,cmd)
   return(heading)
 }
-
-
 
 qsub_commands<-function(cmds=NULL,jobperqsub=NULL,workingdir=NULL,tagname="lvl1",qsublimit=30,ppn=4,pbs_args=NULL) {
   dir.create(workingdir,showWarnings = F,recursive = T)

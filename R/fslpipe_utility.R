@@ -5,160 +5,6 @@
 #devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/prep_for_second_lvl.R")
 ##Here's all the functions that helps with the fsl pipe function;
 
-cleanuplist<-function(listx){
-  if (any(sapply(listx, is.null))){
-    listx[sapply(listx, is.null)] <- NULL}
-  return(listx)
-}
-
-fsl_2_sys_env<-function(bashprofilepath=NULL,force=T){
-  if (is.null(bashprofilepath)){bashprofilepath<-file.path(Sys.getenv("HOME"),".bash_profile")}
-  if (length(system("env | grep 'FSL' ",intern = T))<1 | force) {
-    if(file.exists(bashprofilepath)) {
-      print("Using user .bashprofile")
-      fslinfo<-cfg_info(bashprofilepath)
-      pathx<-unique(strsplit(fslinfo$PATH,":")[[1]])
-      afni_path<-pathx[which(grepl("/abin",pathx) | grepl("/afni",pathx))]
-      if(length(afni_path)==1) {fslinfo$AFNIDIR <- afni_path}
-      info_to_sysenv(fslinfo)
-    }
-  }
-}
-
-info_to_sysenv<-function(info=NULL) {
-  if (is.null(info)) {stop("HEY! NO INFO!")}
-  for (kz in names(info)) {
-    print(kz)
-    tryCatch({
-    eval(parse(text=paste0("Sys.setenv(",kz,"","='",info[[kz]],"')")))},error=function(e){message(e)}
-    )
-  }  
-}
-
-recondrop<-function(datax){
-  if (is.list(datax)){
-    lapply(datax, function(x) {
-      recondrop(x)
-    })
-  } else if (is.null(dim(datax))) {return(datax)
-  } else if (length(dim(datax))>2) {
-    drop(datax)->datay
-    recondrop(datay)
-  } 
-}
-
-recon.list<-function(mat.raw=NULL){
-  mat.better<-sapply(mat.raw, function(x){
-    emp<-list()
-    drop(x)->x
-    for (i in 1:length(x)) {
-      rownames(x)[i]->whichone
-      emp[[whichone]]<-drop(x[i])
-    }
-    return(emp)
-  })
-  names(mat.better)<-names(mat.raw)
-  return(mat.better)
-}
-
-recon.array<-function(x=NULL) {
-  emp<-list()
-  for (i in 1:length(x)) {
-    rownames(x)[i]->whichone
-    if (length(emp[[whichone]][[1]])==1) {
-      emp[[whichone]]<-drop(unlist((x[[i]])))
-    } else if (ifelse(is.null(dim(x[[i]])[1]),-1,dim(x[[i]])[1]) == 1) {
-      emp[[whichone]]<-drop(unlist(x[[i]]))
-    } else {emp[[whichone]]<-drop((x[[i]]))}
-  }
-  #names(emp)<-names(x)
-  return(emp)
-}
-
-recon.mat<-function(data.raw=NULL) {
-  #do recurisive if class of x is list, if it's array then use 
-  if (class(data.raw)=="list") {
-    lapply(data.raw, function(x) {
-      
-    }) 
-  } else if (class(data.raw)=="array") {
-    data.raw<-recon.array(x=data.raw)
-  } else if (!lapply(huy$muX,class) %in% c("list","array")) {}
-  
-}
-
-make_eprime_struct<-function(rawtext=file.choose(),rawdf=NULL,breakpointname="BreakProc") {
-  if (is.null(rawdf)){
-    rawdf<-read.csv(rawtext,stringsAsFactors = F,sep = "\t")
-  } 
-  wherearethebreaks<-grep(breakpointname,rawdf$Procedure)
-  rawdf$blocknum<-NA
-  
-  for (i in 1:(length(wherearethebreaks)+1)) {
-    print(i)
-    if (i==1) {
-      rawdf$blocknum[i:wherearethebreaks[i]]<-i
-      
-    } else if (i==(length(wherearethebreaks)+1)) {
-      rawdf$blocknum[wherearethebreaks[i-1]:length(rawdf$Procedure)]<-i
-      
-    } else {
-      rawdf$blocknum[wherearethebreaks[i-1]:wherearethebreaks[i]]<-i}
-  }
-  df<-rawdf[-wherearethebreaks,]
-  df$trailnum<-seq_along(df$Procedure)
-  df$trialnum.block<-unsplit(lapply(split(df$blocknum,df$blocknum), seq_along),df$blocknum)
-  return(df)
-}
-
-sigmatransform<-function(x) {
-  (1./(1+exp(x)))->y
-  return(y)
-}
-
-depthoflist <- function(list,thisdepth=0){
-  if(!is.list(list)){
-    return(thisdepth)
-  }else{
-    return(max(unlist(lapply(list,depthoflist,thisdepth=thisdepth+1))))    
-  }
-}
-
-addcenterscaletolist<-function(list) {
-  test<-lapply(list, scale,center=T)
-  names(test)<-paste(names(list),"centerscaled",sep = "_")
-  newlist<-c(list,test) 
-  return(newlist)
-}
-
-cfg_info<-function(cfgpath=NULL,noproc=F) {
-  if (is.null(cfgpath)) {stop("No cfg file supplied!")}
-  pre.sym<-system("env",intern = T)
-  sysm.temp<-system(paste("source",cfgpath,"\n","env"),intern = T)
-  sysm<-sysm.temp[which(!sysm.temp %in% pre.sym)]
-  sysm<-sysm[!grepl("()",sysm,fixed = T)]
-  larg<-regmatches(sysm, regexpr("=", sysm), invert = TRUE)
-  xout<-as.environment(list())
-  NULL.x<-lapply(larg,function(y) {
-    if (length(y)>1) {
-      if (length(grep("-* ",y[2]))>0 & !noproc) {
-        tc<-strsplit(y[2],split = " -")[[1]]
-        if (regexpr("-",tc[1])[[1]] > 0) {
-          tc[1]<-substr(tc[1],start = 2,stop = nchar(tc[1]))}
-        tx<-strsplit(tc,split = " ")
-        etx<-as.environment(list())
-        NUx<-lapply(tx, function(x) {
-          assign(x[1],x[2],envir = etx)
-        })
-        x.2x<-as.list(etx)
-      } else {x.2x<-y[2]} 
-      assign(y[1],x.2x,envir = xout)
-    } else {return(NULL)}
-  })
-  return(as.list(xout))
-}
-
-
 
 get_nuisance_preproc<-function(id=NULL,cfg=NULL,
                                returnas=c("path","data.frame"),dothese=c("nuisance","motion_par","motion_outlier"),
@@ -241,17 +87,11 @@ get_volume_run<-function(id=NULL,cfg=NULL,reg.nii.name="swudktm*[0-9].nii.gz",re
   }
 }
 
-make_heatmap_with_design<-function(design=NULL) {
-  return(dependlab::cor_heatmap(as.data.frame(dependlab::concat_design_runs(design))))
-}
+# make_heatmap_with_design<-function(design=NULL) {
+#   return(dependlab::cor_heatmap(as.data.frame(dependlab::concat_design_runs(design))))
+# }
 
-findbox<-function(usebek=F) {
-  if(usebek){boxdir<-"/Volumes/bek/Box Sync"} else if (dir.exists("~/Box")) {
-    boxdir <- "~/Box"
-  } else {
-    boxdir<-system("find ~ -iname 'Box*' -maxdepth 2 -type d",intern = T)}
-  return(boxdir)
-}
+
 
 #######
 prepare4secondlvl<-function(ssana.path=NULL,featfoldername="*output.feat",
@@ -326,7 +166,7 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
                        wrt.timing=c("convolved", "FSL","AFNI"),model.name=NULL,model.varinames=NULL,
                        nuisa_motion=c("nuisance","motion_par","motion_outlier"),motion_type="fd",centerscaleall=FALSE,
                        motion_threshold="default",convlv_nuisa=F,argu=NULL) {
-  message("Depreciated! Is probably useless; Will keep for 3 versions before deleting")
+  stop("Depreciated! Is probably useless; Will keep for 3 versions before deleting, 2 left")
   #Read config file:
   # #cfg<-cfg_info(cfgpath)
   # argu$cfg<-cfg
@@ -408,7 +248,8 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
   return(design)
   
 }
-######Modify fsl template with variable switch
+
+######First version of the adaptive fsl
 change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenvir=xarg,focus=T) {
   # for (tofind in grep(paste0(begin,"*"),fsltemplate) ){
   #   tryCatch(
@@ -435,13 +276,6 @@ change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenv
   
   return(fsltemplate)
 }
-
-
-
-
-
-
-#####Generate reg path from model name:
 
 gen_reg<-function(vmodel=NULL,regpath=NULL,idx=NULL,runnum=NULL,env=NULL,regtype=NULL) {
   #message("Depreciated! Is probably useless; Will keep for 3 versions before deleting")
@@ -488,7 +322,6 @@ rep_within<-function(adptemplate=NULL,searchenvir=NULL){
     rep_within(adptemplate=adptemplate,searchenvir = searchenvir)
   } else {return(adptemplate)}
 }
-
 
 adopt_feat<-function(adptemplate_path=NULL,searenvir=NULL,firstorder=F) {
   readLines(adptemplate_path)->adptemplate
@@ -537,31 +370,17 @@ feat_w_template<-function(templatepath=NULL,fsltemplate=NULL,beg="ARG_",end="_EN
   } else {return(paste0("feat ",fsfpath))}
 }
 
-plot_image_all<-function(rootpath=NULL,templatedir=NULL,model.name=NULL,patt=NULL,threshold=0.99,colour="red") {
-  dirs<-system(paste0("find ",file.path(rootpath,model.name)," -iname '",patt,"' -maxdepth 4 -mindepth 1 -type f"),intern = T)
-  for (sdir in dirs) {
-    spdir<-strsplit(sdir,.Platform$file.sep) 
-    spdir[[1]][sapply(spdir, function(x) {grep(patt,x)})-1]->filex
-    paste(spdir[[1]][-c(length(spdir[[1]]),length(spdir[[1]])-1)],collapse = .Platform$file.sep)->outputdir
-    tep<-readNIfTI(templatedir)
-    img<-readNIfTI(sdir)
-    mask<-tep
-    in_mask<- img > threshold
-    mask[in_mask] <- 1
-    mask[!in_mask] <- NA
-    jpeg(filename = file.path(outputdir,paste0(filex,".jpeg")),width = 2560, height = 1440,quality = 90,pointsize = 20)
-    orthographic(x = tep, y = mask, col.y = colour)
-    dev.off()
-  }
-}
+########################
 
-#####Group Lvl Func
+
+#####Randomize functions
 glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanalysis/fsl",
                         outputdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl",
                         modelname="PE_8C_old",grp_sep=argu$group_id_sep,copestorun=1:8,
                         paralleln=NULL,onesamplet_pergroup=T,pairedtest=T,unpairedtest=T,
                         thresh_cluster_mass=NULL,thresh_cluster_extent=NULL,pvalue=0.001, ifDeMean=T,
                         usethesetest=c("tfce","voxel-based","cluster-based-mass","cluster-based-extent")) {
+  ###This is used in randomize
   if ( is.null(modelname) ) {stop("Must specify a model name other wise it will be hard to find all copes")}
   if(!exists("supplyidmap",envir = argu)){argu$supplyidmap<-sortid(dix=file.path(rootdir,modelname),idgrep=grp_sep,dosymlink=F)}
   #Creating directory in case they are not there;
@@ -747,7 +566,6 @@ glvl_all_cope<-function(rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanaly
   }
 }
 
-
 sortid<-function(dix=file.path(argu$ssub_outputroot,argu$model.name),idgrep=argu$group_id_sep,dosymlink=ifdosymlink){
   system(paste0("find -L ",dix," -iname 'average.gfeat' -maxdepth 2"),intern = T)->dirxs
   alldirs<-sapply(strsplit(dirxs,split = .Platform$file.sep),function(x) {x[(length(x)-1)]})
@@ -868,13 +686,13 @@ get_motion_info<-function(configpath=NULL,type="fd",threshold="default"){
   return(do.call(rbind,NU))
 }
 
-amputate_run<-function(small.sub=NULL,cfgpath=NULL,type="fd",threshold="default") {
-  
-  stop("UNFINISHED FUNC")
-  
-}
+# amputate_run<-function(small.sub=NULL,cfgpath=NULL,type="fd",threshold="default") {
+#   
+#   stop("UNFINISHED FUNC")
+#   
+# }
 
-####QC
+####QC Pipeline related;
 
 
 gen_model_arg<-function(cfgpath=NULL,func.nii.name="nfswudktm*[0-9]_[0-9].nii.gz",mni_template=NULL,QC_auxdir="/Volumes/bek/QC_fsl",parallen=4,fullmodel=F,...){
@@ -941,12 +759,29 @@ check_incomplete_preproc<-function(cfgpath=NULL,enforce=F,verbose=T) {
     }
   }
 }
+
+plot_image_all<-function(rootpath=NULL,templatedir=NULL,model.name=NULL,patt=NULL,threshold=0.99,colour="red") {
+  dirs<-system(paste0("find ",file.path(rootpath,model.name)," -iname '",patt,"' -maxdepth 4 -mindepth 1 -type f"),intern = T)
+  for (sdir in dirs) {
+    spdir<-strsplit(sdir,.Platform$file.sep) 
+    spdir[[1]][sapply(spdir, function(x) {grep(patt,x)})-1]->filex
+    paste(spdir[[1]][-c(length(spdir[[1]]),length(spdir[[1]])-1)],collapse = .Platform$file.sep)->outputdir
+    tep<-readNIfTI(templatedir)
+    img<-readNIfTI(sdir)
+    mask<-tep
+    in_mask<- img > threshold
+    mask[in_mask] <- 1
+    mask[!in_mask] <- NA
+    jpeg(filename = file.path(outputdir,paste0(filex,".jpeg")),width = 2560, height = 1440,quality = 90,pointsize = 20)
+    orthographic(x = tep, y = mask, col.y = colour)
+    dev.off()
+  }
+}
+
 ###############
 
 # create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),atlas_root=NULL,
 #                                fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T)
-
-
 
 create_roimask_atlas<-function(atlas_name=NULL,atlas_xml=NULL,target=NULL,outdir=tempdir(),atlas_root=NULL,
                                fsl_dir=Sys.getenv("FSLDIR"),volxsize="2mm",type="",singlemask=T,atlas_readtype=c("fsl","spm"),output_main=F) {
@@ -1058,29 +893,6 @@ whichfile<-function(textx=NULL,dirx=NULL,fullnameq=T){
   return(fxj)
 }  
 
-# rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanalysis/fsl"
-# grproot="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl"
-# modelname="Value1n"
-# basemask="tstat"
-# corrp_mask="tfce"
-# saveclustermap=TRUE
-# VersionCode="tfce0.95"
-# corrmaskthreshold=0.98
-# roimaskthreshold=0.0001
-# voxelnumthres=10
-# clustertoget=NULL
-# copetoget=NULL
-# maxcore=4
-
-# featdir=featdir
-# base=basemask
-# corrp_mask=corrp_mask
-# outdir = cmoutdir
-# VersionCode = Version
-# maskthresholdvalue=corrmaskthreshold
-# roimaskthreshold=roimaskthreshold
-# overwrite=!saveclustermap
-
 gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl/alignment6/cope12_randomize_onesample_ttest",useMMcor=T,
                            outdir=NULL,VersionCode=NULL,base="tstat",corrp_mask="tstat",maskthresholdvalue=3.0,roimaskthreshold=0.0001,
                            overwrite=T,writecsv=T,savetempdir=NULL) {
@@ -1129,20 +941,6 @@ gen_cluster_mask<-function(featdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpa
 #Left
 #paste0("fslmaths ",templatebrain," -roi 45 -1 0 -1 0 -1 0 -1 lefthem_standard.nii")
 
-# rootdir="/Volumes/bek/neurofeedback/sonrisa1/nfb/ssanalysis/fsl"
-# grproot="/Volumes/bek/neurofeedback/sonrisa1/nfb/grpanal/fsl"
-# modelname="Value1n"
-# basemask="tstat"
-# corrp_mask="tfce"
-# saveclustermap=TRUE
-# VersionCode="tfce0.95"
-# corrmaskthreshold=0.98
-# roimaskthreshold=0.0001
-# voxelnumthres=10
-# clustertoget=NULL
-# copetoget=NULL
-# maxcore=4
-
 readfsf<-function(fsfdir){
   fsf<-readLines(fsfdir)
   fsf<-fsf[!grepl("#",fsf)&fsf!=""]
@@ -1154,8 +952,6 @@ readfsf<-function(fsfdir){
   names(argu_ls)<-gsub("fmri(","",gsub(")","",sapply(strsplit(argus," "),`[[`,2),fixed = T),fixed = T)
   return(list(feat_df=feat_df,argu_ls=argu_ls))
 }
-
-
 
 roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_output,modelname=argu$model.name,glvl_method="randomise",grp_identif=NA,forceconcat=F,
                        basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,useMMcor=F,
@@ -1220,7 +1016,7 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_output,mod
     all_copes_ls<-all_copes_ls[!sapply(all_copes_ls, is.null)]
     names(all_copes_ls)<-sapply(all_copes_ls,`[[`,"copename")
     return(all_copes_ls)
-  } else if(glvl_method=="randomise"){
+  } else if (glvl_method=="randomise"){
     raw_avfeat<-system(paste0("find ",file.path(rootdir,modelname,"*/average.gfeat")," -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
     strsplit(raw_avfeat,split = "/") ->raw.split
     df.ex<-data.frame(ID=unlist(lapply(raw.split,function(x) {
@@ -1379,8 +1175,6 @@ get_timeserires<-function(ssub_root=NULL,maskpath=NULL,templatepath=NULL,tarname
   return(RESULTX)
 }
 
-
-
 deconv_timeseries<-function(datalist=NULL,tslist=NULL,func.proc=NULL,evtname=NULL,tr=NULL,num.calibrate=0.5,variname="ts_beta",func.deconv=mean){
   xz<-lapply(datalist,do.call,what=func.proc)
   if(!is.null(num.calibrate)){message("Calibration number is set to be ",num.calibrate,", this will be added to before and after each epoch to capture more volumes.")
@@ -1522,39 +1316,6 @@ deconv_timeseries<-function(datalist=NULL,tslist=NULL,func.proc=NULL,evtname=NUL
 # }
 
 
-getMotion_report<-function(infilepath=file.choose(),dvar_thresh=20,fd_thresh=0.9,protocol=ptcs$masterdemo){
-  masterdemo<-bsrc::bsrc.checkdatabase2(protocol = protocol,batch_size=1000L,forceskip = T,online = T)
-  dfa<-read.csv(infilepath,stringsAsFactors = F)
-  dfa$X<-NULL
-  sp_a<-split(dfa,paste(dfa$ID,dfa$session,sep = "_"))
-  outdf<-do.call(rbind,lapply(sp_a,function(dfb){
-    data.frame(per_fd=length(which(as.numeric(dfb$fd) >= fd_thresh))/nrow(dfb),
-               per_dvar=length(which(as.numeric(dfb$dvars) <= dvar_thresh))/nrow(dfb),
-               max_fd = max(as.numeric(dfb$fd)),
-               max_dvar = max(as.numeric(dfb$dvar)),
-               modelname=unique(dfb$modelname),ID=unique(dfb$ID),session=unique(dfb$session),stringsAsFactors = F)
-    
-  }))
-  outdf<-outdf[outdf$max_fd <= 10,]
-  outdf<-bsrc::bsrc.findid(df = outdf,idmap = masterdemo$data[c("registration_redcapid","registration_wpicid","registration_soloffid",
-                                                                "registration_group","registration_lethality")],id.var = "ID",onlyoutput = T)
-  outdf$ogid<-NULL;outdf$ifexist<-NULL;outdf$registration_wpicid<-NULL;outdf$registration_soloffid<-NULL;
-  names(outdf)[which(names(outdf)=="registration_redcapid")]<-"DNPL_ID"
-  names(outdf)[which(names(outdf)=="registration_group")]<-"Group"
-  names(outdf)[which(names(outdf)=="registration_lethality")]<-"Lethality"
-  
-  
-  sp_b<-split(outdf,outdf$ID)
-  outdf2<-do.call(rbind,lapply(sp_b,function(dfc){
-    ga<-cbind(as.data.frame(as.list(apply(dfc[1:2],2,mean))),dfc[1,3:ncol(dfc)])
-    ga$session<-"mean"
-    gat<-reshape2::melt(data = rbind(dfc,ga),id.vars=c("ID","DNPL_ID","Group","Lethality","modelname","session"))
-    gat$vari<-paste(gat$variable,gat$session,sep = "_")
-    reshape2::dcast(data = gat,formula = ID+modelname+DNPL_ID+Group+Lethality~vari,value.var = "value")
-  }))
-  outdf2$Group[which(outdf2$Group=="")]<-NA
-  return(outdf2)
-}
 
 
 
