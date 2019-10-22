@@ -421,10 +421,10 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       )
       # NAME = ?
       # OUTPUTPATH = ?
-    
+      
       lvl3_raw_sp<-split(lvl3_rawdf,lvl3_rawdf$COPENUM)
       #lvl3_raw_sp<-lvl3_raw_sp[which(argu$dsgrid$RunGrpLvl)]
-    
+      
       lvl3_raw_sp<-lapply(lvl3_raw_sp,function(x){
         if(!is.null(argu$lvl3_ref_df)){x<-merge(x,argu$lvl3_ref_df,all.x=T,by="ID")}
         x$NAME = unique(readLines(file.path(x$PATH[1],"design.lev")))
@@ -466,6 +466,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         lvl3_alldf <- lvl3_alldf[which(!lvl3_alldf$ID %in% argu$exclude_these_ID),]
         
       }
+      save(lvl3_alldf,file = file.path(unique(lvl3_alldf$OUTPUTPATH),"lvl3_alldf.rdata"))
       #lvl3_alldf <- lvl3_alldf[!grepl("_evt",lvl3_alldf$NAME),]
       # xaj<-ls()
       # save(xaj,file = "~/debug_lvl3.rdata")
@@ -506,7 +507,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #############Step 6: AFNIfy and Simple Extraction of Informaiton ###################
   stepnow<-6
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
-    if(lvl1_afnify){
+    
+    if(argu$lvl1_afnify){
       if(!exists("lvl2_featlist")) {
         lvl2_featlist<-system(paste0("find ",file.path(argu$subj_outputroot,argu$model_name)," -iname ","*output.feat"," -maxdepth 2 -mindepth 1 -type d"),intern = T)
       }
@@ -522,10 +524,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           message("Start to process ID:",ss_dirs$ID[ssx],", Run: ",ss_dirs$run[ssx])
           feat2afni_single(feat_dir = ss_dirs$ss_path[ssx],include_copestat = T,include_varcope = T,include_auxstats = F,outputdir = file.path(ss_rootdir,"ss_afni_view"),prefix = paste(ss_dirs$ID[ssx],ss_dirs$run[ssx],sep = "_"))
           message("\n")
-          }
+        }
       }
     }
-    if(lvl2_afnify){
+    
+    if(argu$lvl2_afnify){
       avg_dirs<-system(paste0("find ",file.path(argu$subj_outputroot,argu$model_name)," -iname ","average.gfeat"," -maxdepth 2 -mindepth 1 -type d"),intern = T)
       if(length(avg_dirs)<1) {message("No subject average gfeat folder found. Skip")} else {
         dir.create(file.path(ss_rootdir,"avg_afni_view"),recursive = T,showWarnings = F)
@@ -535,26 +538,54 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           gfeat2afni(gfeat_dir = avgx,include_varcope = F,copy_subj_cope = F,outputdir = file.path(ss_rootdir,"avg_afni_view"),prefix = paste0("avg_",basename(dirname(avgx))),verbos = F)
           message("\n")
         }
+      }
     }
-    if(lvl3_afnify){
-        fsf_ls<-list.files(path = file.path(file.path(argu$glvl_output,argu$model_name),"fsf_files"),pattern = ".*.fsf",full.names = T,recursive = F)
-        if(length(fsf_ls)>1){
-         
-          gxroot<-unique(file.path(dirname(dirname(fsf_ls)),"grp_afni_view"))
-          dir.create(gxroot,recursive = T,showWarnings = F)
-          file.copy(from = file.path(Sys.getenv("FSLDIR"),"data/standard/MNI152_T1_1mm_brain.nii.gz"),to = file.path(unique(file.path(dirname(dirname(fsf_ls)),"grp_afni_view")),"template_brain.nii.gz"),overwrite = T)
-          #system.file("extdata", "my_raw_data.csv", package="my_package")
-          for (fsf in fsf_ls){
-            message("Start to process: ",gsub(".fsf","",basename(fsf)))
-            gfeat2afni(gfeat_dir = file.path(dirname(dirname(fsf)),gsub(".fsf",".gfeat",basename(fsf)))
-                       ,include_varcope = F,copy_subj_cope = T,outputdir = gxroot,
-                       prefix = gsub(".fsf","_grpstat",basename(fsf)),verbos = F)
-            message("\n")
+    
+    if(argu$lvl3_afnify){
+      fsf_ls<-list.files(path = file.path(file.path(argu$glvl_output,argu$model_name),"fsf_files"),pattern = ".*.fsf",full.names = T,recursive = F)
+      if(length(fsf_ls)>1){
+        gxroot<-unique(file.path(dirname(dirname(fsf_ls)),"grp_afni_view"))
+        dir.create(gxroot,recursive = T,showWarnings = F)
+        ds_path<-file.path(gxroot,"design_files")
+        dir.create(ds_path,showWarnings = F,recursive = T)
+        file.copy(from = file.path(Sys.getenv("FSLDIR"),"data/standard/MNI152_T1_1mm_brain.nii.gz"),to = file.path(unique(file.path(dirname(dirname(fsf_ls)),"grp_afni_view")),"template_brain.nii.gz"),overwrite = T)
+        file.copy(from = file.path(unique(lvl3_alldf$OUTPUTPATH),"lvl3_alldf.rdata"),
+                  to = file.path(ds_path,"lvl3_design.rdata"),overwrite = T)
+        #system.file("extdata", "my_raw_data.csv", package="my_package")
+        for (fsf in fsf_ls){
+          
+          fsf_name<-gsub(".fsf","",basename(fsf))
+          message("Start to process: ",fsf_name)
+          retuxa<-gfeat2afni(gfeat_dir = file.path(dirname(dirname(fsf)),gsub(".fsf",".gfeat",basename(fsf)))
+                             ,include_varcope = F,copy_subj_cope = T,outputdir = gxroot,
+                             prefix = gsub(".fsf","_grpstat",basename(fsf)),verbos = F)
+          if(!is.null(retuxa)){
+            file.copy(from = file.path(dirname(dirname(fsf)),gsub(".fsf",".gfeat",basename(fsf)),"design.png"),
+                      to = file.path(ds_path,paste0(fsf_name,"design.png")),overwrite = T)
+            dscon_raw<-readLines(file.path(dirname(dirname(fsf)),gsub(".fsf",".gfeat",basename(fsf)),"design.mat"))
+            dscon_matrix<-get_matrix(raw_text = dscon_raw,heading = "/Matrix",ending = NULL,split = "\t",
+                                     colnames = sub("/ContrastName\\d+\\s+([\\w_.]+).*", "\\1", grep("/ContrastName", dscon_raw, value=TRUE), perl=TRUE))
+            dscon_matrix<-as.data.frame(apply(dscon_matrix,2,as.numeric))
+            dscon_mk<-rbind(dscon_matrix,apply(dscon_matrix,2,mean),apply(dscon_matrix,2,sum))
+            rownames(dscon_mk)[(nrow(dscon_matrix)+1):nrow(dscon_mk)]<-c("mean","sum")
+            write.csv(x = dscon_mk,file = file.path(ds_path,paste0(fsf_name,"design.csv")))
           }
- 
-     
+          message("\n")
+        }
+      }
     }
+    
   }
+  
+  get_matrix<-function(raw_text,heading="/Matrix",ending=NULL,colnames=NULL,split=" "){
+    if(is.null(ending)){end_pos<-length(raw_text)}else{end_pos<-(grep(ending,raw_text)-1)}
+    if(is.null(heading)){end_pos<-0}else{start_pos<-(grep(heading,raw_text)+1)}
+    raw_mx<-raw_text[start_pos:end_pos]
+    matrix_df<-as.data.frame(do.call(rbind,strsplit(raw_mx,split = split)))
+    if(!is.null(colnames) && length(colnames)==ncol(matrix_df)){names(matrix_df)<-colnames} 
+    return(matrix_df)
+  }
+  
   
   # stepnow<-6
   # if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
