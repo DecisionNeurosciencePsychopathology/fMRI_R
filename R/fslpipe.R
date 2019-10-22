@@ -1,7 +1,5 @@
 ######FSL PIPE:
-#New features:
-
-#You can now supply xmat to argu for design matrix 
+#####Upcoming: Level 1 re-make for better efficiency
 
 
 fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model should have a different one;
@@ -127,10 +125,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     } else {
       eval(step1_cmd)
     }
-    #End of Step 1
+    message("Step ", stepnow ," Ended")
   }
-  
-  
+
   #############Step 2: LVL1: Single Subject PARALLEL##########
   #Now we do the single sub processing using FSL and the regressor that was generated
   stepnow<-2
@@ -254,7 +251,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         
       }
     } else {message("Nothing to run on lvl 1.")}
-    #End of Step 2
+    message("Step ", stepnow ," Ended")
   }
   
   #############Step 3: Prep for Higher Level #######################
@@ -274,7 +271,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       lvl2_featlist<-prep_session_lvl(subj_rootpath = file.path(argu$subj_outputroot,argu$model_name),subj_folderreg = "*output.feat",overwrite = argu$lvl2_force_prep,
                                       template_brainpath = argu$templatebrain_path)
     }
-    ##End of Step 3
+    message("Step ", stepnow ," Ended")
   }
   
   #############Step 4: LVL2: Fixed Effect for Single Subject PARALLEL ###############
@@ -347,7 +344,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       }
     }
     
-    ################END of step 4
+    message("Step ", stepnow ," Ended")
   }
   
   #############Step 5: LVL3: Higher Level (Randomize/FLAME) ##PARALLEL by function#########
@@ -501,7 +498,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       
     } else {stop("Higher level type ",argu$lvl3_type," is not supported, only 'randomize' or 'flame' is currently supported")}
     
-    #End Step 5
+    message("Step ", stepnow ," Ended")
   } 
   
   #############Step 6: AFNIfy and Simple Extraction of Informaiton ###################
@@ -577,16 +574,10 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       }
     }
     
+    message("Step ", stepnow ," Ended")
   }
   
-  get_matrix<-function(raw_text,heading="/Matrix",ending=NULL,colnames=NULL,split=" "){
-    if(is.null(ending)){end_pos<-length(raw_text)}else{end_pos<-(grep(ending,raw_text)-1)}
-    if(is.null(heading)){end_pos<-0}else{start_pos<-(grep(heading,raw_text)+1)}
-    raw_mx<-raw_text[start_pos:end_pos]
-    matrix_df<-as.data.frame(do.call(rbind,strsplit(raw_mx,split = split)))
-    if(!is.null(colnames) && length(colnames)==ncol(matrix_df)){names(matrix_df)<-colnames} 
-    return(matrix_df)
-  }
+
   
   
   # stepnow<-6

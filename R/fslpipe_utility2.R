@@ -3,7 +3,14 @@
 #subj
 #sess
 #grp
-
+get_matrix<-function(raw_text,heading="/Matrix",ending=NULL,colnames=NULL,split=" "){
+  if(is.null(ending)){end_pos<-length(raw_text)}else{end_pos<-(grep(ending,raw_text)-1)}
+  if(is.null(heading)){end_pos<-0}else{start_pos<-(grep(heading,raw_text)+1)}
+  raw_mx<-raw_text[start_pos:end_pos]
+  matrix_df<-as.data.frame(do.call(rbind,strsplit(raw_mx,split = split)))
+  if(!is.null(colnames) && length(colnames)==ncol(matrix_df)){names(matrix_df)<-colnames} 
+  return(matrix_df)
+}
 
 check_argu<-function(argu=NULL,init=F){
   requiresargus<-c("path.cfg","funcimg.namepatt","path.outroot","path.lvl1grid","ssub.func","ssub.datalist","modelname")
