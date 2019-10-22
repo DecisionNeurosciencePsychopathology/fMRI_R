@@ -1,5 +1,5 @@
-#######
-##
+#######This script supports version 1 of the fslpipe package. 
+##But also version retain use of most of it.
 ##
 #devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/fslpipe.R")
 #devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/prep_for_second_lvl.R")

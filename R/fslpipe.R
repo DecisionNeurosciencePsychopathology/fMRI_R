@@ -8,29 +8,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                    initonly=F
 ) {
   
-  ###STEP 0: Source necessary scripts:
-  #devtools::source_url("https://raw.githubusercontent.com/DecisionNeurosciencePsychopathology/fMRI_R/master/dnpl_utility.R")
-  
   require("devtools")
   if("dependlab" %in% installed.packages()){"GREAT, DEPENDLAB PACK IS INSTALLED"}else{devtools::install_github("PennStateDEPENdLab/dependlab")}
-  fsl_2_sys_env(force = T)
   require("parallel")
   
-  if(!exists("run_pipeline",envir = argu)){
-    if(Sys.getenv("run_pipeline")==""){argu$run_pipeline<-TRUE}else{argu$run_pipeline<-Sys.getenv("run_pipeline")}
-  }
-  if(!exists("run_steps",envir = argu)){
-    if(Sys.getenv("run_steps")==""){argu$run_steps<-NULL}else{argu$run_steps<-Sys.getenv("run_steps")}
-  }
-  
-  if (is.null(argu$nprocess)){
-    if (detectCores()>12){
-      num_cores<-12 
-    } else {num_cores<-detectCores()-2} 
-  } else {argu$nprocess->num_cores}
-  
-  
-  #IDTORUN <- names(prep.call.allsub)
+  fsl_2_sys_env(force = T)
   
   ###Initializing argu;
   argu$cfg<-cfg_info(cfgpath = argu$cfgpath)
@@ -76,7 +58,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   default_ls<-list(lvl2_prep_refit=FALSE,lvl1_centervalues=FALSE,run_on_pbs=FALSE,lvl1_centervalues=TRUE,lvl1_forcegenreg=FALSE,
                    qsub_limits=20,lvl2_force_prep=FALSE,lvl1_retry=FALSE,lvl1_afnify=F,lvl2_afnify=F,lvl3_afnify=T,
                    nuisa_motion=c("nuisance","motion_par"),lvl3_lowlvlfeatreg="average.gfeat",motion_type="fd",
-                   motion_threshold="default",job_per_qsub=as.numeric(argu$cfg$n_expected_funcruns),
+                   motion_threshold="default",job_per_qsub=as.numeric(argu$cfg$n_expected_funcruns),run_pipeline=TRUE,
                    lvl3_type="flame",adaptive_ssfeat=TRUE)
   default_ls<-default_ls[!names(default_ls) %in% names(argu)]
   if (length(default_ls)>0){
@@ -85,7 +67,26 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
     argu<-list2env(default_ls,envir = argu)
   }
-  argu$lvl3_lowlvlfeatreg
+  
+  ####SYSTEM ENV LS
+  ###Get from the system environment, placed after default so the default value can be taken care of;
+  sysenvLS<-c(run_pipeline=TRUE,run_steps=NULL)
+  for (sysenvX in sysenvLS) {
+    if(!exists("run_pipeline",envir = argu)){
+      if(Sys.getenv("run_pipeline")==""){argu$run_pipeline<-TRUE}else{argu$run_pipeline<-Sys.getenv("run_pipeline")}
+    }
+    if(!exists("run_steps",envir = argu)){
+      if(Sys.getenv("run_steps")==""){argu$run_steps<-NULL}else{argu$run_steps<-Sys.getenv("run_steps")}
+    }
+  } 
+  
+  ##Parallel processes number
+  if (is.null(argu$nprocess)){
+    if (detectCores()>12){
+      num_cores<-12 
+    } else {num_cores<-detectCores()-2} 
+  } else {argu$nprocess->num_cores}
+  
   #Renaming;
   if(argu$adaptive_ssfeat){argu$ssub_fsl_templatepath<-system.file("extdata", "fsl_ssfeat_general_adaptive_template_R.fsf", package="fslpipe")}
   if(!argu$run_pipeline){return(NULL)}

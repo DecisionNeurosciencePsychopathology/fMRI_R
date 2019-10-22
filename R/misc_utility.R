@@ -275,3 +275,10 @@ check_argu<-function(argu=NULL,init=F){
   
   return(argu)
 }
+
+
+
+
+
+
+
