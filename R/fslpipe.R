@@ -507,7 +507,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #############Step 6: AFNIfy and Simple Extraction of Informaiton ###################
   stepnow<-6
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
-    
+    fsl_2_sys_env()
     if(argu$lvl1_afnify){
       if(!exists("lvl2_featlist")) {
         lvl2_featlist<-system(paste0("find ",file.path(argu$subj_outputroot,argu$model_name)," -iname ","*output.feat"," -maxdepth 2 -mindepth 1 -type d"),intern = T)
