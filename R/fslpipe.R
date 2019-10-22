@@ -522,7 +522,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         
         for (ssx in 1:nrow(ss_dirs)) {
           message("Start to process ID:",ss_dirs$ID[ssx],", Run: ",ss_dirs$run[ssx])
-          feat2afni_single(feat_dir = ss_dirs$ss_path[ssx],include_copestat = T,include_varcope = T,include_auxstats = F,outputdir = file.path(ss_rootdir,"ss_afni_view"),prefix = paste(ss_dirs$ID[ssx],ss_dirs$run[ssx],sep = "_"))
+          feat2afni_single(feat_dir = ss_dirs$ss_path[ssx],include_copestat = T,include_varcope = T,include_auxstats = F,AFNIdir = argu$AFNIPATH,
+                           outputdir = file.path(ss_rootdir,"ss_afni_view"),prefix = paste(ss_dirs$ID[ssx],ss_dirs$run[ssx],sep = "_"))
           message("\n")
         }
       }
@@ -535,7 +536,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         file.copy(from = file.path(Sys.getenv("FSLDIR"),"data/standard/MNI152_T1_1mm_brain.nii.gz"),to = file.path(ss_rootdir,"avg_afni_view","template_brain.nii.gz"),overwrite = T)
         for (avgx in avg_dirs) {
           message("Start to process: ",avgx)
-          gfeat2afni(gfeat_dir = avgx,include_varcope = F,copy_subj_cope = F,outputdir = file.path(ss_rootdir,"avg_afni_view"),prefix = paste0("avg_",basename(dirname(avgx))),verbos = F)
+          gfeat2afni(gfeat_dir = avgx,include_varcope = F,copy_subj_cope = F,outputdir = file.path(ss_rootdir,"avg_afni_view"),
+                     prefix = paste0("avg_",basename(dirname(avgx))),AFNIdir = argu$AFNIPATH,verbos = F)
           message("\n")
         }
       }
@@ -557,7 +559,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           fsf_name<-gsub(".fsf","",basename(fsf))
           message("Start to process: ",fsf_name)
           retuxa<-gfeat2afni(gfeat_dir = file.path(dirname(dirname(fsf)),gsub(".fsf",".gfeat",basename(fsf)))
-                             ,include_varcope = F,copy_subj_cope = T,outputdir = gxroot,
+                             ,include_varcope = F,copy_subj_cope = T,outputdir = gxroot,AFNIdir = argu$AFNIPATH,
                              prefix = gsub(".fsf","_grpstat",basename(fsf)),verbos = F)
           if(!is.null(retuxa)){
             file.copy(from = file.path(dirname(dirname(fsf)),gsub(".fsf",".gfeat",basename(fsf)),"design.png"),
