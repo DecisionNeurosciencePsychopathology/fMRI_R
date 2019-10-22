@@ -953,54 +953,95 @@ readfsf<-function(fsfdir){
   return(list(feat_df=feat_df,argu_ls=argu_ls))
 }
 
-roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_output,modelname=argu$model.name,glvl_method="randomise",grp_identif=NA,forceconcat=F,
-                       basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,useMMcor=F,
+
+cust_label = c("vmPFC","rkJFC","dyTUE","kzROZ","opXYZ","tmVBC")
+
+roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_output,modelname=argu$model.name,glvl_method="randomise",grp_identif=NA,forceconcat=F,cust_label=NULL,
+                       basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,useMMcor=F,cust_cluster_thres=NULL,cust_mask=NULL,
                        roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL,maxcore=4,saverdata=T,...){
   #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
   
   fsl_2_sys_env()
   if(is.null(Version)){Version<-paste0(corrp_mask,corrmaskthreshold)}
   if(saveclustermap){cmoutdir<-NULL}else{cmoutdir<-base::tempdir()}
-  
+  if(is.null(cust_cluster_thres)){cust_cluster_thres<-0}
   if(glvl_method=="FLAME") {
-    file.path(grproot,modelname,"fsf_files")
-    fsffiles<-list.files(file.path(grproot,modelname,"fsf_files"),pattern = "*.fsf",full.names = T)
+    fsffiles<-list.files(file.path(grproot,"fsf_files"),pattern = "*.fsf",full.names = T)
     if(length(fsffiles)<maxcore){coresx<-length(fsffiles)}else{coresx<-4}
     sharedproc<-parallel::makeCluster(coresx,outfile="",type = "FORK")
     all_copes_ls<-parallel::parLapply(cl=sharedproc,fsffiles,function(fsfdir){
       fsfout<-readfsf(fsfdir)
-      if(!dir.exists(paste0(fsfout$argu_ls$outputdir,".gfeat"))){return(NULL)}
+      
+      if(dir.exists(paste0(fsfout$argu_ls$outputdir,".gfeat"))) {
+        grapath = paste0(fsfout$argu_ls$outputdir,".gfeat")
+      }else if(dir.exists(file.path(dirname(dirname(fsfdir)),paste0(basename(fsfout$argu_ls$outputdir),".gfeat")))) {
+        grapath = file.path(dirname(dirname(fsfdir)),paste0(basename(fsfout$argu_ls$outputdir),".gfeat"))
+      } else {
+        message("No gfeat found for fsf file: ",basename(fsfdir))
+        return(NULL)
+      }
+      
       copename<-basename(fsfout$argu_ls$outputdir)
       message("Getting ",copename,"...")
       if(!is.null(copetoget) && !copename %in% copetoget) {return(NULL)}
-      sess_copes<-list.files(paste0(fsfout$argu_ls$outputdir,".gfeat"),pattern = "cope[0-9]*.feat",full.names = T)
+      
+      
+      
+      sess_copes<-list.files(grapath,pattern = "cope[0-9]*.feat",full.names = T)
+      
       all_sesscope_ls<-lapply(sess_copes,function(sess_dir){
         sess_copename<-readLines(file.path(sess_dir,"design.lev"))
-        index_df<-read.table(file.path(sess_dir,"cluster_zstat1_std.txt"),sep = "\t",header = T)
-        if(nrow(index_df)<1){
-          message("LVL1 COPE: ",copename,", LVL2 COPE: ",sess_copename,". Failed becasue mask is empty.")
-          return(NULL)}
-        names(index_df)<-gsub("_$","",gsub(".","_",gsub("..","_",names(index_df),fixed = T),fixed = T))
-        dir.create(path = file.path(sess_dir,"sp_clustermask"),recursive = T,showWarnings = F)
+        cluster_fd<-file.path(sess_dir,"sp_clustermask")
+        dir.create(path = cluster_fd,recursive = T,showWarnings = F)
+        
+        if(is.null(cust_mask)){
+          index_df<-read.table(file.path(sess_dir,"cluster_zstat1_std.txt"),sep = "\t",header = T)
+          if(nrow(index_df)<1){
+            message("LVL1 COPE: ",copename,", LVL2 COPE: ",sess_copename,". Failed becasue mask is empty.")
+            return(NULL)}
+          mask_to_use = file.path(sess_dir,"cluster_mask_zstat1.nii.gz")
+        } else {
+          message("Supplied custom mask")
+          s2raw<-system(paste0("cluster -i ",cust_mask," -t ",cust_cluster_thres," -o ",file.path(cluster_fd,"mask_clusterbin")),intern = T)
+          index_df<-read.table(text = s2raw,sep = "\t",header = T,check.names = F)
+          if(nrow(index_df)<1){
+            message("custom mask after thresholding is empty.")
+            return(NULL)}
+          mask_to_use = file.path(cluster_fd,"mask_clusterbin")
+        }
+        names(index_df)<-gsub(" ","_",gsub("_$","",gsub(".","_",gsub("..","_",names(index_df),fixed = T),fixed = T)))
+        
         all_roivalue_ls<-do.call(rbind,lapply(index_df$Cluster_Index,function(cix){
           outfile<-file.path(file.path(sess_dir,"sp_clustermask"),paste0("cluster_mask_",cix,".nii.gz"))
           if(!file.exists(outfile)){
             opt<-paste0("-thr ",cix," -uthr ",cix," -bin \"",outfile,"\"")
-            cmd<-paste("fslmaths",file.path(sess_dir,"cluster_mask_zstat1.nii.gz"),opt)
+            cmd<-paste("fslmaths",mask_to_use,opt)
             system(cmd,intern = F)}
           cmdx<-system(paste(sep=" ","fslstats -t",file.path(sess_dir,"filtered_func_data.nii.gz"),
-                      "-k",outfile,"-M"),intern = T)
+                             "-k",outfile,"-M"),intern = T)
           if(length(cmdx)!=length(fsfout$feat_df$ID)){
             message("LVL1 COPE: ",copename,", LVL2 COPE: ",sess_copename,", CLUSTER: ",cix,". Failed becasue data and ID dimension not matched.")
             return(NULL)}
           return(data.frame(ID=fsfout$feat_df$ID,Cluster_Index=cix,value=as.numeric(cmdx),stringsAsFactors = F))
-        }))
+        })
+        )
+       
         all_roivalue_ls$LVL2_NAME<-sess_copename
         all_roivalue_ls$LVL1_NAME<-copename
+        
+        if(!is.null(cust_label) && length(cust_label) == max(as.numeric(index_df$Cluster_Index))) {
+          message("customize labeling only works with one uniformed mask.")
+          all_roivalue_ls$label<-cust_label[as.numeric(all_roivalue_ls$Cluster_Index)]
+        } else {
+          all_roivalue_ls$label<-paste("Cluster",all_roivalue_ls$Cluster_Index,sep = "_")
+        }
+        
         if(length(sess_dir)==1){
-          all_roivalue_ls$type<-paste(all_roivalue_ls$LVL1_NAME,"Cluster",all_roivalue_ls$Cluster_Index,sep = "_")
-        } else {all_roivalue_ls$type<-paste(all_roivalue_ls$LVL1_NAME,all_roivalue_ls$LVL2_NAME,"Cluster",all_roivalue_ls$Cluster_Index,sep = "_")}
-        all_roivalue_wide<-reshape(all_roivalue_ls,direction = "wide",v.names = "value",idvar = c("ID","LVL2_NAME", "LVL1_NAME"),drop = "Cluster_Index",timevar = "type")
+          all_roivalue_ls$type<-paste(all_roivalue_ls$LVL1_NAME,all_roivalue_ls$label,sep = "_")
+        } else {all_roivalue_ls$type<-paste(all_roivalue_ls$LVL1_NAME,all_roivalue_ls$LVL2_NAME,all_roivalue_ls$label,sep = "_")}
+        
+        
+        all_roivalue_wide<-reshape(all_roivalue_ls,direction = "wide",v.names = "value",idvar = c("ID","LVL2_NAME", "LVL1_NAME"),drop = c("Cluster_Index","label"),timevar = "type")
         names(all_roivalue_wide)<-gsub("value.","",names(all_roivalue_wide),fixed = T)
         roivalues=all_roivalue_wide
         roivalues_long = all_roivalue_ls
