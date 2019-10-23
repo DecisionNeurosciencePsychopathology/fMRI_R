@@ -954,9 +954,7 @@ readfsf<-function(fsfdir){
 }
 
 
-cust_label = c("vmPFC","rkJFC","dyTUE","kzROZ","opXYZ","tmVBC")
-
-roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_output,modelname=argu$model.name,glvl_method="randomise",grp_identif=NA,forceconcat=F,cust_label=NULL,
+roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="randomise",grp_identif=NA,forceconcat=F,cust_label=NULL,rootdir=argu$ssub_outputroot,
                        basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,useMMcor=F,cust_cluster_thres=NULL,cust_mask=NULL,
                        roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL,maxcore=4,saverdata=T,...){
   #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
@@ -965,6 +963,7 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_output,mod
   if(is.null(Version)){Version<-paste0(corrp_mask,corrmaskthreshold)}
   if(saveclustermap){cmoutdir<-NULL}else{cmoutdir<-base::tempdir()}
   if(is.null(cust_cluster_thres)){cust_cluster_thres<-0}
+
   if(glvl_method=="FLAME") {
     fsffiles<-list.files(file.path(grproot,"fsf_files"),pattern = "*.fsf",full.names = T)
     if(length(fsffiles)<maxcore){coresx<-length(fsffiles)}else{coresx<-4}
@@ -983,10 +982,9 @@ roi_getvalue<-function(rootdir=argu$ssub_outputroot,grproot=argu$glvl_output,mod
       
       copename<-basename(fsfout$argu_ls$outputdir)
       message("Getting ",copename,"...")
-      if(!is.null(copetoget) && !copename %in% copetoget) {return(NULL)}
       
-      
-      
+      if(!is.null(copetoget) && (!copename %in% copetoget)) {return(NULL)}
+
       sess_copes<-list.files(grapath,pattern = "cope[0-9]*.feat",full.names = T)
       
       all_sesscope_ls<-lapply(sess_copes,function(sess_dir){
