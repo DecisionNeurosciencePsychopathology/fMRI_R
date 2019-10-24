@@ -367,7 +367,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
                     row.names = F,col.names = FALSE)
       }}
     
-    output$heatmap<-make_heatmap_with_design(output$design)
+    output$heatmap<-NA
     output$volume<-run_volum
     output$preprocID<-paste0(ID,proc_id_subs)
     save(output,file = file.path(output$regpath,"design_output.rdata"))

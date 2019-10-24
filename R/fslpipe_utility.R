@@ -230,7 +230,7 @@ do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_s
     nuisance_regressors = nuisa.x #Maybe could add in nuisance_regressors from pre-proc
   )
   
-  design$heatmap<-make_heatmap_with_design(design)
+  design$heatmap<-NA
   design$volume<-run_volum
   design$nuisan<-nuisa
   design$ID<-tid
