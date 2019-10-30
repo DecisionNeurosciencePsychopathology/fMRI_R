@@ -460,6 +460,9 @@ feat2afni_single<-function(feat_dir=NULL,include_copestat=T,include_varcope=F,in
     prefix_auxfiles = paste(prefix,"auxstats",sep = "_")
     
     zfiles <- list.files(file.path(feat_dir,"stats"), pattern="zstat[0-9]+\\.nii.*", full.names=TRUE)
+    
+    if(length(zfiles)<1){message("No zstat file identified. Terminating.");return(NULL)}
+    
     statnums <- as.numeric(sub(".*zstat(\\d+)\\.nii.*", "\\1", zfiles, perl=TRUE))
     
     design_contrasts <- readLines(file.path(feat_dir,"design.con"))
@@ -555,7 +558,7 @@ gfeat2afni <- function(gfeat_dir=NULL,include_varcope=F,copy_subj_cope=F,outputd
   if(is.null(AFNIdir)){AFNIdir<-Sys.getenv("AFNIDIR")}
   if(is.null(AFNIdir) | AFNIdir==""){AFNIdir<-"~/abin"}
   if(!dir.exists(AFNIdir)) {stop("AFNI directory can not be found, please specify.")}
-  if(is.null(gfeat_dir) || !dir.exists(feat_dir) || length(feat_dir)>1){stop("Feat directory is either not supplied, not found or has a length greater than 1.")}
+  if(is.null(gfeat_dir) || !dir.exists(gfeat_dir) || length(gfeat_dir)>1){stop("Feat directory is either not supplied, not found or has a length greater than 1.")}
   if(is.null(prefix)){message("Prefix is set to default");prefix="grp"}
   
   dir.create(outputdir,showWarnings = F,recursive = T)
@@ -572,7 +575,7 @@ gfeat2afni <- function(gfeat_dir=NULL,include_varcope=F,copy_subj_cope=F,outputd
     message("Processing: ",dxa)
     afniout<-suppressMessages(feat2afni_single(feat_dir = dxa,include_copestat = T,include_varcope = include_varcope,include_auxstats = F,outputdir = dxa,
                               prefix = "sfeat",verbos = verbos))$statsfile
-    
+    if(is.null(afniout)){return(NULL)}
     copename <- gsub(" ","_",readLines(file.path(dxa, "design.lev"))) #contains the L2 effect name (e.g., clock_onset)
     #afniout <- file.path(dxa, "feat_stats+tlrc")
     briklabels<-system(command = paste(AFNIdir,paste("3dinfo -label", afniout),sep = "/"),intern = T)
@@ -602,7 +605,7 @@ gfeat2afni <- function(gfeat_dir=NULL,include_varcope=F,copy_subj_cope=F,outputd
     
     return(afniout)
   })
-  
+  allafniout <- allafniout[which(!sapply(allafniout,is.null))]
   
   #glue together the stats files
   system(command = paste(AFNIdir,
