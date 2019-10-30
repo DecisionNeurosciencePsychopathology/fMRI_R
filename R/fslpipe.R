@@ -420,6 +420,16 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       # NAME = ?
       # OUTPUTPATH = ?
       
+      if(!is.null(argu$run_these_ID)) {
+        lvl3_rawdf <- lvl3_rawdf[which(lvl3_rawdf$ID %in% argu$run_these_ID),]
+      }
+      
+      if(!is.null(argu$exclude_these_ID)) {
+        message("The following IDs are excluded from the final analysis: ",paste(argu$exclude_these_ID,collapse = ", "))
+        lvl3_rawdf <- lvl3_rawdf[which(!lvl3_rawdf$ID %in% argu$exclude_these_ID),]
+      }
+      
+      
       lvl3_raw_sp<-split(lvl3_rawdf,lvl3_rawdf$COPENUM)
       #lvl3_raw_sp<-lvl3_raw_sp[which(argu$dsgrid$RunGrpLvl)]
       
@@ -455,15 +465,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       #Sometimes two sample has to be combined but ran the same group level, but needs exclusion
       #Sometimes it's easy to include only certarin people (HC only)
       
-      if(!is.null(argu$run_these_ID)) {
-        lvl3_alldf <- lvl3_alldf[which(lvl3_alldf$ID %in% argu$run_these_ID),]
-      }
-      
-      if(!is.null(argu$exclude_these_ID)) {
-        message("The following IDs are excluded from the final analysis: ",paste(argu$exclude_these_ID,collapse = ", "))
-        lvl3_alldf <- lvl3_alldf[which(!lvl3_alldf$ID %in% argu$exclude_these_ID),]
-        
-      }
+
       save(lvl3_alldf,file = file.path(unique(lvl3_alldf$OUTPUTPATH),"lvl3_alldf.rdata"))
       #lvl3_alldf <- lvl3_alldf[!grepl("_evt",lvl3_alldf$NAME),]
       # xaj<-ls()
