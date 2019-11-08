@@ -966,7 +966,7 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
 
   if(glvl_method=="FLAME") {
     fsffiles<-list.files(file.path(grproot,"fsf_files"),pattern = "*.fsf",full.names = T)
-    if(length(fsffiles)<maxcore){coresx<-length(fsffiles)}else{coresx<-4}
+    if(length(fsffiles)<maxcore  && length(fsffiles)<2){coresx<-length(fsffiles)}else{coresx<-4}
     sharedproc<-parallel::makeCluster(coresx,outfile="",type = "FORK")
     all_copes_ls<-parallel::parLapply(cl=sharedproc,fsffiles,function(fsfdir){
       fsfout<-readfsf(fsfdir)
