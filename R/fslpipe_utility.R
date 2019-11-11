@@ -963,12 +963,14 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
   if(is.null(Version)){Version<-paste0(corrp_mask,corrmaskthreshold)}
   if(saveclustermap){cmoutdir<-NULL}else{cmoutdir<-base::tempdir()}
   if(is.null(cust_cluster_thres)){cust_cluster_thres<-0}
-
+  if(!is.null(modelname)){grproot<-file.path(grproot,modelname)}
+  
   if(glvl_method=="FLAME") {
     fsffiles<-list.files(file.path(grproot,"fsf_files"),pattern = "*.fsf",full.names = T)
+    if(length(fsffiles)<1) {stop("No fsf files found in ",file.path(grproot,"fsf_files")," folder.")}
     nx <- length(fsffiles)
     if ( nx <= maxcore || nx <= 2) {coresx <-nx} else {coresx <- 4}
-    
+    print(coresx)
     sharedproc<-parallel::makeCluster(coresx,outfile="",type = "FORK")
     all_copes_ls<-parallel::parLapply(cl=sharedproc,fsffiles,function(fsfdir){
       fsfout<-readfsf(fsfdir)
@@ -983,10 +985,10 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
       }
       
       copename<-basename(fsfout$argu_ls$outputdir)
-      message("Getting ",copename,"...")
+      
       
       if(!is.null(copetoget) && (!copename %in% copetoget)) {return(NULL)}
-
+      message("Getting ",copename,"...")
       sess_copes<-list.files(grapath,pattern = "cope[0-9]*.feat",full.names = T)
       
       all_sesscope_ls<-lapply(sess_copes,function(sess_dir){
