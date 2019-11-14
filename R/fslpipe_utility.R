@@ -954,7 +954,7 @@ readfsf<-function(fsfdir){
 }
 
 
-roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="randomise",grp_identif=NA,forceconcat=F,cust_label=NULL,rootdir=argu$ssub_outputroot,
+roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="randomise",grp_identif=NA,forceconcat=F,cust_label=NULL,rootdir=argu$ssub_outputroot,whole_map=FALSE,
                        basemask="tstat",corrp_mask="tstat",saveclustermap=TRUE,Version="t_t",corrmaskthreshold=3.0,useMMcor=F,cust_cluster_thres=NULL,cust_mask=NULL,
                        roimaskthreshold=0.0001, voxelnumthres=5, clustertoget=NULL,copetoget=NULL,maxcore=4,saverdata=T,...){
   #clustertoget=list(`12`=c(43,44),`13`=c(26,25)),copetoget=12:13){ #This is completely optional
@@ -970,8 +970,8 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
     if(length(fsffiles)<1) {stop("No fsf files found in ",file.path(grproot,"fsf_files")," folder.")}
     nx <- length(fsffiles)
     if ( nx <= maxcore || nx <= 2) {coresx <-nx} else {coresx <- 4}
-    print(coresx)
-    sharedproc<-parallel::makeCluster(coresx,outfile="",type = "FORK")
+    message("Will run with ",coresx," cores.")
+    sharedproc<-parallel::makeCluster(coresx,type = "FORK")
     all_copes_ls<-parallel::parLapply(cl=sharedproc,fsffiles,function(fsfdir){
       fsfout<-readfsf(fsfdir)
       
@@ -1013,12 +1013,21 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
         }
         names(index_df)<-gsub(" ","_",gsub("_$","",gsub(".","_",gsub("..","_",names(index_df),fixed = T),fixed = T)))
         
+        if(whole_map) {
+          bin_x <- paste0(mask_to_use,"_bin")
+          system(paste("fslmaths",mask_to_use,bin_x,sep = " "))
+          mask_to_use<-bin_x
+          index_df<-as.data.frame(t(apply(index_df,2,function(x){x<-NA})))
+          index_df$Cluster_Index<-1
+        } else if (!cust_cluster_thres>0) {
+          stop("cust_cluster_thres has to take value greater than 0")
+        }
+        
         all_roivalue_ls<-do.call(rbind,lapply(index_df$Cluster_Index,function(cix){
           outfile<-file.path(file.path(sess_dir,"sp_clustermask"),paste0("cluster_mask_",cix,".nii.gz"))
-          if(!file.exists(outfile)){
-            opt<-paste0("-thr ",cix," -uthr ",cix," -bin \"",outfile,"\"")
-            cmd<-paste("fslmaths",mask_to_use,opt)
-            system(cmd,intern = F)}
+          opt<-paste0("-thr ",cix," -uthr ",cix," -bin \"",outfile,"\"")
+          cmd<-paste("fslmaths",mask_to_use,opt)
+          system(cmd,intern = F)
           cmdx<-system(paste(sep=" ","fslstats -t",file.path(sess_dir,"filtered_func_data.nii.gz"),
                              "-k",outfile,"-M"),intern = T)
           if(length(cmdx)!=length(fsfout$feat_df$ID)){
