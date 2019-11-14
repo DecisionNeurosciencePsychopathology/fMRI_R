@@ -1002,6 +1002,7 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
             message("LVL1 COPE: ",copename,", LVL2 COPE: ",sess_copename,". Failed becasue mask is empty.")
             return(NULL)}
           mask_to_use = file.path(sess_dir,"cluster_mask_zstat1.nii.gz")
+          
         } else {
           message("Supplied custom mask")
           s2raw<-system(paste0("cluster -i ",cust_mask," -t ",cust_cluster_thres," -o ",file.path(cluster_fd,"mask_clusterbin")),intern = T)
@@ -1009,7 +1010,7 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
           if(nrow(index_df)<1){
             message("custom mask after thresholding is empty.")
             return(NULL)}
-          mask_to_use = file.path(cluster_fd,"mask_clusterbin")
+          mask_to_use = cust_mask
         }
         names(index_df)<-gsub(" ","_",gsub("_$","",gsub(".","_",gsub("..","_",names(index_df),fixed = T),fixed = T)))
         
