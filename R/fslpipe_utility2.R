@@ -9,7 +9,14 @@ make_signal_with_grid<-function(outputdata=NULL,dsgrid=NULL,...) {
   #This new version is cleaner and more efficient than the old one!
   if (is.null(outputdata)) {stop("NO DATA SUPPLIED TO MAKE SIGNAL WITH GRID")}
   sp_grid<-split(dsgrid,grepl("_evt",dsgrid$valuefrom))
-  message("###Making signal...###")
+  
+  if(is.null(outputdata$ID)){
+    IDTEXT <- "..."
+  } else {
+    IDTEXT <- paste0("for subject: ",outputdata$ID,".")
+  }
+  
+  message("###Making signal ",IDTEXT,"###")
   if(!is.null(sp_grid$`TRUE`)){
     #Do the evts regressor signals:
     evtGrid<-sp_grid$`TRUE`
