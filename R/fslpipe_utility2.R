@@ -339,7 +339,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
   names(ls_signals)<-names(ls_out)
   #Parallel
   cluster_step1<- parallel::makeCluster(nprocess,outfile="",type = "FORK")
-  ls_ds_matrix<-parallel::parSapply(cluster_step1,ls_signals,function(signalx){
+  ls_ds_matrix<-parallel::parLapply(cluster_step1,ls_signals,function(signalx){
     output<-list(ID=signalx$ID)
     ID = output$ID
     signalx$ID<-NULL
