@@ -330,7 +330,7 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
 }
 
 do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,func_nii_name=NULL,cfg=NULL,proc_id_subs=NULL,model_name=NULL,nprocess=4,forcererun=F,
-                             reg_rootpath=NULL,center_values=TRUE,nuisance_types=c("nuisance","motion_par"),retry=F) {
+                             reg_rootpath=NULL,center_values=TRUE,nuisance_types=c("nuisance","motion_par"),retry=F,enforce_full=F) {
   ls_out<-lapply(lvl1_datalist,do.call,what=lvl1_proc_func)
   message("The lvl1 proc did not finish for the following participant(s): ",names(ls_out)[sapply(ls_out,is.null)])
   ls_out<-ls_out[!sapply(ls_out,is.null)]
@@ -363,6 +363,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
                                           dothese=nuisance_types) 
       if(any(is.na(run_volum))){
         message("failed to find run(s): ",which(is.na(run_volum)))
+        if(enforce_full) {stop("ID: ",ID," suspended for not having enough runs")}
       }
       run_volum <- run_volum[unique(ls_out[[ID]]$event.list$allconcat$run)]
       output$nuisan<-output$nuisan[unique(ls_out[[ID]]$event.list$allconcat$run)]
