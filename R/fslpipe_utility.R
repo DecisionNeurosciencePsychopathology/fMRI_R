@@ -33,6 +33,7 @@ get_nuisance_preproc<-function(id=NULL,cfg=NULL,
     return(lpath)} else if (returnas=="data.frame") {
       ldf<-lapply(lpath,function(x) {
         combo<-list()
+        if(any(!sapply(x,file.exists))){return(NA)}
         if ("nuisance" %in% dothese) {
           nui<-read.table(x$nuisance)
           names(nui)<-unlist(strsplit(cfg$preproc_call$nuisance_compute,split = ","))
