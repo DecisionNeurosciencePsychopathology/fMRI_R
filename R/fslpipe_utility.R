@@ -963,8 +963,9 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
   fsl_2_sys_env()
   if(is.null(Version)){Version<-paste0(corrp_mask,corrmaskthreshold)}
   if(saveclustermap){cmoutdir<-NULL}else{cmoutdir<-base::tempdir()}
+  if(!is.null(modelname)){message("argument modelname is depreciating, use more specified grproot.")}
+  message("When using already separatedly mask, use \"cust_cluster_thres = 1\"")
   if(is.null(cust_cluster_thres)){cust_cluster_thres<-0}
-  if(!is.null(modelname)){grproot<-file.path(grproot,modelname)}
   
   if(glvl_method=="FLAME") {
     fsffiles<-list.files(file.path(grproot,"fsf_files"),pattern = "*.fsf",full.names = T)
@@ -975,7 +976,11 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
     sharedproc<-parallel::makeCluster(coresx,type = "FORK")
     all_copes_ls<-parallel::parLapply(cl=sharedproc,fsffiles,function(fsfdir){
       fsfout<-readfsf(fsfdir)
-      
+      copename<-basename(fsfout$argu_ls$outputdir)
+      if(!is.null(copetoget) & !copename %in% copetoget) {
+        message("Cope name: ",copename," is not part of the copetoget argument, skiping...")
+        return(NULL)
+      }
       if(dir.exists(paste0(fsfout$argu_ls$outputdir,".gfeat"))) {
         grapath = paste0(fsfout$argu_ls$outputdir,".gfeat")
       }else if(dir.exists(file.path(dirname(dirname(fsfdir)),paste0(basename(fsfout$argu_ls$outputdir),".gfeat")))) {
@@ -985,10 +990,6 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
         return(NULL)
       }
       
-      copename<-basename(fsfout$argu_ls$outputdir)
-      
-      
-      if(!is.null(copetoget) && (!copename %in% copetoget)) {return(NULL)}
       message("Getting ",copename,"...")
       sess_copes<-list.files(grapath,pattern = "cope[0-9]*.feat",full.names = T)
       
@@ -1015,14 +1016,14 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
         }
         names(index_df)<-gsub(" ","_",gsub("_$","",gsub(".","_",gsub("..","_",names(index_df),fixed = T),fixed = T)))
         
-        if(whole_map) {
+        if(whole_map | nrow(index_df) == 1) {
           bin_x <- paste0(mask_to_use,"_bin")
           system(paste("fslmaths",mask_to_use,bin_x,sep = " "))
           mask_to_use<-bin_x
           index_df<-as.data.frame(t(apply(index_df,2,function(x){x<-NA})))
           index_df$Cluster_Index<-1
         } else if (!cust_cluster_thres>0) {
-          stop("cust_cluster_thres has to take value greater than 0")
+          stop("cust_cluster_thres has to take value greater than 0, or use whole_map argument")
         }
         
         all_roivalue_ls<-do.call(rbind,lapply(index_df$Cluster_Index,function(cix){
