@@ -367,7 +367,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
       }
       run_volum <- run_volum[unique(ls_out[[ID]]$event.list$allconcat$run)]
       output$nuisan<-output$nuisan[unique(ls_out[[ID]]$event.list$allconcat$run)]
-      save.image(file = file.path(output$regpath,paste0("preconvovleID",ID,".rdata")))
+      save(list = ls(),file = file.path(output$regpath,paste0("preconvovleID",ID,".rdata")))
       output$design<-dependlab::build_design_matrix(center_values=center_values,signals = signalx,
                                                     events = ls_out[[ID]]$event.list$allconcat,write_timing_files = c("convolved", "FSL","AFNI"),
                                                     tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
