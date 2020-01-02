@@ -365,13 +365,20 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
         message("failed to find run(s): ",which(is.na(run_volum)))
         if(enforce_full) {stop("ID: ",ID," suspended for not having enough runs")}
       }
-      run_volum <- run_volum[unique(ls_out[[ID]]$event.list$allconcat$run)]
-      output$nuisan<-output$nuisan[unique(ls_out[[ID]]$event.list$allconcat$run)]
+      functional_runs <- intersect(unique(ls_out[[ID]]$event.list$allconcat$run),which(!is.na(run_volum)))
+      run_volum <- run_volum[functional_runs]
+      output$nuisan<-output$nuisan[functional_runs]
+      ls_out[[ID]]$event.list$allconcat<-ls_out[[ID]]$event.list$allconcat[which(ls_out[[ID]]$event.list$allconcat$run %in% functional_runs),]
+      proc_signal<-lapply(signalx,function(xa){
+        if(is.data.frame(xa$value)){xa$value<-xa$value[which(xa$value$run %in% functional_runs),]}
+        return(xa)
+      })
       save(list = ls(),file = file.path(output$regpath,paste0("preconvovleID",ID,".rdata")))
-      output$design<-dependlab::build_design_matrix(center_values=center_values,signals = signalx,
+      output$design<-dependlab::build_design_matrix(center_values=center_values,signals = proc_signal,
                                                     events = ls_out[[ID]]$event.list$allconcat,write_timing_files = c("convolved", "FSL","AFNI"),
                                                     tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
                                                     output_directory = file.path(reg_rootpath,model_name,ID))
+      
     },error=function(e){print(e);writeLines(paste("FAILED:",e,sep = " "),con = file.path(output$regpath,"gendesign_failed"));return(NULL)})
     if(is.null(output$design)){writeLines("FAILED",con = file.path(output$regpath,"gendesign_failed"));return(NULL)}
     if (!is.null(output$nuisan)){
