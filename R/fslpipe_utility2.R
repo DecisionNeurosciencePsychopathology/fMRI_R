@@ -365,10 +365,10 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
         message("failed to find run(s): ",which(is.na(run_volum)))
         if(enforce_full) {stop("ID: ",ID," suspended for not having enough runs")}
       }
-      functional_runs <- intersect(unique(ls_out[[ID]]$event.list$allconcat$run),which(!is.na(run_volum)))
-      run_volum <- run_volum[functional_runs]
-      output$nuisan<-output$nuisan[functional_runs]
-      ls_out[[ID]]$event.list$allconcat<-ls_out[[ID]]$event.list$allconcat[which(ls_out[[ID]]$event.list$allconcat$run %in% functional_runs),]
+      #functional_runs <- intersect(unique(ls_out[[ID]]$event.list$allconcat$run),which(!is.na(run_volum)))
+      #run_volum <- run_volum[functional_runs]
+      #output$nuisan<-output$nuisan[functional_runs]
+      #ls_out[[ID]]$event.list$allconcat<-ls_out[[ID]]$event.list$allconcat[which(ls_out[[ID]]$event.list$allconcat$run %in% functional_runs),]
       proc_signal<-lapply(signalx,function(xa){
         if(is.data.frame(xa$value)){xa$value<-xa$value[which(xa$value$run %in% functional_runs),]}
         return(xa)
