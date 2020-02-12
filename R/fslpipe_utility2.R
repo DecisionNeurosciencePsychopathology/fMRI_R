@@ -375,6 +375,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
       #  if(is.data.frame(xa$value)){xa$value<-xa$value[which(xa$value$run %in% functional_runs),]}
       #  return(xa)
       #})
+      proc_signal <- signalx
       save(list = ls(),file = file.path(output$regpath,paste0("preconvovleID",ID,".rdata")))
       output$design<-dependlab::build_design_matrix(center_values=center_values,signals = proc_signal,
                                                     events = ls_out[[ID]]$event.list$allconcat,write_timing_files = c("convolved", "FSL","AFNI"),
