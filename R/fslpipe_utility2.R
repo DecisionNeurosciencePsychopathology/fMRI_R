@@ -332,7 +332,9 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
 do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,func_nii_name=NULL,cfg=NULL,proc_id_subs=NULL,model_name=NULL,nprocess=4,forcererun=F,
                              reg_rootpath=NULL,center_values=TRUE,nuisance_types=c("nuisance","motion_par"),retry=F,enforce_full=F) {
   ls_out<-lapply(lvl1_datalist,do.call,what=lvl1_proc_func)
-  message("The lvl1 proc did not finish for the following participant(s): ",names(ls_out)[sapply(ls_out,is.null)])
+  if(!is.null(names(ls_out)[sapply(ls_out,is.null)])) {
+    message("The lvl1 proc did not finish for the following participant(s): ",names(ls_out)[sapply(ls_out,is.null)])
+  }
   ls_out<-ls_out[!sapply(ls_out,is.null)]
   ls_signals<-lapply(ls_out,make_signal_with_grid,add_taskness=T,dsgrid=dsgrid)
   ls_signals<-lapply(names(ls_signals),function(ID){lsa<-ls_signals[[ID]];lsa$ID<-ID;return(lsa)})
@@ -369,10 +371,10 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
       #run_volum <- run_volum[functional_runs]
       #output$nuisan<-output$nuisan[functional_runs]
       #ls_out[[ID]]$event.list$allconcat<-ls_out[[ID]]$event.list$allconcat[which(ls_out[[ID]]$event.list$allconcat$run %in% functional_runs),]
-      proc_signal<-lapply(signalx,function(xa){
-        if(is.data.frame(xa$value)){xa$value<-xa$value[which(xa$value$run %in% functional_runs),]}
-        return(xa)
-      })
+      #proc_signal<-lapply(signalx,function(xa){
+      #  if(is.data.frame(xa$value)){xa$value<-xa$value[which(xa$value$run %in% functional_runs),]}
+      #  return(xa)
+      #})
       save(list = ls(),file = file.path(output$regpath,paste0("preconvovleID",ID,".rdata")))
       output$design<-dependlab::build_design_matrix(center_values=center_values,signals = proc_signal,
                                                     events = ls_out[[ID]]$event.list$allconcat,write_timing_files = c("convolved", "FSL","AFNI"),

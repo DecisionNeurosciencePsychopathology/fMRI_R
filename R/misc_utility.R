@@ -162,10 +162,18 @@ findbox<-function(usebek=F) {
   return(boxdir)
 }
 
-getMotion_report<-function(infilepath=file.choose(),dvar_thresh=20,fd_thresh=0.9,protocol=ptcs$masterdemo){
+getMotion_report<-function(infilepath=file.choose(),dvar_thresh=20,fd_thresh=0.9,filter_name=NULL,protocol=ptcs$masterdemo){
   masterdemo<-bsrc::bsrc.checkdatabase2(protocol = protocol,batch_size=1000L,forceskip = T,online = T)
   dfa<-read.csv(infilepath,stringsAsFactors = F)
   dfa$X<-NULL
+  
+  if(is.null(dfa$session)){
+    dfa$session <- dfa$run
+    dfa$modelname <- dfa$func_name
+  } 
+  if(!is.null(filter_name)){
+    dfa <- dfa[which(dfa$modelname %in% filter_name),]
+  }
   sp_a<-split(dfa,paste(dfa$ID,dfa$session,sep = "_"))
   outdf<-do.call(rbind,lapply(sp_a,function(dfb){
     data.frame(per_fd=length(which(as.numeric(dfb$fd) >= fd_thresh))/nrow(dfb),
