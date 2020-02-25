@@ -14,7 +14,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   fsl_2_sys_env(force = T)
   
-  ###Initializing argu;
+  #############STEP 0: Initializing argu #########
   argu$cfg<-cfg_info(cfgpath = argu$cfgpath)
   argu$dsgrid<-read.table(argu$gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
   if(is.null(argu$dsgrid$AddNeg)){argu$dsgrid$AddNeg<-FALSE}
@@ -23,21 +23,27 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   argu$dsgrid$RunGrpLvl <- as.logical(argu$dsgrid$RunGrpLvl)
   # if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
   
+  ###Getting Paths:
+  if (!is.null(argu$rootpath_output)) {
+    argu$lvl1path_output <- file.path(argu$rootpath_output,"single_subject")
+    argu$lvl1path_reg    <- file.path(argu$rootpath_output,"reg")
+    argu$lvl3path_output <- file.path(argu$rootpath_output,"group_level")
+  }
+  
   ###Version upgrade safe keeping
   
   #Replacing old variables names from previous versions
   replaceLS<-list(ifnuisa="convlv_nuisa",onlyrun="run_steps",centerscaleall="lvl1_centervalues",lvl1_run_on_pbs="run_on_pbs",
-                  model.name="model_name",ssub_outputroot="subj_outputroot",templatedir="templatebrain_path")
+                  regpath = "lvl1path_reg",ssub_outputroot="lvl1path_output",subj_outputroot="lvl1path_output",
+                  glvl_outputroot = "lvl3path_output",glvl_output = "lvl3path_output", func.nii.name = "name_func_nii",
+                  model.name="model_name",templatedir="templatebrain_path")
   
   for(og in names(replaceLS)){
     if (exists(og,envir = argu) & !exists(replaceLS[[og]],envir = argu)) {
       message(og," variable is now depreciated, please use ",replaceLS[[og]],".")
       argu[[replaceLS[[og]]]]<-argu[[og]]}
   }
-  
-  
-  
-  
+
   if (!exists("lvl1_cmat",envir = argu)) {
     message("Single subject contrast matrix is not specified, will use automatic generated one by using grid.")
     ogLength<-length(argu$dsgrid$name)
@@ -92,6 +98,20 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if(!argu$run_pipeline){return(NULL)}
   if(initonly) {return(argu)}
   
+  #Get preproc info:
+  dfa <- data.frame(ID=names(argu$lvl1_datalist),behavioral_data=TRUE,stringsAsFactors = F)
+  dfb <- data.frame(ID= list.dirs(argu$cfg$loc_mrproc_root,full.names = F,recursive = F), 
+                     preproc=sapply(list.dirs(argu$cfg$loc_mrproc_root,full.names = T,recursive = F) ,function(IDx){
+                       if(!dir.exists(file.path(IDx,argu$cfg$preprocessed_dirname))){return("NON-EXIST")} 
+                       preproc_dirs<-list.files(pattern = argu$cfg$paradigm_name,path = file.path(IDx,argu$cfg$preprocessed_dirname),recursive = F,include.dirs = T,full.names = T)
+                       if(length(preproc_dirs)<1){return("NON-EXIST")} 
+                       nii_files<-sapply(preproc_dirs,list.files,pattern=gsub("*",".*",argu$name_func_nii,fixed = T),recursive=F,full.names=F,USE.NAMES = F)
+                       if(length(nii_files)<1){return("NOT-FINISHED")
+                       }else if (length(nii_files)!=argu$cfg$n_expected_funcruns){
+                         return(paste("INCOMPLETED",length(nii_files),sep = "-"))
+                       } else {return("COMPLETE")}
+                     },USE.NAMES = F),stringsAsFactors = F)
+  dfc <- merge(dfa,dfb,by = "ID",all = T)
   
   
   
@@ -100,37 +120,37 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   stepnow<-1
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     #Create the directory if not existed
-    #print(argu$subj_outputroot, argu$model_name)
+    #print(argu$lvl1path_output, argu$model_name)
     argu$lvl1_datalist<-prep.call.allsub;
     argu$lvl1_procfunc<-get(prep.call.func)
     
     #argu$lvl1_datalist<-argu$lvl1_datalist[which(names(argu$lvl1_datalist) %in% IDTORUN)]
-    dir.create(file.path(argu$subj_outputroot,argu$model_name),showWarnings = FALSE,recursive = T)
+    dir.create(file.path(argu$lvl1path_output,argu$model_name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
     # lvl1_datalist=argu$lvl1_datalist
     # lvl1_proc_func = argu$lvl1_procfunc
     # forcererun = argu$lvl1_forcegenreg
     # dsgrid=argu$dsgrid
-    # func_nii_name=argu$func.nii.name
+    # func_nii_name=argu$name_func_nii
     # nprocess=argu$nprocess
     # cfg=argu$cfg
     # proc_id_subs=argu$proc_id_subs
     # model_name=argu$model_name
     # retry=argu$lvl1_retry
-    # reg_rootpath=argu$regpath
+    # reg_rootpath=argu$lvl1path_reg
     # center_values=argu$lvl1_centervalues
     # nuisance_types=argu$nuisa_motion
 
     step1_cmd<-substitute({
       allsub_design<-fslpipe::do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,forcererun = argu$lvl1_forcegenreg,
-                                                 dsgrid=argu$dsgrid,func_nii_name=argu$func.nii.name,nprocess=argu$nprocess,
+                                                 dsgrid=argu$dsgrid,func_nii_name=argu$name_func_nii,nprocess=argu$nprocess,
                                                  cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,retry=argu$lvl1_retry,
-                                                 reg_rootpath=argu$regpath,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
-      save(allsub_design,file = file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
+                                                 reg_rootpath=argu$lvl1path_reg,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
+      save(allsub_design,file = file.path(argu$lvl1path_output,argu$model_name,"design.rdata"))
     })
     
     if(argu$run_on_pbs){
-      workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc")
+      workingdir<-file.path(argu$lvl1path_output,argu$model_name,"lvl1_misc")
       dir.create(workingdir,showWarnings = F,recursive = F)
       setwd(workingdir)
       save(list = ls(),file = "curwd.rdata")
@@ -141,6 +161,10 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     } else {
       eval(step1_cmd)
     }
+    
+   
+    
+    
     message("Step ", stepnow ," Ended")
   }
 
@@ -150,8 +174,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     
     
-    if (file.exists(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))) {
-      load(file.path(argu$subj_outputroot,argu$model_name,"design.rdata"))
+    if (file.exists(file.path(argu$lvl1path_output,argu$model_name,"design.rdata"))) {
+      load(file.path(argu$lvl1path_output,argu$model_name,"design.rdata"))
     } else {stop("No design rdata file found, must re-run step 1")}
     
     
@@ -161,7 +185,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         design=x$design,
         ID=x$ID,
         run_volumes=x$design$run_volumes,
-        regpath=x$regpath,
+        lvl1path_reg=x$lvl1path_reg,
         preprocID=x$preprocID)
     })
     
@@ -201,7 +225,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       aarg<-xarg
       cmmd<-unlist(lapply(1:length(x$run_volumes), function(runnum) {
         
-        aarg$outputpath<-file.path(argu$subj_outputroot,argu$model_name,idx,paste0("run",runnum,"_output"))
+        aarg$outputpath<-file.path(argu$lvl1path_output,argu$model_name,idx,paste0("run",runnum,"_output"))
         if (!file.exists(file.path(paste0(aarg$outputpath,".feat"),"stats","zstat1.nii.gz")) ) {
           message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
           if(dir.exists(file.path(paste0(aarg$outputpath,".feat"))) ){
@@ -212,22 +236,22 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           
           aarg$runnum<-runnum   
           aarg$volumes<-x$run_volumes[runnum]
-          aarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfg = argu$cfg,reg.nii.name = argu$func.nii.name,returnas = "path")[runnum]
+          aarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfg = argu$cfg,reg.nii.name = argu$name_func_nii,returnas = "path")[runnum]
           if(!length(aarg$funcfile)>0 || any(is.na(aarg$funcfile))){message("ID: ",idx," RUN: ",runnum,", failed to find a functional image. Terminate.");return(NULL)}
-          aarg$nuisa<-file.path(argu$regpath,argu$model_name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
+          aarg$nuisa<-file.path(argu$lvl1path_reg,argu$model_name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
           
           if(argu$adaptive_ssfeat){
             for (mv in 1:ncol(argu$lvl1_cmat)) {
-              assign(paste0("evreg",mv),file.path(file.path(argu$regpath,argu$model_name),idx,paste0("run",runnum,"_",argu$model_varinames[mv],argu$regtype)),envir = aarg)
+              assign(paste0("evreg",mv),file.path(file.path(argu$lvl1path_reg,argu$model_name),idx,paste0("run",runnum,"_",argu$model_varinames[mv],argu$regtype)),envir = aarg)
             }
           } else {
-            gen_reg(vmodel=argu$model_varinames,regpath=file.path(argu$regpath,argu$model_name),idx=idx,runnum=runnum,env=aarg,regtype=argu$regtype)
+            gen_reg(vmodel=argu$model_varinames,lvl1path_reg=file.path(argu$lvl1path_reg,argu$model_name),idx=idx,runnum=runnum,env=aarg,regtype=argu$regtype)
           }
           if (any(unlist(eapply(aarg,is.na)))) {stop("NA exists in one of the arguments; please double check!")}
-          #gen_reg(vmodel=argu$model.varinames,regpath=file.path(argu$regpath,argu$model_name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
+          #gen_reg(vmodel=argu$model.varinames,lvl1path_reg=file.path(argu$lvl1path_reg,argu$model_name),idx=idx,runnum=runnum,env=xarg,regtype = argu$regtype)
           
           cmmd<-feat_w_template(fsltemplate = ssfsltemp,beg = "ARG_",end = "_END",
-                                fsfpath = file.path(argu$regpath,argu$model_name,idx,paste0("run",runnum,"_",argu$model_name,".fsf")),
+                                fsfpath = file.path(argu$lvl1path_reg,argu$model_name,idx,paste0("run",runnum,"_",argu$model_name,".fsf")),
                                 envir = aarg,outcommand = T)
           rm(aarg)
           return(cmmd)
@@ -241,7 +265,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     if(length(step2commands)>0){
       if(argu$run_on_pbs){
         #PBS
-        lvl1_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl1_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
+        lvl1_workingdir<-file.path(argu$lvl1path_output,argu$model_name,"lvl1_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
         qsub_commands(cmds = step2commands,jobperqsub = argu$job_per_qsub,workingdir = lvl1_workingdir,
                       tagname = "lvl1",ppn = 4,qsublimit = argu$qsub_limits)
         
@@ -267,6 +291,10 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         
       }
     } else {message("Nothing to run on lvl 1.")}
+    
+    ###Generate Table Output for Processing Status:
+    
+    
     message("Step ", stepnow ," Ended")
   }
   
@@ -277,14 +305,14 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     if(argu$lvl2_prep_refit){
       #cfg<-cfg_info(cfgpath = argu$cfgpath)
       gtax<-prepare4secondlvl(
-        ssana.path=file.path(argu$subj_outputroot,argu$model_name),            
+        ssana.path=file.path(argu$lvl1path_output,argu$model_name),            
         standardbarin.path=argu$templatedir, featfoldername = "*output.feat",
         dir.filter=argu$hig_lvl_path_filter,                                                
         overwrite=argu$lvl2_force_prep,
         outputmap=TRUE,
         paralleln = num_cores)           
     } else {
-      lvl2_featlist<-prep_session_lvl(subj_rootpath = file.path(argu$subj_outputroot,argu$model_name),subj_folderreg = "*output.feat",overwrite = argu$lvl2_force_prep,
+      lvl2_featlist<-prep_session_lvl(subj_rootpath = file.path(argu$lvl1path_output,argu$model_name),subj_folderreg = "*output.feat",overwrite = argu$lvl2_force_prep,
                                       template_brainpath = argu$templatebrain_path)
     }
     message("Step ", stepnow ," Ended")
@@ -297,7 +325,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     
     lowlvl_featreg = "*output.feat"
     if(!exists("lvl2_featlist")) {
-      lvl2_featlist<-system(paste0("find ",file.path(argu$subj_outputroot,argu$model_name)," -iname ",lowlvl_featreg," -maxdepth 2 -mindepth 1 -type d"),intern = T)
+      lvl2_featlist<-system(paste0("find ",file.path(argu$lvl1path_output,argu$model_name)," -iname ",lowlvl_featreg," -maxdepth 2 -mindepth 1 -type d"),intern = T)
     }
     raw.split <- strsplit(lvl2_featlist,split = .Platform$file.sep) 
     lvl2_rawdf<-do.call(rbind,lapply(raw.split,function(x){
@@ -339,7 +367,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     if(nrow(lvl2_alldf)>0){
       if(argu$run_on_pbs){
         #PBS
-        lvl2_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl2_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
+        lvl2_workingdir<-file.path(argu$lvl1path_output,argu$model_name,"lvl2_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
         pbs_args <- get_pbs_default(); pbs_args$ppn<-4; pbs_args$walltime="40:00:00";
         qsub_commands(cmds = paste("feat",unique(lvl2_alldf$FSF_PATH)),jobperqsub = argu$job_per_qsub,pbs_args=pbs_args,
                       workingdir = lvl2_workingdir,tagname = "lvl2",qsublimit = argu$qsub_limits)
@@ -386,8 +414,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         maxcopenum<-1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
       }
       #Start Group Level Analysis:
-      glvl_all_cope(rootdir=argu$subj_outputroot,
-                    outputdir=argu$glvl_output,
+      glvl_all_cope(rootdir=argu$lvl1path_output,
+                    outputdir=argu$lvl3path_output,
                     modelname=argu$model_name,
                     grp_sep=argu$group_id_sep,
                     onesamplet_pergroup=onesamplet_pergroup,
@@ -400,8 +428,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                     ifDeMean=argu$randomize_demean,
                     paralleln = num_cores)
       # Use for debugging:
-      # rootdir=argu$subj_outputroot
-      # outputdir=argu$glvl_output
+      # rootdir=argu$lvl1path_output
+      # outputdir=argu$lvl3path_output
       # modelname=argu$model_name
       # grp_sep=argu$group_id_sep
       # onesamplet_pergroup=onesamplet_pergroup
@@ -420,7 +448,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       lowlvl_featreg<-argu$lvl3_lowlvlfeatreg
       
       raw<-system(paste0("find ",
-                         file.path(argu$subj_outputroot,argu$model_name,"*/",lowlvl_featreg),
+                         file.path(argu$lvl1path_output,argu$model_name,"*/",lowlvl_featreg),
                          " -iname '*.feat' -maxdepth 2 -mindepth 1 -type d"),intern = T)
       raw.split <- strsplit(raw,split = .Platform$file.sep)  
       lvl3_rawdf<-do.call(rbind,lapply(raw.split,function(x){
@@ -451,7 +479,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       lvl3_raw_sp<-lapply(lvl3_raw_sp,function(x){
         if(!is.null(argu$lvl3_ref_df)){x<-merge(x,argu$lvl3_ref_df,all.x=T,by="ID")}
         x$NAME = unique(readLines(file.path(x$PATH[1],"design.lev")))
-        x$OUTPUTPATH = file.path(argu$glvl_output,paste(argu$model_name,paste(argu$lvl3_covariate_names,collapse = "_"),sep = "_"))
+        x$OUTPUTPATH = file.path(argu$lvl3path_output,paste(argu$model_name,paste(argu$lvl3_covariate_names,collapse = "_"),sep = "_"))
         return(x)
       })
       
@@ -489,7 +517,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         #PBS
         #stop()
         message("Running LEVEL 3 analysis.")
-        lvl3_workingdir<-file.path(argu$subj_outputroot,argu$model_name,"lvl3_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
+        lvl3_workingdir<-file.path(argu$lvl1path_output,argu$model_name,"lvl3_misc",paste0(gsub(":","",gsub("-","_",gsub(pattern = " ","_",Sys.time()))),"log"))
         pbs_args <- get_pbs_default(); pbs_args$ppn<-4; pbs_args$walltime="40:00:00";
         qsub_commands(cmds = paste("feat",unique(lvl3_alldf$FSF_PATH)),jobperqsub = argu$job_per_qsub,
                       workingdir = lvl3_workingdir,tagname = "lvl3",qsublimit = argu$qsub_limits)
@@ -521,12 +549,15 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   #############Step 6: AFNIfy and Simple Extraction of Informaiton ###################
   stepnow<-6
+  fsl_2_sys_env()
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
-    ss_rootdir <- argu$subj_outputroot
-    fsl_2_sys_env()
+    
+    ###AFNIFY HERE
+    ss_rootdir <- file.path(argu$lvl1path_output,argu$model_name,"misc_info")
+    
     if(argu$lvl1_afnify){
       if(!exists("lvl2_featlist")) {
-        lvl2_featlist<-system(paste0("find ",file.path(argu$subj_outputroot,argu$model_name)," -iname ","*output.feat"," -maxdepth 2 -mindepth 1 -type d"),intern = T)
+        lvl2_featlist<-system(paste0("find ",file.path(argu$lvl1path_output,argu$model_name)," -iname ","*output.feat"," -maxdepth 2 -mindepth 1 -type d"),intern = T)
       }
       
       ss_dirs<-data.frame(ss_path=lvl2_featlist,stringsAsFactors = F)
@@ -535,7 +566,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
      
       if(nrow(ss_dirs)<1) {message("No single subject folder found. Skip")} else {
         dir.create(file.path(ss_rootdir,"ss_afni_view"),recursive = T,showWarnings = F)
-        file.copy(from = file.path(Sys.getenv("FSLDIR"),"data/standard/MNI152_T1_1mm_brain.nii.gz"),to = file.path(ss_rootdir,"ss_afni_view","template_brain.nii.gz"),overwrite = T)
+        file.copy(from = file.path(Sys.getenv("FSLDIR"),"data/standard/MNI152_T1_1mm_brain.nii.gz"),
+                  to = file.path(ss_rootdir,"ss_afni_view","template_brain.nii.gz"),overwrite = T)
         
         for (ssx in 1:nrow(ss_dirs)) {
           message("Start to process ID:",ss_dirs$ID[ssx],", Run: ",ss_dirs$run[ssx])
@@ -547,7 +579,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
     
     if(argu$lvl2_afnify){
-      avg_dirs<-system(paste0("find ",file.path(argu$subj_outputroot,argu$model_name)," -iname ","average.gfeat"," -maxdepth 2 -mindepth 1 -type d"),intern = T)
+      avg_dirs<-system(paste0("find ",file.path(argu$lvl1path_output,argu$model_name)," -iname ","average.gfeat"," -maxdepth 2 -mindepth 1 -type d"),intern = T)
       if(length(avg_dirs)<1) {message("No subject average gfeat folder found. Skip")} else {
         dir.create(file.path(ss_rootdir,"avg_afni_view"),recursive = T,showWarnings = F)
         file.copy(from = file.path(Sys.getenv("FSLDIR"),"data/standard/MNI152_T1_1mm_brain.nii.gz"),to = file.path(ss_rootdir,"avg_afni_view","template_brain.nii.gz"),overwrite = T)
@@ -561,7 +593,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     }
     
     if(argu$lvl3_afnify){
-      fsf_ls<-list.files(path = file.path(file.path(argu$glvl_output,argu$model_name),"fsf_files"),pattern = ".*.fsf",full.names = T,recursive = F)
+      fsf_ls<-list.files(path = file.path(file.path(argu$lvl3path_output,argu$model_name),"fsf_files"),pattern = ".*.fsf",full.names = T,recursive = F)
       if(length(fsf_ls)>1){
         gxroot<-unique(file.path(dirname(dirname(fsf_ls)),"grp_afni_view"))
         dir.create(gxroot,recursive = T,showWarnings = F)
@@ -594,6 +626,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       }
     }
     
+   
+    
     message("Step ", stepnow ," Ended")
   }
   
@@ -605,7 +639,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #   library(oro.nifti)
   #   ssfsltemp<-readLines(argu$ssub_fsl_templatepath)
   #   
-  #   plot_image_all(rootpath=argu$glvl_output,
+  #   plot_image_all(rootpath=argu$lvl3path_output,
   #                  templatedir=argu$templatedir,
   #                  model.name=argu$model_name,
   #                  patt="*_tfce_corrp_tstat1.nii.gz",
@@ -619,17 +653,19 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   #       data.frame(copenum=seq(from=length(argu$dsgrid$name)+1,along.with = which(argu$dsgrid$AddNeg)),
   #                  copename=paste0(argu$dsgrid$name[which(argu$dsgrid$AddNeg)],"_neg"))
   #     )
-  #     write.table(xout,file = file.path(argu$glvl_output,argu$model_name,"cope_title_index.txt"),row.names = F)
+  #     write.table(xout,file = file.path(argu$lvl3path_output,argu$model_name,"cope_title_index.txt"),row.names = F)
   #   }else{
   #     write.table(data.frame(copenum=paste0("cope ",as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)]))),
   #                            title=gsub("\"","",gsub(pattern = "[0-9]*) \"",replacement = "",
   #                                                    x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
   #                                                             x = gsub(pattern = "set fmri(conname_orig.",replacement = "",
   #                                                                      x = ssfsltemp[grep("# Title for contrast_orig",ssfsltemp)+1],fixed = T),fixed = T),fixed = F))
-  #     ),file = file.path(argu$glvl_output,argu$model_name,"cope_title_index.txt"),row.names = F)
+  #     ),file = file.path(argu$lvl3path_output,argu$model_name,"cope_title_index.txt"),row.names = F)
   #   }
   #   #End of Step 6
   # }
+  
+  
   
   
   #############End of function fsl_pipe#####################

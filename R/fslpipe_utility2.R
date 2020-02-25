@@ -648,3 +648,22 @@ gfeat2afni <- function(gfeat_dir=NULL,include_varcope=F,copy_subj_cope=F,outputd
   }
   return(file.path(outputdir,paste0(prefix, "+tlrc.BRIK")))
 }
+
+
+cfg<-list()
+cfg$preprocessed_dirname <- "mni_8mm_aroma"
+cfg$loc_mrproc_root <- "/Users/jiazhouchen/sftp/psu_cluster/bsocial/MR_Proc"
+cfg$loc_mrraw_root <- "/Users/jiazhouchen/sftp/psu_cluster/bsocial/MR_Raw/"
+
+
+
+
+
+
+
+
+
+
+
+
+
