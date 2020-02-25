@@ -99,6 +99,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if(initonly) {return(argu)}
   
   #Get preproc info:
+  dir.create(file.path(argu$lvl1path_output,argu$model_name,"misc_info"),showWarnings = F,recursive = T)
   dfa <- data.frame(ID=names(argu$lvl1_datalist),behavioral_data=TRUE,stringsAsFactors = F)
   dfb <- data.frame(ID= list.dirs(argu$cfg$loc_mrproc_root,full.names = F,recursive = F), 
                      preproc=sapply(list.dirs(argu$cfg$loc_mrproc_root,full.names = T,recursive = F) ,function(IDx){
@@ -112,7 +113,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                        } else {return("COMPLETE")}
                      },USE.NAMES = F),stringsAsFactors = F)
   dfc <- merge(dfa,dfb,by = "ID",all = T)
-  
+  write.csv(dfc,file = file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_0_info.csv"),row.names = F)
   
   
   #############STEP 1: Regressor generation####################
