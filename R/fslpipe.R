@@ -100,7 +100,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   #Get preproc info:
   dir.create(file.path(argu$lvl1path_output,argu$model_name,"misc_info"),showWarnings = F,recursive = T)
-  dfa <- data.frame(ID=names(argu$lvl1_datalist),behavioral_data=TRUE,stringsAsFactors = F)
+  dfa <- data.frame(ID=names(prep.call.allsub),behavioral_data=TRUE,stringsAsFactors = F)
   dfb <- data.frame(ID= list.dirs(argu$cfg$loc_mrproc_root,full.names = F,recursive = F), 
                      preproc=sapply(list.dirs(argu$cfg$loc_mrproc_root,full.names = T,recursive = F) ,function(IDx){
                        if(!dir.exists(file.path(IDx,argu$cfg$preprocessed_dirname))){return("NON-EXIST")} 
