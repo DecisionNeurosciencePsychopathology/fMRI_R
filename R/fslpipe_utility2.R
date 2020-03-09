@@ -347,15 +347,20 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
     signalx$ID<-NULL
     output$regpath<-file.path(reg_rootpath,model_name,ID)
     dir.create(output$regpath,recursive = T,showWarnings = F)
-    if(file.exists(file.path(output$regpath,"gendesign_failed")) && !retry) {
-      system(paste0("echo This person: ",ID," has failed regressor generation previously. Will Skip."))
-      return(NULL)}
+
     if(file.exists(file.path(output$regpath,"design_output.rdata")) && !forcererun) {
       system(paste0("echo Loading: ",ID))
       outx<-new.env()
       load(file.path(output$regpath,"design_output.rdata"),envir = outx)
-      if(!is.null(outx$output)){return(outx$output)}
+      if(!is.null(outx$output)){
+        if(file.exists(file.path(output$regpath,"gendesign_failed")) ) {
+          unlink(file.path(output$regpath,"gendesign_failed"))
+        }
+        return(outx$output)}
     }
+    if(file.exists(file.path(output$regpath,"gendesign_failed")) && !retry) {
+      system(paste0("echo This person: ",ID," has failed regressor generation previously. Will Skip."))
+      return(NULL)}
     system(paste0("echo Deconvolving: ",ID))
     tryCatch({
       lsx_out<-ls_out[[ID]]
@@ -385,7 +390,9 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
                                                     events = all_concat_evt,write_timing_files = c("convolved", "FSL","AFNI"),
                                                     tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
                                                     output_directory = file.path(reg_rootpath,model_name,ID))
-      
+      if(file.exists(file.path(output$regpath,"gendesign_failed")) ) {
+        unlink(file.path(output$regpath,"gendesign_failed"))
+        }
     },error=function(e){print(e);writeLines(paste("FAILED:",as.character(e),sep = " "),con = file.path(output$regpath,"gendesign_failed"));return(NULL)})
     if(is.null(output$design)){writeLines("FAILED",con = file.path(output$regpath,"gendesign_failed"));return(NULL)}
     if (!is.null(output$nuisan)){
