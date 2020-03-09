@@ -107,10 +107,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                        preproc_dirs<-list.files(pattern = argu$cfg$paradigm_name,path = file.path(IDx,argu$cfg$preprocessed_dirname),recursive = F,include.dirs = T,full.names = T)
                        if(length(preproc_dirs)<1){return("NON-EXIST")} 
                        nii_files<-sapply(preproc_dirs,list.files,pattern=gsub("*",".*",argu$name_func_nii,fixed = T),recursive=F,full.names=F,USE.NAMES = F)
+                       if(is.matrix(nii_files)){return("INCORRECT PATTERN")}
                        if(length(nii_files)<1){return("NOT-FINISHED")
                        }else if (length(nii_files)!=argu$cfg$n_expected_funcruns){
                          return(paste("INCOMPLETED",length(nii_files),sep = "-"))
-                       } else {return("COMPLETE")}
+                       } else {return("COMPLETED")}
                      },USE.NAMES = F),stringsAsFactors = F)
   dfc <- merge(dfa,dfb,by = "ID",all = T)
   write.csv(dfc,file = file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_0_info.csv"),row.names = F)
@@ -163,7 +164,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       eval(step1_cmd)
     }
     
-   
+   dfc <- read.csv(file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_0_info.csv"),col.names = F,stringsAsFactors = F)
     
     
     message("Step ", stepnow ," Ended")

@@ -332,7 +332,7 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
 do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,func_nii_name=NULL,cfg=NULL,proc_id_subs=NULL,model_name=NULL,nprocess=4,forcererun=F,
                              reg_rootpath=NULL,center_values=TRUE,nuisance_types=c("nuisance","motion_par"),retry=F,enforce_full=F) {
   ls_out<-lapply(lvl1_datalist,do.call,what=lvl1_proc_func)
-  if(!is.null(names(ls_out)[sapply(ls_out,is.null)])) {
+  if(length(names(ls_out)[sapply(ls_out,is.null)])>0) {
     message("The lvl1 proc did not finish for the following participant(s): ",names(ls_out)[sapply(ls_out,is.null)])
   }
   ls_out<-ls_out[!sapply(ls_out,is.null)]
@@ -358,6 +358,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
     }
     system(paste0("echo Deconvolving: ",ID))
     tryCatch({
+      lsx_out<-ls_out[[ID]]
       run_volum<-get_volume_run(id=paste0(ID,proc_id_subs),cfg = cfg,returnas = "numbers",reg.nii.name = func_nii_name)
       output$nuisan<-get_nuisance_preproc(id=paste0(ID,proc_id_subs),
                                           cfg = cfg,
@@ -367,18 +368,21 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
         message("failed to find run(s): ",which(is.na(run_volum)))
         if(enforce_full) {stop("ID: ",ID," suspended for not having enough runs")}
       }
-      #functional_runs <- intersect(unique(ls_out[[ID]]$event.list$allconcat$run),which(!is.na(run_volum)))
-      #run_volum <- run_volum[functional_runs]
-      #output$nuisan<-output$nuisan[functional_runs]
-      #ls_out[[ID]]$event.list$allconcat<-ls_out[[ID]]$event.list$allconcat[which(ls_out[[ID]]$event.list$allconcat$run %in% functional_runs),]
-      #proc_signal<-lapply(signalx,function(xa){
-      #  if(is.data.frame(xa$value)){xa$value<-xa$value[which(xa$value$run %in% functional_runs),]}
-      #  return(xa)
-      #})
-      proc_signal <- signalx
+      
+      
+      func_runs <- intersect(unique(lsx_out$event.list$allconcat$run),which(!is.na(run_volum)))
+      run_volum <- run_volum[func_runs]
+      output$nuisan<-output$nuisan[func_runs]
+      all_concat_evt<-lsx_out$event.list$allconcat[which(lsx_out$event.list$allconcat$run %in% func_runs),]
+      
+      proc_signal<-lapply(signalx,function(xa){
+       if(is.data.frame(xa$value)){xa$value<-xa$value[which(xa$value$run %in% func_runs),]}
+       return(xa)
+      })
+      #proc_signal <- signalx
       save(list = ls(),file = file.path(output$regpath,paste0("preconvovleID",ID,".rdata")))
       output$design<-dependlab::build_design_matrix(center_values=center_values,signals = proc_signal,
-                                                    events = ls_out[[ID]]$event.list$allconcat,write_timing_files = c("convolved", "FSL","AFNI"),
+                                                    events = all_concat_evt,write_timing_files = c("convolved", "FSL","AFNI"),
                                                     tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
                                                     output_directory = file.path(reg_rootpath,model_name,ID))
       
