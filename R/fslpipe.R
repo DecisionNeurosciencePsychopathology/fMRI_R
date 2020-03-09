@@ -43,7 +43,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       message(og," variable is now depreciated, please use ",replaceLS[[og]],".")
       argu[[replaceLS[[og]]]]<-argu[[og]]}
   }
-
+  
   if (!exists("lvl1_cmat",envir = argu)) {
     message("Single subject contrast matrix is not specified, will use automatic generated one by using grid.")
     ogLength<-length(argu$dsgrid$name)
@@ -102,17 +102,17 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   dir.create(file.path(argu$lvl1path_output,argu$model_name,"misc_info"),showWarnings = F,recursive = T)
   dfa <- data.frame(ID=names(prep.call.allsub),behavioral_data=TRUE,stringsAsFactors = F)
   dfb <- data.frame(ID= list.dirs(argu$cfg$loc_mrproc_root,full.names = F,recursive = F), 
-                     preproc=sapply(list.dirs(argu$cfg$loc_mrproc_root,full.names = T,recursive = F) ,function(IDx){
-                       if(!dir.exists(file.path(IDx,argu$cfg$preprocessed_dirname))){return("NON-EXIST")} 
-                       preproc_dirs<-list.files(pattern = argu$cfg$paradigm_name,path = file.path(IDx,argu$cfg$preprocessed_dirname),recursive = F,include.dirs = T,full.names = T)
-                       if(length(preproc_dirs)<1){return("NON-EXIST")} 
-                       nii_files<-sapply(preproc_dirs,list.files,pattern=gsub("*",".*",argu$name_func_nii,fixed = T),recursive=F,full.names=F,USE.NAMES = F)
-                       if(is.matrix(nii_files)){return("INCORRECT PATTERN")}
-                       if(length(nii_files)<1){return("NOT-FINISHED")
-                       }else if (length(nii_files)!=argu$cfg$n_expected_funcruns){
-                         return(paste("INCOMPLETED",length(nii_files),sep = "-"))
-                       } else {return("COMPLETED")}
-                     },USE.NAMES = F),stringsAsFactors = F)
+                    preproc=sapply(list.dirs(argu$cfg$loc_mrproc_root,full.names = T,recursive = F) ,function(IDx){
+                      if(!dir.exists(file.path(IDx,argu$cfg$preprocessed_dirname))){return("NON-EXIST")} 
+                      preproc_dirs<-list.files(pattern = argu$cfg$paradigm_name,path = file.path(IDx,argu$cfg$preprocessed_dirname),recursive = F,include.dirs = T,full.names = T)
+                      if(length(preproc_dirs)<1){return("NON-EXIST")} 
+                      nii_files<-sapply(preproc_dirs,list.files,pattern=gsub("*",".*",argu$name_func_nii,fixed = T),recursive=F,full.names=F,USE.NAMES = F)
+                      if(is.matrix(nii_files)){return("INCORRECT PATTERN")}
+                      if(length(nii_files)<1){return("NOT-FINISHED")
+                      }else if (length(nii_files)!=argu$cfg$n_expected_funcruns){
+                        return(paste("INCOMPLETED",length(nii_files),sep = "-"))
+                      } else {return("COMPLETED")}
+                    },USE.NAMES = F),stringsAsFactors = F)
   dfc <- merge(dfa,dfb,by = "ID",all = T)
   write.csv(dfc,file = file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_0_info.csv"),row.names = F)
   
@@ -142,7 +142,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     # reg_rootpath=argu$lvl1path_reg
     # center_values=argu$lvl1_centervalues
     # nuisance_types=argu$nuisa_motion
-
+    
     step1_cmd<-substitute({
       allsub_design<-fslpipe::do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,forcererun = argu$lvl1_forcegenreg,
                                                  dsgrid=argu$dsgrid,func_nii_name=argu$name_func_nii,nprocess=argu$nprocess,
@@ -164,12 +164,13 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       eval(step1_cmd)
     }
     
-   dfc <- read.csv(file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_0_info.csv"),col.names = F,stringsAsFactors = F)
-    
+    dfc <- read.csv(file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_0_info.csv"),stringsAsFactors = F)
+    dfe <- merge(dfc,data.frame(ID=names(allsub_design)[!sapply(allsub_design,is.null)],gen_reg = T,stringsAsFactors = F),by = "ID",all = T)
+    write.csv(dfe,file = file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_1_info.csv"),row.names = F)
     
     message("Step ", stepnow ," Ended")
   }
-
+  
   #############Step 2: LVL1: Single Subject PARALLEL##########
   #Now we do the single sub processing using FSL and the regressor that was generated
   stepnow<-2
@@ -510,7 +511,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       #Sometimes two sample has to be combined but ran the same group level, but needs exclusion
       #Sometimes it's easy to include only certarin people (HC only)
       
-
+      
       save(lvl3_alldf,file = file.path(unique(lvl3_alldf$OUTPUTPATH),"lvl3_alldf.rdata"))
       #lvl3_alldf <- lvl3_alldf[!grepl("_evt",lvl3_alldf$NAME),]
       # xaj<-ls()
@@ -565,7 +566,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       ss_dirs<-data.frame(ss_path=lvl2_featlist,stringsAsFactors = F)
       ss_dirs$ID<-basename(dirname(ss_dirs$ss_path))
       ss_dirs$run<-gsub("_output.feat","",basename(ss_dirs$ss_path))
-     
+      
       if(nrow(ss_dirs)<1) {message("No single subject folder found. Skip")} else {
         dir.create(file.path(ss_rootdir,"ss_afni_view"),recursive = T,showWarnings = F)
         file.copy(from = file.path(Sys.getenv("FSLDIR"),"data/standard/MNI152_T1_1mm_brain.nii.gz"),
@@ -628,12 +629,12 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       }
     }
     
-   
+    
     
     message("Step ", stepnow ," Ended")
   }
   
-
+  
   
   
   # stepnow<-6

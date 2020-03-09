@@ -386,7 +386,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
                                                     tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
                                                     output_directory = file.path(reg_rootpath,model_name,ID))
       
-    },error=function(e){print(e);writeLines(paste("FAILED:",e,sep = " "),con = file.path(output$regpath,"gendesign_failed"));return(NULL)})
+    },error=function(e){print(e);writeLines(paste("FAILED:",as.character(e),sep = " "),con = file.path(output$regpath,"gendesign_failed"));return(NULL)})
     if(is.null(output$design)){writeLines("FAILED",con = file.path(output$regpath,"gendesign_failed"));return(NULL)}
     if (!is.null(output$nuisan)){
       for (k in 1:length(output$nuisan)) {
