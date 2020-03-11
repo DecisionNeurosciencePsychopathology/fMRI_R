@@ -160,7 +160,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       pbs_torun<-get_pbs_default();pbs_torun$cmd<-"Rscript temp.r";pbs_torun$ppn<-argu$nprocess
       writeLines(do.call(pbs_cmd,pbs_torun),"pbs_temp.sh")
       dependlab::wait_for_job(dependlab::qsub_file("pbs_temp.sh"))
-      laod(file.path(argu$lvl1path_output,argu$model_name,"design.rdata"))
+      load(file.path(argu$lvl1path_output,argu$model_name,"design.rdata"))
     } else {
       eval(step1_cmd)
     }
