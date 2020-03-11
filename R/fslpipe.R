@@ -302,7 +302,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     ncount<-sapply(split(basename(dirname(lvl2_featlist)),basename(dirname(lvl2_featlist))),length)
     
     dff <- merge(dfe,data.frame(ID=names(ncount),nruns=ncount,stringsAsFactors = F),by = "ID",all = T)
-    write.csv(dfe,file = file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_1_info.csv"),row.names = F)
+    #write.csv(dfe,file = file.path(argu$lvl1path_output,argu$model_name,"misc_info","step__info.csv"),row.names = F)
     
     message("Step ", stepnow ," Ended")
   }
@@ -419,7 +419,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       if ("onesample" %in% argu$whichttest) {onesamplet_pergroup<-T}
       if ("paired" %in% argu$whichttest) {pairedtest<-T}
       #To adopt the new chnages made in adaptive ss 
-      if(argu$adaptive_ssfeat) {maxcopenum<-1:nrow(argu$xmat)} else {
+      if(argu$adaptive_ssfeat) {maxcopenum<-1:nrow(argu$lvl1_cmat)} else {
         maxcopenum<-1:max(as.numeric(gsub(".*?([0-9]+).*", "\\1", ssfsltemp[grep("# Title for contrast",ssfsltemp)])))
       }
       #Start Group Level Analysis:
