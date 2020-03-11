@@ -160,6 +160,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       pbs_torun<-get_pbs_default();pbs_torun$cmd<-"Rscript temp.r";pbs_torun$ppn<-argu$nprocess
       writeLines(do.call(pbs_cmd,pbs_torun),"pbs_temp.sh")
       dependlab::wait_for_job(dependlab::qsub_file("pbs_temp.sh"))
+      laod(file.path(argu$lvl1path_output,argu$model_name,"design.rdata"))
     } else {
       eval(step1_cmd)
     }
@@ -296,7 +297,12 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     } else {message("Nothing to run on lvl 1.")}
     
     ###Generate Table Output for Processing Status:
+    dfe <- read.csv(file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_1_info.csv"),stringsAsFactors = F)
+    lvl2_featlist<-system(paste0("find ",file.path(argu$lvl1path_output,argu$model_name)," -iname ","*output.feat"," -maxdepth 2 -mindepth 1 -type d"),intern = T)
+    ncount<-sapply(split(basename(dirname(lvl2_featlist)),basename(dirname(lvl2_featlist))),length)
     
+    dff <- merge(dfe,data.frame(ID=names(ncount),nruns=ncount,stringsAsFactors = F),by = "ID",all = T)
+    write.csv(dfe,file = file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_1_info.csv"),row.names = F)
     
     message("Step ", stepnow ," Ended")
   }
