@@ -1095,7 +1095,7 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
       #message(copenum)
       df.idx<-df.ex[df.ex$COPENUM==copenum,]
       featdir<-list.files(path = truerootdir,pattern = paste0("cope",paste0(copenum,"_"),".*randomize"),full.names = T)
-      featdir<-featdir[-grep(".jpeg",featdir)]
+      featdir<-featdir[!grepl(".jpeg",featdir)]
       cmindx<-gen_cluster_mask(featdir=featdir,base=basemask,corrp_mask=corrp_mask,outdir = cmoutdir,VersionCode = Version,
                                maskthresholdvalue=corrmaskthreshold,roimaskthreshold=roimaskthreshold,useMMcor=useMMcor,
                                overwrite=!saveclustermap)
