@@ -35,15 +35,10 @@ gen_4D_from_subj_level <- function(subj_rootdir=NULL,gfeat_name=NULL,step2_cope=
   return(ind_info)
 }
 
-
-extract_roi_masks <- function(concat_img = NULL,ID_seq=NULL,mask_dir = NULL,search_pattern="*.nii.gz",
-                              max_ncpu = 8,masks_to_exclude=c("cluster_combined.nii")) {
-  all_masks<-list.files(pattern = search_pattern,path = mask_dir,full.names = T,recursive = F,all.files = F,include.dirs = F,ignore.case = T)
-  
-  ncpu_to_use <- ifelse(length(all_masks)>max_ncpu,max_ncpu,length(all_masks))
+extract_roi_masks <- function(concat_img = NULL,ID_seq=NULL,masks_loc = NULL,max_ncpu = 8) {
+  ncpu_to_use <- ifelse(length(masks_loc)>max_ncpu,max_ncpu,length(masks_loc))
   roi_para_fork <- parallel::makeForkCluster(nnodes = ncpu_to_use)
-  
-  ls_roi <- parallel::parLapply(cl = roi_para_fork,X = all_masks, function(mask) {
+  ls_roi <- parallel::parLapply(cl = roi_para_fork,X = masks_loc, function(mask) {
     if(basename(mask) %in% masks_to_exclude) {return(NULL)}
     system(paste0("echo running ",basename(mask)))
     cmdx<-paste(sep=" ",
