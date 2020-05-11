@@ -39,7 +39,6 @@ extract_roi_masks <- function(concat_img = NULL,ID_seq=NULL,masks_loc = NULL,max
   ncpu_to_use <- ifelse(length(masks_loc)>max_ncpu,max_ncpu,length(masks_loc))
   roi_para_fork <- parallel::makeForkCluster(nnodes = ncpu_to_use)
   ls_roi <- parallel::parLapply(cl = roi_para_fork,X = masks_loc, function(mask) {
-    if(basename(mask) %in% masks_to_exclude) {return(NULL)}
     system(paste0("echo running ",basename(mask)))
     cmdx<-paste(sep=" ",
                 "fslstats",
