@@ -278,7 +278,7 @@ change_fsl_template<-function(fsltemplate=NULL,begin="ARG_",end="_END",searchenv
   return(fsltemplate)
 }
 
-gen_reg<-function(vmodel=NULL,regpath=NULL,idx=NULL,runnum=NULL,env=NULL,regtype=NULL) {
+gen_reg<-function(vmodel=NULL,regpath=NULL,idx=NULL,runnum=NULL,env=NULL,regtype=NULL,...) {
   #message("Depreciated! Is probably useless; Will keep for 3 versions before deleting")
   NUP<-lapply(vmodel, function(x) {
     assign(paste0(x,"reg"),file.path(regpath,idx,paste0("run",runnum,"_",x,regtype)),envir = env)
@@ -665,7 +665,7 @@ get_motion_info<-function(configpath=NULL,type="fd",threshold="default"){
   idlist<-list.dirs(cfg$loc_mrproc_root,recursive = F,full.names = F)
   NX<-lapply(idlist,function(X) {
     tryCatch(
-      {return(get_nuisance_preproc(X,cfgfilepath=configpath,
+      {return(get_nuisance_preproc(X,cfg=cfg,
                                    returnas=c("data.frame"),
                                    dothese=c("motion_outlier"),
                                    type=type,
