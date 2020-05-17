@@ -9,7 +9,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
 ) {
   
   require("devtools")
-  if("dependlab" %in% installed.packages()){"GREAT, DEPENDLAB PACK IS INSTALLED"}else{devtools::install_github("PennStateDEPENdLab/dependlab")}
+  if("dependlab" %in% installed.packages()){
+    system(paste("echo","GREAT, DEPENDLAB PACK IS INSTALLED"))
+  }else{
+      devtools::install_github("PennStateDEPENdLab/dependlab")
+    }
   require("parallel")
   
   fsl_2_sys_env(force = T)
@@ -144,7 +148,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     # nuisance_types=argu$nuisa_motion
     
     step1_cmd<-substitute({
-      allsub_design<-fslpipe::do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,forcererun = argu$lvl1_forcegenreg,
+      allsub_design<-do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,forcererun = argu$lvl1_forcegenreg,
                                                  dsgrid=argu$dsgrid,func_nii_name=argu$name_func_nii,nprocess=argu$nprocess,
                                                  cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,retry=argu$lvl1_retry,
                                                  reg_rootpath=argu$lvl1path_reg,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 

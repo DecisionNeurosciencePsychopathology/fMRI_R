@@ -66,6 +66,103 @@ make_signal_with_grid<-function(outputdata=NULL,dsgrid=NULL,...) {
   
 }
 
+
+
+
+
+do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,func_nii_name=NULL,cfg=NULL,proc_id_subs=NULL,model_name=NULL,nprocess=4,forcererun=F,
+                             reg_rootpath=NULL,center_values=TRUE,nuisance_types=c("nuisance","motion_par"),retry=F,enforce_full=F) {
+  ls_out<-lapply(lvl1_datalist,do.call,what=lvl1_proc_func)
+  if(length(names(ls_out)[sapply(ls_out,is.null)])>0) {
+    message("The lvl1 proc did not finish for the following participant(s): ",names(ls_out)[sapply(ls_out,is.null)])
+  }
+  ls_out<-ls_out[!sapply(ls_out,is.null)]
+  ls_signals<-lapply(ls_out,make_signal_with_grid,add_taskness=T,dsgrid=dsgrid)
+  ls_signals<-lapply(names(ls_signals),function(ID){lsa<-ls_signals[[ID]];lsa$ID<-ID;return(lsa)})
+  names(ls_signals)<-names(ls_out)
+  #Parallel
+  cluster_step1<- parallel::makeCluster(nprocess,outfile="",type = "FORK")
+  ls_ds_matrix<-parallel::parLapply(cluster_step1,ls_signals,function(signalx){
+    output<-list(ID=signalx$ID)
+    ID = output$ID
+    signalx$ID<-NULL
+    output$regpath<-file.path(reg_rootpath,model_name,ID)
+    dir.create(output$regpath,recursive = T,showWarnings = F)
+    
+    if(file.exists(file.path(output$regpath,"design_output.rdata")) && !forcererun) {
+      system(paste0("echo Loading: ",ID))
+      outx<-new.env()
+      load(file.path(output$regpath,"design_output.rdata"),envir = outx)
+      if(!is.null(outx$output)){
+        if(file.exists(file.path(output$regpath,"gendesign_failed")) ) {
+          unlink(file.path(output$regpath,"gendesign_failed"))
+        }
+        return(outx$output)}
+    }
+    if(file.exists(file.path(output$regpath,"gendesign_failed")) && !retry) {
+      system(paste0("echo This person: ",ID," has failed regressor generation previously. Will Skip."))
+      return(NULL)}
+    system(paste0("echo Deconvolving: ",ID))
+    tryCatch({
+      lsx_out<-ls_out[[ID]]
+      run_volum<-get_volume_run(id=paste0(ID,proc_id_subs),cfg = cfg,returnas = "numbers",reg.nii.name = func_nii_name)
+      output$nuisan<-get_nuisance_preproc(id=paste0(ID,proc_id_subs),
+                                          cfg = cfg,
+                                          returnas = "data.frame",
+                                          dothese=nuisance_types) 
+      if(any(is.na(run_volum))){
+        message("failed to find run(s): ",paste(which(is.na(run_volum)),collapse = ", "))
+        if(enforce_full) {stop("ID: ",ID," suspended for not having enough runs")}
+      }
+      
+      
+      func_runs <- intersect(unique(lsx_out$event.list$allconcat$run),which(!is.na(run_volum)))
+      run_volum <- run_volum[func_runs]
+      output$nuisan<-output$nuisan[func_runs]
+      all_concat_evt<-lsx_out$event.list$allconcat[which(lsx_out$event.list$allconcat$run %in% func_runs),]
+      
+      #Simple fix for NA event duration causing the pipeline to break
+      if(any(is.na(all_concat_evt$duration) || is.na(all_concat_evt$onset[3:nrow(all_concat_evt)]==0))){
+        system("echo Timing information incorrect.")
+        stop("Timing information incorrect.")
+      }
+      
+      proc_signal<-lapply(signalx,function(xa){
+        if(is.data.frame(xa$value)){xa$value<-xa$value[which(xa$value$run %in% func_runs),]}
+        return(xa)
+      })
+      #proc_signal <- signalx
+      save(proc_signal, run_volum,output,all_concat_evt,
+           file = file.path(output$regpath,paste0("preconvovleID",ID,".rdata")))
+      output$design<-dependlab::build_design_matrix(center_values=center_values,signals = proc_signal,
+                                                    events = all_concat_evt,write_timing_files = c("convolved", "FSL"),
+                                                    tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
+                                                    output_directory = file.path(reg_rootpath,model_name,ID))
+      if(file.exists(file.path(output$regpath,"gendesign_failed")) ) {
+        unlink(file.path(output$regpath,"gendesign_failed"))
+      }
+    },error=function(e){print(e);writeLines(paste("FAILED:",as.character(e),sep = " "),con = file.path(output$regpath,"gendesign_failed"));return(NULL)})
+    if(is.null(output$design)){writeLines("FAILED",con = file.path(output$regpath,"gendesign_failed"));return(NULL)}
+    if (!is.null(output$nuisan)){
+      for (k in 1:length(output$nuisan)) {
+        write.table(as.matrix(output$nuisan[[k]]),file.path(reg_rootpath,model_name,ID,
+                                                            paste0("run",k,"_nuisance_regressor_with_motion.txt")),
+                    row.names = F,col.names = FALSE)
+      }}
+    
+    output$heatmap<-NA
+    output$volume<-run_volum
+    output$preprocID<-paste0(ID,proc_id_subs)
+    save(output,file = file.path(output$regpath,"design_output.rdata"))
+    return(output)
+  })
+  parallel::stopCluster(cluster_step1)                 
+  ls_ds_matrix<-ls_ds_matrix[!sapply(ls_ds_matrix,is.null)]  
+  message("Total of [",length(ls_ds_matrix),"] participants has completed regressor generation: /n",paste(names(ls_ds_matrix),collapse = ", "))
+  return(ls_ds_matrix)
+}
+
+
 get_preproc_info<-function(id=NULL,cfg=argu$cfg,reg.nii.name=argu$funcimg.namepatt,reg.nii.runnum=argu$funcimg.runnumpatt){
   
   expectdir<-file.path(cfg$loc_mrproc_root,id,cfg$preprocessed_dirname)
@@ -329,90 +426,6 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
   return(alldf)
 }
 
-do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,func_nii_name=NULL,cfg=NULL,proc_id_subs=NULL,model_name=NULL,nprocess=4,forcererun=F,
-                             reg_rootpath=NULL,center_values=TRUE,nuisance_types=c("nuisance","motion_par"),retry=F,enforce_full=F) {
-  ls_out<-lapply(lvl1_datalist,do.call,what=lvl1_proc_func)
-  if(length(names(ls_out)[sapply(ls_out,is.null)])>0) {
-    message("The lvl1 proc did not finish for the following participant(s): ",names(ls_out)[sapply(ls_out,is.null)])
-  }
-  ls_out<-ls_out[!sapply(ls_out,is.null)]
-  ls_signals<-lapply(ls_out,make_signal_with_grid,add_taskness=T,dsgrid=dsgrid)
-  ls_signals<-lapply(names(ls_signals),function(ID){lsa<-ls_signals[[ID]];lsa$ID<-ID;return(lsa)})
-  names(ls_signals)<-names(ls_out)
-  #Parallel
-  cluster_step1<- parallel::makeCluster(nprocess,outfile="",type = "FORK")
-  ls_ds_matrix<-parallel::parLapply(cluster_step1,ls_signals,function(signalx){
-    output<-list(ID=signalx$ID)
-    ID = output$ID
-    signalx$ID<-NULL
-    output$regpath<-file.path(reg_rootpath,model_name,ID)
-    dir.create(output$regpath,recursive = T,showWarnings = F)
-
-    if(file.exists(file.path(output$regpath,"design_output.rdata")) && !forcererun) {
-      system(paste0("echo Loading: ",ID))
-      outx<-new.env()
-      load(file.path(output$regpath,"design_output.rdata"),envir = outx)
-      if(!is.null(outx$output)){
-        if(file.exists(file.path(output$regpath,"gendesign_failed")) ) {
-          unlink(file.path(output$regpath,"gendesign_failed"))
-        }
-        return(outx$output)}
-    }
-    if(file.exists(file.path(output$regpath,"gendesign_failed")) && !retry) {
-      system(paste0("echo This person: ",ID," has failed regressor generation previously. Will Skip."))
-      return(NULL)}
-    system(paste0("echo Deconvolving: ",ID))
-    tryCatch({
-      lsx_out<-ls_out[[ID]]
-      run_volum<-get_volume_run(id=paste0(ID,proc_id_subs),cfg = cfg,returnas = "numbers",reg.nii.name = func_nii_name)
-      output$nuisan<-get_nuisance_preproc(id=paste0(ID,proc_id_subs),
-                                          cfg = cfg,
-                                          returnas = "data.frame",
-                                          dothese=nuisance_types) 
-      if(any(is.na(run_volum))){
-        message("failed to find run(s): ",which(is.na(run_volum)))
-        if(enforce_full) {stop("ID: ",ID," suspended for not having enough runs")}
-      }
-      
-      
-      func_runs <- intersect(unique(lsx_out$event.list$allconcat$run),which(!is.na(run_volum)))
-      run_volum <- run_volum[func_runs]
-      output$nuisan<-output$nuisan[func_runs]
-      all_concat_evt<-lsx_out$event.list$allconcat[which(lsx_out$event.list$allconcat$run %in% func_runs),]
-      
-      proc_signal<-lapply(signalx,function(xa){
-       if(is.data.frame(xa$value)){xa$value<-xa$value[which(xa$value$run %in% func_runs),]}
-       return(xa)
-      })
-      #proc_signal <- signalx
-      save(list = ls(),file = file.path(output$regpath,paste0("preconvovleID",ID,".rdata")))
-      output$design<-dependlab::build_design_matrix(center_values=center_values,signals = proc_signal,
-                                                    events = all_concat_evt,write_timing_files = c("convolved", "FSL","AFNI"),
-                                                    tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
-                                                    output_directory = file.path(reg_rootpath,model_name,ID))
-      if(file.exists(file.path(output$regpath,"gendesign_failed")) ) {
-        unlink(file.path(output$regpath,"gendesign_failed"))
-        }
-    },error=function(e){print(e);writeLines(paste("FAILED:",as.character(e),sep = " "),con = file.path(output$regpath,"gendesign_failed"));return(NULL)})
-    if(is.null(output$design)){writeLines("FAILED",con = file.path(output$regpath,"gendesign_failed"));return(NULL)}
-    if (!is.null(output$nuisan)){
-      for (k in 1:length(output$nuisan)) {
-        write.table(as.matrix(output$nuisan[[k]]),file.path(reg_rootpath,model_name,ID,
-                                                            paste0("run",k,"_nuisance_regressor_with_motion.txt")),
-                    row.names = F,col.names = FALSE)
-      }}
-    
-    output$heatmap<-NA
-    output$volume<-run_volum
-    output$preprocID<-paste0(ID,proc_id_subs)
-    save(output,file = file.path(output$regpath,"design_output.rdata"))
-    return(output)
-  })
-  parallel::stopCluster(cluster_step1)                 
-  ls_ds_matrix<-ls_ds_matrix[!sapply(ls_ds_matrix,is.null)]  
-  message("Total of [",length(ls_ds_matrix),"] participants has completed regressor generation: /n",paste(names(ls_ds_matrix),collapse = ", "))
-  return(ls_ds_matrix)
-}
 
 
 get_pbs_default<-function(){
