@@ -19,7 +19,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   fsl_2_sys_env(force = T)
   
   #############STEP 0: Initializing argu #########
-  argu$cfg<-cfg_info(cfgpath = argu$cfgpath)
+  #argu$cfg<-cfg_info(cfgpath = argu$cfgpath)
   argu$dsgrid<-read.table(argu$gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
   if(is.null(argu$dsgrid$AddNeg)){argu$dsgrid$AddNeg<-FALSE}
   if(is.null(argu$dsgrid$RunGrpLvl)){argu$dsgrid$RunGrpLvl<-TRUE}
