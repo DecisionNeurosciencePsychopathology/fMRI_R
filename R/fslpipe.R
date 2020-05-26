@@ -26,9 +26,10 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   argu$dsgrid$AddNeg<-as.logical(argu$dsgrid$AddNeg)
   argu$dsgrid$RunGrpLvl <- as.logical(argu$dsgrid$RunGrpLvl)
   # if(is.null(argu$model.varinames)) {argu$model.varinames<-argu$dsgrid$name}
-  
+  argu$home_dir <- system("echo ~",intern = T)
   ###Getting Paths:
   if (!is.null(argu$rootpath_output)) {
+    argu$rootpath_output <- gsub("~",argu$home_dir,argu$rootpath_output)
     argu$lvl1path_output <- file.path(argu$rootpath_output,"single_subject")
     argu$lvl1path_reg    <- file.path(argu$rootpath_output,"reg")
     argu$lvl3path_output <- file.path(argu$rootpath_output,"group_level")
@@ -135,18 +136,18 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     argu$lvl1_volinfo$vol <- get_volume_run2(paths = argu$lvl1_volinfo$path)
     #argu$lvl1_datalist<-argu$lvl1_datalist[which(names(argu$lvl1_datalist) %in% IDTORUN)]
     dir.create(file.path(argu$lvl1path_output,argu$model_name),showWarnings = FALSE,recursive = T)
-    #load the design rdata file if exists;
-    lvl1_datalist=argu$lvl1_datalist
-    lvl1_proc_func = argu$lvl1_procfunc
-    lvl1_volinfo = argu$lvl1_volinfo
-    forcererun = argu$lvl1_forcegenreg
-    retry=argu$lvl1_retry
-    model_name=argu$model_name
-    dsgrid=argu$dsgrid
-    center_values=argu$lvl1_centervalues
-    nprocess=argu$nprocess
-    reg_rootpath=argu$lvl1path_reg
-    tr = argu$tr
+    # #load the design rdata file if exists;
+    # lvl1_datalist=argu$lvl1_datalist
+    # lvl1_proc_func = argu$lvl1_procfunc
+    # lvl1_volinfo = argu$lvl1_volinfo
+    # forcererun = argu$lvl1_forcegenreg
+    # retry=argu$lvl1_retry
+    # model_name=argu$model_name
+    # dsgrid=argu$dsgrid
+    # center_values=argu$lvl1_centervalues
+    # nprocess=argu$nprocess
+    # reg_rootpath=argu$lvl1path_reg
+    # tr = argu$tr
     
     step1_cmd<-substitute({
       allsub_design<-do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,lvl1_volinfo = argu$lvl1_volinfo,
@@ -170,9 +171,9 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       eval(step1_cmd)
     }
     
-    dfc <- read.csv(file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_0_info.csv"),stringsAsFactors = F)
-    dfe <- merge(dfc,data.frame(ID=names(allsub_design)[!sapply(allsub_design,is.null)],gen_reg = T,stringsAsFactors = F),by = "ID",all = T)
-    write.csv(dfe,file = file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_1_info.csv"),row.names = F)
+    #dfc <- read.csv(file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_0_info.csv"),stringsAsFactors = F)
+    #dfe <- merge(dfc,data.frame(ID=names(allsub_design)[!sapply(allsub_design,is.null)],gen_reg = T,stringsAsFactors = F),by = "ID",all = T)
+    #write.csv(dfe,file = file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_1_info.csv"),row.names = F)
     
     message("Step ", stepnow ," Ended")
   }
@@ -264,7 +265,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           
           if(argu$adaptive_ssfeat){
             for (mv in 1:ncol(argu$lvl1_cmat)) {
-              assign(paste0("evreg",mv),file.path(file.path(argu$lvl1path_reg,argu$model_name),idx,paste0("run",runnum,"_",argu$model_varinames[mv],argu$regtype)),envir = aarg)
+              assign(paste0("evreg",mv),file.path(file.path(argu$lvl1path_reg,argu$model_name),idx,paste0("run",runnum,"_",argu$model_varinames[mv],".1D")),envir = aarg)
             }
           } else {
             gen_reg(vmodel=argu$model_varinames,lvl1path_reg=file.path(argu$lvl1path_reg,argu$model_name),idx=idx,runnum=runnum,env=aarg,regtype=argu$regtype)
@@ -315,11 +316,11 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     } else {message("Nothing to run on lvl 1.")}
     
     ###Generate Table Output for Processing Status:
-    dfe <- read.csv(file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_1_info.csv"),stringsAsFactors = F)
-    lvl2_featlist<-system(paste0("find ",file.path(argu$lvl1path_output,argu$model_name)," -iname ","*output.feat"," -maxdepth 2 -mindepth 1 -type d"),intern = T)
-    ncount<-sapply(split(basename(dirname(lvl2_featlist)),basename(dirname(lvl2_featlist))),length)
+    #dfe <- read.csv(file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_1_info.csv"),stringsAsFactors = F)
+    #lvl2_featlist<-system(paste0("find ",file.path(argu$lvl1path_output,argu$model_name)," -iname ","*output.feat"," -maxdepth 2 -mindepth 1 -type d"),intern = T)
+    #ncount<-sapply(split(basename(dirname(lvl2_featlist)),basename(dirname(lvl2_featlist))),length)
     
-    dff <- merge(dfe,data.frame(ID=names(ncount),nruns=ncount,stringsAsFactors = F),by = "ID",all = T)
+    #dff <- merge(dfe,data.frame(ID=names(ncount),nruns=ncount,stringsAsFactors = F),by = "ID",all = T)
     #write.csv(dfe,file = file.path(argu$lvl1path_output,argu$model_name,"misc_info","step__info.csv"),row.names = F)
     
     message("Step ", stepnow ," Ended")

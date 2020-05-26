@@ -180,7 +180,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func = NULL,lvl1_volin
     if(is.null(output$design)){writeLines("FAILED",con = file.path(output$regpath,"gendesign_failed"));return(NULL)}
     output$heatmap<-NA
     output$volume<-run_volum
-    output$preprocID<-paste0(ID,proc_id_subs)
+    output$preprocID<-output$ID
     save(output,file = file.path(output$regpath,"design_output.rdata"))
     return(output)
   })
