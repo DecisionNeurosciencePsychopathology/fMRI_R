@@ -12,8 +12,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   if("dependlab" %in% installed.packages()){
     system(paste("echo","GREAT, DEPENDLAB PACK IS INSTALLED"))
   }else{
-      devtools::install_github("PennStateDEPENdLab/dependlab")
-    }
+    devtools::install_github("PennStateDEPENdLab/dependlab")
+  }
   require("parallel")
   
   fsl_2_sys_env(force = T)
@@ -99,62 +99,63 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   #Renaming;
   if(argu$adaptive_ssfeat){argu$ssub_fsl_templatepath<-system.file("extdata", "fsl_ssfeat_general_adaptive_template_R.fsf", package="fslpipe")}
+  if(is.null(argu$tr)) {argu$tr <- argu$cfg$preproc_call$tr}
   if(!argu$run_pipeline){return(NULL)}
   if(initonly) {return(argu)}
   
-  #Get preproc info:
+  ###Construct project level information from cfg:
   dir.create(file.path(argu$lvl1path_output,argu$model_name,"misc_info"),showWarnings = F,recursive = T)
-  dfa <- data.frame(ID=names(prep.call.allsub),behavioral_data=TRUE,stringsAsFactors = F)
-  dfb <- data.frame(ID= list.dirs(argu$cfg$loc_mrproc_root,full.names = F,recursive = F), 
-                    preproc=sapply(list.dirs(argu$cfg$loc_mrproc_root,full.names = T,recursive = F) ,function(IDx){
-                      if(!dir.exists(file.path(IDx,argu$cfg$preprocessed_dirname))){return("NON-EXIST")} 
-                      preproc_dirs<-list.files(pattern = argu$cfg$paradigm_name,path = file.path(IDx,argu$cfg$preprocessed_dirname),recursive = F,include.dirs = T,full.names = T)
-                      if(length(preproc_dirs)<1){return("NON-EXIST")} 
-                      nii_files<-sapply(preproc_dirs,list.files,pattern=gsub("*",".*",argu$name_func_nii,fixed = T),recursive=F,full.names=F,USE.NAMES = F)
-                      if(is.matrix(nii_files)){return("INCORRECT PATTERN")}
-                      if(length(nii_files)<1){return("NOT-FINISHED")
-                      }else if (length(nii_files)!=argu$cfg$n_expected_funcruns){
-                        return(paste("INCOMPLETED",length(nii_files),sep = "-"))
-                      } else {return("COMPLETED")}
-                    },USE.NAMES = F),stringsAsFactors = F)
-  dfc <- merge(dfa,dfb,by = "ID",all = T)
-  write.csv(dfc,file = file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_0_info.csv"),row.names = F)
   
   
+  if(is.null(argu$lvl1_volinfo)) {
+    message("####!!!!No project configuration object found in argu environment. Will use default one for DependLab Option!!!####")
+    argu$lvl1_infodf <- gen_project_config_wCFG(cfg = argu$cfg,
+                                                bID_array = names(prep.call.allsub),
+                                                input_nii_pattern = argu$name_func_nii,
+                                                add_nuisance = argu$lvl1_proc_nuisance)
+    write.csv(argu$lvl1_infodf,file = file.path(argu$lvl1path_output,argu$model_name,"misc_info","step_0_info.csv"),row.names = F)
+    argu$lvl1_volinfo <- argu$lvl1_infodf[names(argu$lvl1_infodf) %in% c("ID","behavioral_data") | grepl("path",x = names(argu$lvl1_infodf))]
+    argu$lvl1_volinfo <- reshape2::melt(argu$lvl1_volinfo,id.vars=c("ID","behavioral_data"))
+    argu$lvl1_volinfo$variable <-gsub("path_","",argu$lvl1_volinfo$variable)
+    names(argu$lvl1_volinfo) <- c("ID","behavioral_data","run","path")
+  }
+  
+  
+
+  
+  #Get preproc info:
   #############STEP 1: Regressor generation####################
   #GENERATE REGRESSOR USING DEPENDLAB PIPELINE:
   stepnow<-1
   if (is.null(argu$run_steps) | stepnow %in% argu$run_steps) {
     #Create the directory if not existed
     #print(argu$lvl1path_output, argu$model_name)
-    argu$lvl1_datalist<-prep.call.allsub;
+    argu$lvl1_datalist<-prep.call.allsub
     argu$lvl1_procfunc<-get(prep.call.func)
-    
+    argu$lvl1_volinfo$vol <- get_volume_run2(paths = argu$lvl1_volinfo$path)
     #argu$lvl1_datalist<-argu$lvl1_datalist[which(names(argu$lvl1_datalist) %in% IDTORUN)]
     dir.create(file.path(argu$lvl1path_output,argu$model_name),showWarnings = FALSE,recursive = T)
     #load the design rdata file if exists;
-    # lvl1_datalist=argu$lvl1_datalist
-    # lvl1_proc_func = argu$lvl1_procfunc
-    # forcererun = argu$lvl1_forcegenreg
-    # dsgrid=argu$dsgrid
-    # func_nii_name=argu$name_func_nii
-    # nprocess=argu$nprocess
-    # cfg=argu$cfg
-    # proc_id_subs=argu$proc_id_subs
-    # model_name=argu$model_name
-    # retry=argu$lvl1_retry
-    # reg_rootpath=argu$lvl1path_reg
-    # center_values=argu$lvl1_centervalues
-    # nuisance_types=argu$nuisa_motion
+    lvl1_datalist=argu$lvl1_datalist
+    lvl1_proc_func = argu$lvl1_procfunc
+    lvl1_volinfo = argu$lvl1_volinfo
+    forcererun = argu$lvl1_forcegenreg
+    retry=argu$lvl1_retry
+    model_name=argu$model_name
+    dsgrid=argu$dsgrid
+    center_values=argu$lvl1_centervalues
+    nprocess=argu$nprocess
+    reg_rootpath=argu$lvl1path_reg
+    tr = argu$tr
     
     step1_cmd<-substitute({
-      allsub_design<-do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,forcererun = argu$lvl1_forcegenreg,
-                                                 dsgrid=argu$dsgrid,func_nii_name=argu$name_func_nii,nprocess=argu$nprocess,
-                                                 cfg=argu$cfg,proc_id_subs=argu$proc_id_subs,model_name=argu$model_name,retry=argu$lvl1_retry,
-                                                 reg_rootpath=argu$lvl1path_reg,center_values=argu$lvl1_centervalues,nuisance_types=argu$nuisa_motion) 
+      allsub_design<-do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,lvl1_volinfo = argu$lvl1_volinfo,
+                                        forcererun = argu$lvl1_forcegenreg,retry=argu$lvl1_retry,
+                                        model_name=argu$model_name,dsgrid=argu$dsgrid,center_values=argu$lvl1_centervalues,
+                                        reg_rootpath=argu$lvl1path_reg,nprocess=argu$nprocess) 
       save(allsub_design,file = file.path(argu$lvl1path_output,argu$model_name,"design.rdata"))
     })
-    
+
     if(argu$run_on_pbs){
       workingdir<-file.path(argu$lvl1path_output,argu$model_name,"lvl1_misc")
       dir.create(workingdir,showWarnings = F,recursive = F)
@@ -201,7 +202,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     #IT's the same for all participants!!!! WHY DO YOU RE RUN IT FOR EVERYONE!!!
     xarg<-as.environment(list())
     xarg$templatebrain<-argu$templatedir
-    xarg$tr<-argu$cfg$preproc_call$tr
+    xarg$tr<-argu$tr
     
     if(argu$adaptive_ssfeat){
       argu$model_varinames<-argu$dsgrid$name
@@ -232,7 +233,15 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
       idx<-x$ID
       aarg<-xarg
       cmmd<-unlist(lapply(1:length(x$run_volumes), function(runnum) {
-        
+        vol_info_rlvl <- argu$lvl1_volinfo[which(argu$lvl1_volinfo$ID==idx & argu$lvl1_volinfo$run == paste0("run",runnum)),]
+        if(nrow(vol_info_rlvl)!=1) {
+          message("Unable to initialize participant: ",idx,", and run: ",runnum," because lvl1 volume information data frame has incorrect number of rows: ",nrow(vol_info_rlvl))
+          return(NULL)  
+        }
+        if(is.na(vol_info_rlvl$path)) {
+          message(paste0("No input data file for participant: ",idx,", and run: ",runnum))
+          return(NULL)
+        }
         aarg$outputpath<-file.path(argu$lvl1path_output,argu$model_name,idx,paste0("run",runnum,"_output"))
         if (!file.exists(file.path(paste0(aarg$outputpath,".feat"),"stats","zstat1.nii.gz")) ) {
           message(paste0("Initializing feat for participant: ",idx,", and run: ",runnum))
@@ -242,11 +251,16 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
           if(is.null(argu$ss_zthreshold)) {aarg$zthreshold<-3.2} else {aarg$zthreshold<-argu$ss_zthreshold}
           if(is.null(argu$ss_pthreshold)) {aarg$pthreshold<-0.05} else {aarg$pthreshold<-argu$ss_pthreshold}
           
-          aarg$runnum<-runnum   
-          aarg$volumes<-x$run_volumes[runnum]
-          aarg$funcfile<-get_volume_run(id=paste0(idx,argu$proc_id_subs),cfg = argu$cfg,reg.nii.name = argu$name_func_nii,returnas = "path")[runnum]
-          if(!length(aarg$funcfile)>0 || any(is.na(aarg$funcfile))){message("ID: ",idx," RUN: ",runnum,", failed to find a functional image. Terminate.");return(NULL)}
-          aarg$nuisa<-file.path(argu$lvl1path_reg,argu$model_name,idx,paste0("run",runnum,"_nuisance_regressor_with_motion.txt"))
+          aarg$runnum <- runnum   
+          aarg$volumes <- vol_info_rlvl$vol
+          aarg$funcfile <- vol_info_rlvl$path
+          aarg$ifnuisa <- as.numeric(!is.null(vol_info_rlvl$nuisance) && !is.na(vol_info_rlvl$nuisance))
+          if(as.logical(aarg$ifnuisa)) {
+            aarg$nuisa<-vol_info_rlvl$nuisance
+          } else {
+            aarg$nuisa<-""
+          }
+          
           
           if(argu$adaptive_ssfeat){
             for (mv in 1:ncol(argu$lvl1_cmat)) {

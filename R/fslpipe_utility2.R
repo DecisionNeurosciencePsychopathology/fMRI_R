@@ -67,25 +67,72 @@ make_signal_with_grid<-function(outputdata=NULL,dsgrid=NULL,...) {
 }
 
 
+gen_project_config_wCFG <- function(cfg=NULL,bID_array=NULL,input_nii_pattern = NULL,add_nuisance=F) {
+  dfa <- data.frame(ID=bID_array,behavioral_data=TRUE,stringsAsFactors = F)
+  
+  dfb_c <- data.frame(ID= list.dirs(cfg$loc_mrproc_root,full.names = F,recursive = F)
+                      ,stringsAsFactors = F)
+  
+  preproc_status<-lapply(file.path(cfg$loc_mrproc_root,dfb_c$ID) ,function(IDx){
+    if(!dir.exists(file.path(IDx,cfg$preprocessed_dirname))){rep("NON-EXIST",cfg$n_expected_funcruns)} 
+    preproc_dirs<-list.files(pattern = cfg$paradigm_name,
+                             path = file.path(IDx,cfg$preprocessed_dirname),recursive = F,include.dirs = T,full.names = T)
+    if(length(preproc_dirs)<1){rep("NON-EXIST",cfg$n_expected_funcruns)} 
+    nii_files<-sapply(preproc_dirs,list.files,pattern=gsub("*",".*",input_nii_pattern,fixed = T),
+                      recursive=F,full.names=T,USE.NAMES = F)
+    if(is.matrix(nii_files)){return(rep("INCORRECT-PATTERN",cfg$n_expected_funcruns))}
+    if(length(nii_files)<1){return(rep("NOT-FOUND",cfg$n_expected_funcruns))} 
+    nii_files <- sapply(nii_files,function(x){ifelse(length(x)>0,paste("COMPLETE:",x,sep = " "),"NOT-FOUND")},USE.NAMES = F)
+  })
+  preproc_status_df <- do.call(rbind,lapply(preproc_status,function(x){
+    paths <- rep(NA,length(x))
+    paths[grepl("COMPLETE: ",x)] <- gsub("COMPLETE: ","",x[grepl("COMPLETE: ",x)])
+    x[grepl("COMPLETE: ",x)] <- "COMPLETE"
+    return(as.data.frame(t(c(x,paths)),stringsAsFactors = F))
+  }))
+  names(preproc_status_df) <- c(paste("status_run",1:cfg$n_expected_funcruns,sep = ""),paste("path_run",1:cfg$n_expected_funcruns,sep = ""))
+  dfb <- cbind(dfb_c,preproc_status_df)
+  dfc <- merge(dfa,dfb,by = "ID",all = T)
+  return(dfc)
+}
 
+get_volume_run2 <- function(paths=NULL) {
+  sapply(paths,function(pt){
+    if(is.na(pt)){return(NA)}
+    gx<-system(paste("fslinfo ",pt,sep = ""),intern = T)
+    tx<-strsplit(gx[grepl("^dim4",gx)],"\t")[[1]]
+    tx[length(tx)]
+  },USE.NAMES = F)
+}
 
-
-do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,func_nii_name=NULL,cfg=NULL,proc_id_subs=NULL,model_name=NULL,nprocess=4,forcererun=F,
-                             reg_rootpath=NULL,center_values=TRUE,nuisance_types=c("nuisance","motion_par"),retry=F,enforce_full=F) {
+do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func = NULL,lvl1_volinfo = NULL,
+                             forcererun = FALSE,retry=FALSE,tr = NULL,dsgrid = NULL,
+                             model_name=NULL,center_values=TRUE,
+                             reg_rootpath=NULL,nprocess=8) {
+  #Here we apply the proc function to all subjects
   ls_out<-lapply(lvl1_datalist,do.call,what=lvl1_proc_func)
   if(length(names(ls_out)[sapply(ls_out,is.null)])>0) {
     message("The lvl1 proc did not finish for the following participant(s): ",names(ls_out)[sapply(ls_out,is.null)])
   }
   ls_out<-ls_out[!sapply(ls_out,is.null)]
+  
+  #Here we use the output from proc function for each subj to; and constrcut model using the data list. 
   ls_signals<-lapply(ls_out,make_signal_with_grid,add_taskness=T,dsgrid=dsgrid)
   ls_signals<-lapply(names(ls_signals),function(ID){lsa<-ls_signals[[ID]];lsa$ID<-ID;return(lsa)})
   names(ls_signals)<-names(ls_out)
-  #Parallel
+  
   cluster_step1<- parallel::makeCluster(nprocess,outfile="",type = "FORK")
   ls_ds_matrix<-parallel::parLapply(cluster_step1,ls_signals,function(signalx){
+    print(signalx$ID)
+    ID = signalx$ID
     output<-list(ID=signalx$ID)
-    ID = output$ID
     signalx$ID<-NULL
+    vol_info <- lvl1_volinfo[which(lvl1_volinfo$ID == ID),]
+    lsx_out <-ls_out[[ID]]
+    if(is.null(vol_info) || nrow(vol_info)<1 || is.null(lsx_out) ) {
+      system(paste0("echo This person: ",ID," has no imaging data input information."))
+      return(NULL)
+    }
     output$regpath<-file.path(reg_rootpath,model_name,ID)
     dir.create(output$regpath,recursive = T,showWarnings = F)
     
@@ -104,21 +151,9 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
       return(NULL)}
     system(paste0("echo Deconvolving: ",ID))
     tryCatch({
-      lsx_out<-ls_out[[ID]]
-      run_volum<-get_volume_run(id=paste0(ID,proc_id_subs),cfg = cfg,returnas = "numbers",reg.nii.name = func_nii_name)
-      output$nuisan<-get_nuisance_preproc(id=paste0(ID,proc_id_subs),
-                                          cfg = cfg,
-                                          returnas = "data.frame",
-                                          dothese=nuisance_types) 
-      if(any(is.na(run_volum))){
-        message("failed to find run(s): ",paste(which(is.na(run_volum)),collapse = ", "))
-        if(enforce_full) {stop("ID: ",ID," suspended for not having enough runs")}
-      }
-      
-      
-      func_runs <- intersect(unique(lsx_out$event.list$allconcat$run),which(!is.na(run_volum)))
-      run_volum <- run_volum[func_runs]
-      output$nuisan<-output$nuisan[func_runs]
+      vol_info <- vol_info[order(as.numeric(gsub("run","",vol_info$run))),]
+      func_runs <- intersect(unique(lsx_out$event.list$allconcat$run),1:nrow(vol_info))
+      run_volum <- as.numeric(vol_info$vol[which(vol_info$run %in% paste0("run",func_runs))])
       all_concat_evt<-lsx_out$event.list$allconcat[which(lsx_out$event.list$allconcat$run %in% func_runs),]
       
       #Simple fix for NA event duration causing the pipeline to break
@@ -136,20 +171,13 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func=NULL,dsgrid=NULL,
            file = file.path(output$regpath,paste0("preconvovleID",ID,".rdata")))
       output$design<-dependlab::build_design_matrix(center_values=center_values,signals = proc_signal,
                                                     events = all_concat_evt,write_timing_files = c("convolved", "FSL"),
-                                                    tr=as.numeric(argu$cfg$preproc_call$tr),plot = F,run_volumes = run_volum,
+                                                    tr=as.numeric(argu$tr),plot = F,run_volumes = run_volum,
                                                     output_directory = file.path(reg_rootpath,model_name,ID))
       if(file.exists(file.path(output$regpath,"gendesign_failed")) ) {
         unlink(file.path(output$regpath,"gendesign_failed"))
       }
     },error=function(e){print(e);writeLines(paste("FAILED:",as.character(e),sep = " "),con = file.path(output$regpath,"gendesign_failed"));return(NULL)})
     if(is.null(output$design)){writeLines("FAILED",con = file.path(output$regpath,"gendesign_failed"));return(NULL)}
-    if (!is.null(output$nuisan)){
-      for (k in 1:length(output$nuisan)) {
-        write.table(as.matrix(output$nuisan[[k]]),file.path(reg_rootpath,model_name,ID,
-                                                            paste0("run",k,"_nuisance_regressor_with_motion.txt")),
-                    row.names = F,col.names = FALSE)
-      }}
-    
     output$heatmap<-NA
     output$volume<-run_volum
     output$preprocID<-paste0(ID,proc_id_subs)
