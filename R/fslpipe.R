@@ -110,7 +110,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
   
   if(is.null(argu$lvl1_volinfo)) {
     message("####!!!!No project configuration object found in argu environment. Will use default one for DependLab Option!!!####")
-    argu$lvl1_infodf <- gen_project_config_wCFG(cfg = argu$cfg,
+    argu$lvl1_infodf <- gen_project_config_wCFG(cfg = cfg_info(argu$cfgpath),
                                                 bID_array = names(prep.call.allsub),
                                                 input_nii_pattern = argu$name_func_nii,
                                                 add_nuisance = argu$lvl1_proc_nuisance)
@@ -133,7 +133,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     #print(argu$lvl1path_output, argu$model_name)
     argu$lvl1_datalist<-prep.call.allsub
     argu$lvl1_procfunc<-get(prep.call.func)
-    argu$lvl1_volinfo$vol <- get_volume_run2(paths = argu$lvl1_volinfo$path)
+    argu$lvl1_volinfo$vol <- sapply(argu$lvl1_volinfo$path,get_dim_single)
     #argu$lvl1_datalist<-argu$lvl1_datalist[which(names(argu$lvl1_datalist) %in% IDTORUN)]
     dir.create(file.path(argu$lvl1path_output,argu$model_name),showWarnings = FALSE,recursive = T)
     # #load the design rdata file if exists;
@@ -628,8 +628,8 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
         ds_path<-file.path(gxroot,"design_files")
         dir.create(ds_path,showWarnings = F,recursive = T)
         file.copy(from = file.path(Sys.getenv("FSLDIR"),"data/standard/MNI152_T1_1mm_brain.nii.gz"),to = file.path(unique(file.path(dirname(dirname(fsf_ls)),"grp_afni_view")),"template_brain.nii.gz"),overwrite = T)
-        file.copy(from = file.path(unique(lvl3_alldf$OUTPUTPATH),"lvl3_alldf.rdata"),
-                  to = file.path(ds_path,"lvl3_design.rdata"),overwrite = T)
+        # file.copy(from = file.path(unique(lvl3_alldf$OUTPUTPATH),"lvl3_alldf.rdata"),
+        #           to = file.path(ds_path,"lvl3_design.rdata"),overwrite = T)
         #system.file("extdata", "my_raw_data.csv", package="my_package")
         for (fsf in fsf_ls){
           

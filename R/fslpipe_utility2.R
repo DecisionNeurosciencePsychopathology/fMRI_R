@@ -228,8 +228,16 @@ get_preproc_info<-function(id=NULL,cfg=argu$cfg,reg.nii.name=argu$funcimg.namepa
 
 prep_session_lvl<-function(subj_rootpath=NULL,subj_folderreg=NULL,template_brainpath=NULL,overwrite=T) {
   if (is.null(subj_rootpath) | is.null(template_brainpath) ){stop("not enough info to run")}
+  if (!file.exists(template_brainpath)) {
+    stop("Template brain file not found.")
+  }
+  
   featlist<-system(paste0("find ",subj_rootpath," -iname ",subj_folderreg," -maxdepth 4 -mindepth 1 -type d"),intern = T)
-    if(overwrite){unlink(file.path(featlist,"reg"),recursive = T,force = T);unlink(file.path(featlist,"reg_standard"),recursive = T,force = T)}
+  if(length(featlist)<1) {
+    stop("No run level output found.")
+  }
+  
+  if(overwrite){unlink(file.path(featlist,"reg"),recursive = T,force = T);unlink(file.path(featlist,"reg_standard"),recursive = T,force = T)}
   NXU<-lapply(file.path(featlist,"reg"),dir.create,showWarnings = F,recursive = T)
   NXU<-file.copy(from = file.path(featlist,"example_func.nii.gz"),to = file.path(featlist,"reg","example_func.nii.gz"),overwrite = overwrite)
   NXU<-file.copy(from = file.path(featlist,"example_func.nii.gz"),to = file.path(featlist,"reg","example_func2standard.nii.gz"),overwrite = overwrite)
@@ -340,10 +348,10 @@ gen_fsf_highlvl<-function(proc_ls_fsf=NULL,flame_type = 3, thresh_type = 3,z_thr
     
     if (file.exists( file.path(unique(gvar_cope_df$OUTPUTPATH),paste0(unique(gvar_cope_df$NAME),".gfeat") ) ) ) {
       message("For IDs: ",paste(unique(gvar_cope_df$ID),collapse = ", "),
-                "\n","Found ",f_text," folder but not completed, for '",unique(gvar_cope_df$NAME),"' Will REMOVE & RE-RUN",
-                "\n")
+              "\n","Found ",f_text," folder but not completed, for '",unique(gvar_cope_df$NAME),"' Will REMOVE & RE-RUN",
+              "\n")
       unlink(file.path(unique(gvar_cope_df$OUTPUTPATH),paste0(unique(gvar_cope_df$NAME),".gfeat")),recursive = T,force = T)
-      }
+    }
     
     if(any(is.na(gvar_cope_df))) {
       message("Found NA in the entry, the whole data point will be removed. If wish to include, change the NA in the input data frame to 0")
@@ -581,7 +589,7 @@ feat2afni_single<-function(feat_dir=NULL,include_copestat=T,include_varcope=F,in
     o_statsfile<-file.path(outputdir,paste0(prefix_statsfiles,"+tlrc"))
   } else {
     o_statsfile<-NA
-    } 
+  } 
   
   if (include_auxstats) {
     
@@ -650,7 +658,7 @@ gfeat2afni <- function(gfeat_dir=NULL,include_varcope=F,copy_subj_cope=F,outputd
   allafniout<-sapply(copedirs,function(dxa){
     message("Processing: ",dxa)
     afniout<-suppressMessages(feat2afni_single(feat_dir = dxa,include_copestat = T,include_varcope = include_varcope,include_auxstats = F,outputdir = dxa,
-                              prefix = "sfeat",verbos = verbos))$statsfile
+                                               prefix = "sfeat",verbos = verbos))$statsfile
     if(is.null(afniout)){return(NULL)}
     copename <- gsub(" ","_",readLines(file.path(dxa, "design.lev"))) #contains the L2 effect name (e.g., clock_onset)
     #afniout <- file.path(dxa, "feat_stats+tlrc")

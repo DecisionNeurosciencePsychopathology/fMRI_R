@@ -106,8 +106,7 @@ prepare4secondlvl<-function(ssana.path=NULL,featfoldername="*output.feat",
   #Step 2: Go to find all the feat. directory:
   featlist<-system(paste0("find ",ssana.path," -iname ",featfoldername," -maxdepth 4 -mindepth 1 -type d"),intern = T)
   #Break them down&take out all old_template_results
-  strsplit(featlist,split = "/")->s.featlist
-  s.featlist.p<-lapply(s.featlist,function(x) {
+  s.featlist.p<-lapply(strsplit(featlist,split = "/"),function(x) {
     if (any(x %in% dir.filter)) {
       x<-NULL
     } else {x}
@@ -116,18 +115,28 @@ prepare4secondlvl<-function(ssana.path=NULL,featfoldername="*output.feat",
   maxlength<-length(s.featlist.p[[1]])
   #Step 3: Get all the necessary info from the breakdown list:
   linkmap<-data.frame(id=sapply(s.featlist.p, "[[",maxlength-1), runword=sapply(s.featlist.p, "[[",maxlength),path=featlist)
-  #linkmap$num<-lapply(strsplit(as.character(linkmap$runword),split =''), 
-  #                    function(x) {suppressWarnings(x[which(!is.na(as.numeric(x)))])})
-  #linkmap$num<-as.numeric(linkmap$num)
-  na.omit(linkmap)->linkmap 
-  #linkmap$origin<-paste(taskname,linkmap$num,sep = "")
+  linkmap$num<-lapply(strsplit(as.character(linkmap$runword),split =''),
+                     function(x) {suppressWarnings(x[which(!is.na(as.numeric(x)))])})
+  linkmap$num<-as.numeric(linkmap$num)
+  na.omit(linkmap)->linkmap
+  linkmap$origin<-paste(taskname,linkmap$num,sep = "")
   
   #Step 4, make original directory and destination directory:
   linkmap$destination<-file.path(linkmap$path,"reg")
   linkmap$destination_standard<-file.path(linkmap$path,"reg_standard")
   linkmap$originplace<-file.path(linkmap$path,"masktostandtransforms.mat")
   fsl_2_sys_env()
+  
+  fsl_dir<-Sys.getenv("FSLDIR")
   proc_lvl2<-function(i,overwrite){
+    pathx <- linkmap$path[i]
+    ID <- linkmap$id[i]
+    runword <- gsub(".feat","",linkmap$runword)
+    if(!file.exists(file.path(pathx,"stats","zstat1.nii.gz"))) {
+      message("ID: ",ID,", run: ",runword," did not finish.")
+      return(NULL)
+    }
+    
     if (overwrite) {
       if (file.exists(linkmap$destination[i])) {file.remove(linkmap$destination[i])}
       if (file.exists(linkmap$originplace[i])) {file.remove(linkmap$originplace[i])}
@@ -159,95 +168,6 @@ prepare4secondlvl<-function(ssana.path=NULL,featfoldername="*output.feat",
   
   if(outputmap) {return(linkmap)}
   print("DONE")
-}
-
-######General function for Single subject loop: (can be ready for lapply or do call)
-do.all.subjs<-function(tid=NULL,do.prep.call="prep.son1",do.prep.arg=list(son1_single=son1_single),cfg=NULL,
-                       regpath=NULL,gridpath="grid.csv",func.nii.name="swudktm*[0-9].nii.gz",proc_id_subs=NULL, 
-                       wrt.timing=c("convolved", "FSL","AFNI"),model.name=NULL,model.varinames=NULL,
-                       nuisa_motion=c("nuisance","motion_par","motion_outlier"),motion_type="fd",centerscaleall=FALSE,
-                       motion_threshold="default",convlv_nuisa=F,argu=NULL) {
-  stop("Depreciated! Is probably useless; Will keep for 3 versions before deleting, 2 left")
-  #Read config file:
-  # #cfg<-cfg_info(cfgpath)
-  # argu$cfg<-cfg
-  #Prep the data into generally acceptable output object;
-  output<-do.call(what = do.prep.call,args = do.prep.arg,envir = argu)
-  #assign("output",do.call(what = do.prep.call,args = do.prep.arg),envir=globalenv())
-  dsgrid<-read.table(gridpath,header = T,sep = c(","),stringsAsFactors = F,strip.white = T,skipNul = T)
-  #if (length(grep("evt",dsgrid.og$valuefrom))>0){
-  #  dsgrid<-dsgrid.og[-grep("evt",dsgrid.og$valuefrom),]} else {dsgrid.og->dsgrid}
-  #Generate signal with make signal with grid function (grid.csv need to be in working directory or specified otherwise)
-  signals<-make_signal_with_grid(outputdata = output,add_taskness = T,dsgrid = dsgrid,nona = T)
-  
-  # if (length(grep("evt",dsgrid$valuefrom))>0){
-  #   dxgrid<-dsgrid[grep("evt",dsgrid$valuefrom),]
-  #   for (u in 1:length(dxgrid$name)) {
-  #     signals[dxgrid$name[u]]<-signals[dxgrid$valuefrom[u]]
-  #   }
-  # }  
-  #Get nuissance regressor: 
-  #Still concat nuisa regressor together
-  nuisa<-get_nuisance_preproc(id=paste0(tid,proc_id_subs),
-                              cfg = cfg,
-                              returnas = "data.frame",
-                              dothese=nuisa_motion,
-                              type=motion_type,
-                              threshold=motion_threshold) 
-  if(any(is.na(nuisa))) {stop("Can't get nuisance files from proc dirs")}
-  if (convlv_nuisa) {
-    nuisa.x<-nuisa
-  } else {
-    nuisa.x<-NULL
-  }
-  
-  #Get the actual volume by run:
-  run_volum<-get_volume_run(id=paste0(tid,proc_id_subs),
-                            cfg = cfg,
-                            returnas = "numbers",
-                            reg.nii.name = func.nii.name)
-  if(any(is.na(run_volum))) {stop("Can't get volume number from proc dirs")}
-  
-  
-  if(is.null(model.varinames)){
-    model.varinames<-dsgrid$name
-    argu$model.varinames<-model.varinames
-    
-  }
-  
-  #Create  models:
-  model<-signals[model.varinames]
-  
-  #Use Michael's package to generate design matrix and correlation graph;
-  design<-dependlab::build_design_matrix(
-    center_values=centerscaleall,
-    events = output$event.list$allconcat, #Load the task info
-    signals = model,     #Load the Model
-    write_timing_files = wrt.timing, #Output timing files to FSL style
-    tr=as.numeric(cfg$preproc_call$tr), #Grab the tr from cfg instead of hard coding it...
-    plot = F,
-    run_volumes = run_volum,
-    output_directory = file.path(regpath,model.name,tid), #Where to output the timing files, default is the working directory
-    nuisance_regressors = nuisa.x #Maybe could add in nuisance_regressors from pre-proc
-  )
-  
-  design$heatmap<-NA
-  design$volume<-run_volum
-  design$nuisan<-nuisa
-  design$ID<-tid
-  design$preprocID<-paste0(tid,proc_id_subs)
-  design$regpath<-file.path(regpath,model.name,tid)
-  # design$grid<-dsgrid
-  
-  if (!is.null(nuisa)){
-    for (k in 1:length(nuisa)) {
-      write.table(as.matrix(nuisa[[k]]),file.path(regpath,model.name,tid,
-                                                  paste0("run",k,"_nuisance_regressor_with_motion.txt")),
-                  row.names = F,col.names = FALSE)
-    }}
-  
-  return(design)
-  
 }
 
 ######First version of the adaptive fsl
@@ -1148,133 +1068,12 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
 
 #####Time series data extraction:
 get_dim_single<-function(imagepath){
-  fsl_2_sys_env()
+  NT<-capture.output(fsl_2_sys_env())
   fslinfoout<-system(paste("${FSLDIR}/bin/fslinfo",imagepath,sep = " "),intern = T)
+  fslinfoout<-gsub("\t"," ",fslinfoout)
   kx<-lapply(strsplit(fslinfoout," "),function(x){x[x!=""]})
   rx<-as.data.frame(t(sapply(kx,`[[`,2)),stringsAsFactors = F)
   names(rx)<-sapply(kx, `[[`,1)
   return(rx)
-}
-
-###Get time serires from imaging data
-get_timeserires_single<-function(imagepath=NULL,maskpath=NULL,outputpn=NULL,templatepath=NULL,subjectmask=NULL,notrans=F,output=T,forcererun=F){
-  fsl_2_sys_env()
-  rtp<-strsplit(imagepath,split = .Platform$file.sep)[[1]]
-  imagepath_fd<-paste(rtp[1:(length(rtp)-1)],collapse = .Platform$file.sep)
-  imagepath_fn<-rtp[end(rtp)[1]]
-  if(system(paste("${FSLDIR}/bin/fslstats",maskpath,"-r",sep = " "),intern = T)!="0.000000 1.000000 "){stop("Mask is not binary. Can only use binary mask")}
-  voxz_img<-unique(unlist(get_dim_single(imagepath)[c("pixdim1","pixdim2","pixdim3")]))
-  dim_img<-unlist(get_dim_single(imagepath)[c("dim1","dim2","dim3")])
-  
-  voxz_mask<-unique(unlist(get_dim_single(maskpath)[c("pixdim1","pixdim2","pixdim3")]))
-  dim_mask<-unlist(get_dim_single(maskpath)[c("dim1","dim2","dim3")])
-  
-  if(any(!dim_img == dim_mask)){
-    if(notrans){stop("function terminated because mask and image has different dimension, and specified not to transform any imagery.")}
-    if(is.null(templatepath)){stop("template not supplied. Will not be able to transform")}
-    
-    if(!file.exists(file.path(imagepath_fd,paste0("trans_",imagepath_fn))) | forcererun){
-      
-      voxz_tp<-unique(unlist(get_dim_single(templatepath)[c("pixdim1","pixdim2","pixdim3")]))
-      dim_tp<-unlist(get_dim_single(templatepath)[c("dim1","dim2","dim3")])
-      if(!any(!dim_tp == dim_mask)){
-        message("mask and image has different dimension, trying to wrap image to standard space")
-        if(is.null(subjectmask)){stop("Requires a binary subject mask.")}
-        NRJ<-system(paste("${FSLDIR}/bin/flirt","-in",subjectmask,"-ref",templatepath,"-omat",file.path(imagepath_fd,"ts_transout.mat"),"-usesqform"),intern = T)
-        NRK<-system(paste("${FSLDIR}/bin/flirt","-in",imagepath,"-ref",templatepath,"-out",file.path(imagepath_fd,paste0("trans_",imagepath_fn)),
-                          "-init",file.path(imagepath_fd,"ts_transout.mat"),"-applyxfm"),intern = T)
-        imagepath<-file.path(imagepath_fd,paste0("trans_",imagepath_fn))
-      } else {
-        stop("mask and image has different dimension and mask and standard space has different dimension, sort it out.")
-      }
-    }else {
-      imagepath<-file.path(imagepath_fd,paste0("trans_",imagepath_fn))
-    }
-  }
-  TNX<-system(paste("fslmeants","-i",imagepath,"-m",maskpath),intern = T)
-  TNX<-as.numeric(TNX[TNX!=""])
-  if(!is.null(outputpn)){writeLines(text = TNX,con=outputpn)}
-  if(output){
-    return(TNX)
-  }
-}
-
-get_timeserires<-function(ssub_root=NULL,maskpath=NULL,templatepath=NULL,tarname=NULL,submaskname=NULL,parallen=4,type="preproc",depthcontr=3,forcerunmatch=F) {
-  lx<-lapply(list.dirs(ssub_root,recursive = F,full.names = F),function(x){
-    rx<-system(paste("find -L",file.path(ssub_root,x),"-name",tarname,"-maxdepth",depthcontr,"-type f"),intern = T)
-    if(length(rx)>0){
-      rxp<-strsplit(rx,split = .Platform$file.sep)
-      lapply(1:length(rxp),function(rx){
-        rtp<-rxp[[rx]]
-        rx_fd<-paste(rtp[1:(length(rtp)-1)],collapse = .Platform$file.sep)
-        return(list(root=rx_fd,imagepath=paste(rtp,collapse = .Platform$file.sep),ID=x,num=rx,
-                    subjectmask=list.files(pattern = submaskname,path = rx_fd,full.names = T,no.. = T)))
-      })
-    }else{return(list(list(ID=x,num=0)))}
-  })
-  glx<-unlist(lx,recursive = F)
-  names(glx) <- sapply(glx,function(gx){paste(gx$ID,gx$num,sep="_")})
-  FUNX<-function(xrz){
-    if(!is.null(xrz$imagepath)){
-      return(get_timeserires_single(imagepath = xrz$imagepath,maskpath = maskpath,output = T,templatepath = templatepath,subjectmask = xrz$subjectmask,forcererun = forcerunmatch))
-    }else{return(NULL)}
-  }
-  if(is.null(parallen)){
-    RESULTX<-lapply(cl = clusterx,X = glx,fun = FUNX)
-  } else {
-    clusterx<-parallel::makeCluster(parallen,type = "FORK")
-    RESULTX<-parallel::parLapply(cl = clusterx,X = glx,fun = FUNX)
-    parallel::stopCluster(clusterx)
-  }
-  
-  return(RESULTX)
-}
-
-deconv_timeseries<-function(datalist=NULL,tslist=NULL,func.proc=NULL,evtname=NULL,tr=NULL,num.calibrate=0.5,variname="ts_beta",func.deconv=mean){
-  xz<-lapply(datalist,do.call,what=func.proc)
-  if(!is.null(num.calibrate)){message("Calibration number is set to be ",num.calibrate,", this will be added to before and after each epoch to capture more volumes.")
-    
-  }else{num.calibrate=0}
-  
-  tr<-as.numeric(tr)
-  rxz<-lapply(1:length(xz),function(ki){
-    kx<-xz[[ki]]
-    ky<-kx$event.list[[evtname]]
-    ky$ID<-names(xz)[[ki]]
-    kys<-split(ky,ky$run)
-    
-  })
-  
-  txz<-unlist(rxz,recursive = F,use.names = F)
-  names(txz)<-sapply(txz,function(xi){paste0(unique(xi$ID),"_",unique(xi$run))})
-  
-  frx<-lapply(names(txz),function(rtx){
-    #print(rtx)
-    TTbyRun<-txz[[rtx]]
-    TSbyRun<-tslist[[rtx]]
-    if(is.null(TSbyRun)){return(NULL)}
-    ts_df<-data.frame(tsbeta=TSbyRun,t_start=seq(from=0,to=(length(TSbyRun)-1)*tr,by = tr),stringsAsFactors = F)
-    ts_df$t_end<-ts_df$t_start + tr
-    ts_df$whichtrial<-NA
-    
-    for(ui in 1:nrow(TTbyRun)){
-      uidx<-which(ts_df$t_start > TTbyRun$onset[ui]-num.calibrate & ts_df$t_end < TTbyRun$onset[ui] + TTbyRun$duration[ui] +num.calibrate)
-      if(length(uidx)==0){message("Failed to caputre any volumes for subject ",rtx," and trial ",ui,". Consider increase the calibration number. Putting in NA for now")}
-      if(any(!is.na(ts_df$whichtrial[uidx]))){message("subject ",rtx," and trial ",ui,": Trial event and clibration num might be algined in a way that overlaps two epoch and result in uninteneded mapping. Try reduce calibration number.")} 
-      ts_df$whichtrial[uidx]<-ui
-    }  
-    ts_df_cl<-ts_df[!is.na(ts_df$whichtrial),]
-    if(any(!TTbyRun$trial %in% ts_df_cl$whichtrial)){
-      ts_df_cl<-rbind(ts_df_cl,
-                      
-                      data.frame(tsbeta=NA,t_start=NA,t_end=NA,whichtrial=TTbyRun$trial[!TTbyRun$trial %in% ts_df_cl$whichtrial],stringsAsFactors = F)
-      )
-    }
-    
-    TTbyRun[[variname]]<-sapply(lapply(split(ts_df_cl,ts_df_cl$whichtrial),function(r){r$tsbeta}),func.deconv)
-    return(TTbyRun[c("ID","run","trial",variname)])
-  })
-  grx<-do.call(rbind,frx)
-  return(split(grx,grx$ID))
 }
 
