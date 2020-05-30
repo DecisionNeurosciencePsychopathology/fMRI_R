@@ -133,7 +133,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     #print(argu$lvl1path_output, argu$model_name)
     argu$lvl1_datalist<-prep.call.allsub
     argu$lvl1_procfunc<-get(prep.call.func)
-    argu$lvl1_volinfo$vol <- sapply(argu$lvl1_volinfo$path,get_dim_single)
+    argu$lvl1_volinfo$vol <- sapply(argu$lvl1_volinfo$path,get_dim_single,var_to_get="dim4")
     #argu$lvl1_datalist<-argu$lvl1_datalist[which(names(argu$lvl1_datalist) %in% IDTORUN)]
     dir.create(file.path(argu$lvl1path_output,argu$model_name),showWarnings = FALSE,recursive = T)
     # #load the design rdata file if exists;

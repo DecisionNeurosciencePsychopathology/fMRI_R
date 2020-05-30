@@ -1067,13 +1067,18 @@ roi_getvalue<-function(grproot=argu$glvl_output,modelname=NULL,glvl_method="rand
 }
 
 #####Time series data extraction:
-get_dim_single<-function(imagepath){
+get_dim_single<-function(imagepath,var_to_get=NULL){
+  if(is.na(imagepath)){return(NA)}
   NT<-capture.output(fsl_2_sys_env())
   fslinfoout<-system(paste("${FSLDIR}/bin/fslinfo",imagepath,sep = " "),intern = T)
   fslinfoout<-gsub("\t"," ",fslinfoout)
   kx<-lapply(strsplit(fslinfoout," "),function(x){x[x!=""]})
   rx<-as.data.frame(t(sapply(kx,`[[`,2)),stringsAsFactors = F)
   names(rx)<-sapply(kx, `[[`,1)
-  return(rx)
+  if(!is.null(var_to_get) && var_to_get %in% names(rx)){
+   return(rx[[var_to_get]]) 
+  } else {
+    return(rx)
+  }
 }
 
