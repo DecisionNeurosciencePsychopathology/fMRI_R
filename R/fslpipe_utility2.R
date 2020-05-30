@@ -96,14 +96,6 @@ gen_project_config_wCFG <- function(cfg=NULL,bID_array=NULL,input_nii_pattern = 
   return(dfc)
 }
 
-get_volume_run2 <- function(paths=NULL) {
-  sapply(paths,function(pt){
-    if(is.na(pt)){return(NA)}
-    gx<-system(paste("fslinfo ",pt,sep = ""),intern = T)
-    tx<-strsplit(gx[grepl("^dim4",gx)],"\t")[[1]]
-    tx[length(tx)]
-  },USE.NAMES = F)
-}
 
 do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func = NULL,lvl1_volinfo = NULL,
                              forcererun = FALSE,retry=FALSE,tr = NULL,dsgrid = NULL,
