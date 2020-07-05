@@ -68,31 +68,60 @@ make_signal_with_grid<-function(outputdata=NULL,dsgrid=NULL,...) {
 
 
 gen_project_config_wCFG <- function(cfg=NULL,bID_array=NULL,input_nii_pattern = NULL,add_nuisance=F) {
-  dfa <- data.frame(ID=bID_array,behavioral_data=TRUE,stringsAsFactors = F)
   
-  dfb_c <- data.frame(ID= list.dirs(cfg$loc_mrproc_root,full.names = F,recursive = F)
-                      ,stringsAsFactors = F)
+  dfa <- data.frame(ID = bID_array, behavioral_data = TRUE, 
+                    stringsAsFactors = F)
+  dfb_c <- data.frame(ID = list.dirs(cfg$loc_mrproc_root, full.names = F, 
+                                     recursive = F), stringsAsFactors = F)
+  preproc_status <- lapply(file.path(cfg$loc_mrproc_root, dfb_c$ID), 
+                           function(IDx) {
+                             if (!dir.exists(file.path(IDx, cfg$preprocessed_dirname))) {
+                               rep("NON-EXIST", cfg$n_expected_funcruns)
+                             }
+                             preproc_dirs <- list.files(pattern = cfg$paradigm_name, 
+                                                        path = file.path(IDx, cfg$preprocessed_dirname), 
+                                                        recursive = F, include.dirs = T, full.names = T)
+                             if (length(preproc_dirs) < 1) {
+                               rep("NON-EXIST", cfg$n_expected_funcruns)
+                             }
+                             nii_files <- sapply(preproc_dirs, list.files, pattern = gsub("*", 
+                                                                                          ".*", input_nii_pattern, fixed = T), recursive = F, 
+                                                 full.names = T, USE.NAMES = F)
+                             if (is.matrix(nii_files)) {
+                               return(rep("INCORRECT-PATTERN", cfg$n_expected_funcruns))
+                             }
+                             if (length(nii_files) < 1) {
+                               return(rep("NOT-FOUND", cfg$n_expected_funcruns))
+                             }
+                             nii_files <- sapply(nii_files, function(x) {
+                               ifelse(length(x) > 0, paste("COMPLETE:", x, sep = " "), 
+                                      "NOT-FOUND")
+                             }, USE.NAMES = F)
+                           })
+  temp<-lapply(preproc_status, 
+               function(x) {
+                 paths <- rep(NA, length(x))
+                 paths[grepl("COMPLETE: ", x)] <- gsub("COMPLETE: ", 
+                                                       "", x[grepl("COMPLETE: ", x)])
+                 x[grepl("COMPLETE: ", x)] <- "COMPLETE"
+                 #rint(length(c(x,paths)))
+                 #return(NULL)
+                 df<-as.data.frame(t(c(x, paths)), stringsAsFactors = F)
+                 names(df) <- c(paste0("status_run", 1:length(x)), 
+                                paste0("path_run", 1:length(x)))
+                 return(df)
+               })
+  rd<-unique(unlist(lapply(temp,names)))
   
-  preproc_status<-lapply(file.path(cfg$loc_mrproc_root,dfb_c$ID) ,function(IDx){
-    if(!dir.exists(file.path(IDx,cfg$preprocessed_dirname))){rep("NON-EXIST",cfg$n_expected_funcruns)} 
-    preproc_dirs<-list.files(pattern = cfg$paradigm_name,
-                             path = file.path(IDx,cfg$preprocessed_dirname),recursive = F,include.dirs = T,full.names = T)
-    if(length(preproc_dirs)<1){rep("NON-EXIST",cfg$n_expected_funcruns)} 
-    nii_files<-sapply(preproc_dirs,list.files,pattern=gsub("*",".*",input_nii_pattern,fixed = T),
-                      recursive=F,full.names=T,USE.NAMES = F)
-    if(is.matrix(nii_files)){return(rep("INCORRECT-PATTERN",cfg$n_expected_funcruns))}
-    if(length(nii_files)<1){return(rep("NOT-FOUND",cfg$n_expected_funcruns))} 
-    nii_files <- sapply(nii_files,function(x){ifelse(length(x)>0,paste("COMPLETE:",x,sep = " "),"NOT-FOUND")},USE.NAMES = F)
-  })
-  preproc_status_df <- do.call(rbind,lapply(preproc_status,function(x){
-    paths <- rep(NA,length(x))
-    paths[grepl("COMPLETE: ",x)] <- gsub("COMPLETE: ","",x[grepl("COMPLETE: ",x)])
-    x[grepl("COMPLETE: ",x)] <- "COMPLETE"
-    return(as.data.frame(t(c(x,paths)),stringsAsFactors = F))
+  preproc_status_df <- do.call(rbind, lapply(temp,function(rx){
+    for(x in rd[!rd %in% names(rx)]){
+      rx[[x]]<-NA
+    }
+    return(rx)
   }))
-  names(preproc_status_df) <- c(paste("status_run",1:cfg$n_expected_funcruns,sep = ""),paste("path_run",1:cfg$n_expected_funcruns,sep = ""))
-  dfb <- cbind(dfb_c,preproc_status_df)
-  dfc <- merge(dfa,dfb,by = "ID",all = T)
+  
+  dfb <- cbind(dfb_c, preproc_status_df)
+  dfc <- merge(dfa, dfb, by = "ID", all = T)
   return(dfc)
 }
 

@@ -157,7 +157,10 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
                                         reg_rootpath=argu$lvl1path_reg,nprocess=argu$nprocess) 
       save(allsub_design,file = file.path(argu$lvl1path_output,argu$model_name,"design.rdata"))
     })
-
+    
+    
+    
+    
     if(argu$run_on_pbs){
       workingdir<-file.path(argu$lvl1path_output,argu$model_name,"lvl1_misc")
       dir.create(workingdir,showWarnings = F,recursive = F)
