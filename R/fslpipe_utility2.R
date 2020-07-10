@@ -151,6 +151,9 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func = NULL,lvl1_volin
   names(ls_signals)<-names(ls_out)
   
   cluster_step1<- parallel::makeCluster(nprocess,outfile="",type = "FORK")
+  
+  lvl1_volinfo$run <- gsub("run","",lvl1_volinfo$run)
+  
   ls_ds_matrix<-parallel::parLapply(cluster_step1,ls_signals,function(signalx){
     print(signalx$ID)
     ID = signalx$ID
@@ -182,7 +185,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func = NULL,lvl1_volin
     tryCatch({
       vol_info <- vol_info[order(as.numeric(gsub("run","",vol_info$run))),]
       func_runs <- intersect(unique(lsx_out$event.list$allconcat$run),1:nrow(vol_info))
-      run_volum <- as.numeric(vol_info$vol[which(vol_info$run %in% paste0("run",func_runs))])
+      run_volum <- as.numeric(vol_info$vol[which(vol_info$run %in% func_runs)])
       all_concat_evt<-lsx_out$event.list$allconcat[which(lsx_out$event.list$allconcat$run %in% func_runs),]
       
       #Simple fix for NA event duration causing the pipeline to break
@@ -200,7 +203,7 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func = NULL,lvl1_volin
            file = file.path(output$regpath,paste0("preconvovleID",ID,".rdata")))
       output$design<-dependlab::build_design_matrix(center_values=center_values,signals = proc_signal,
                                                     events = all_concat_evt,write_timing_files = c("convolved", "FSL"),
-                                                    tr=as.numeric(argu$tr),plot = F,run_volumes = run_volum,
+                                                    tr=as.numeric(tr),plot = F,run_volumes = run_volum,
                                                     output_directory = file.path(reg_rootpath,model_name,ID))
       if(file.exists(file.path(output$regpath,"gendesign_failed")) ) {
         unlink(file.path(output$regpath,"gendesign_failed"))
