@@ -200,8 +200,8 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func = NULL,lvl1_volin
       })
       #proc_signal <- signalx
       if(length(run_volum)!=length(func_runs)){
-        system("echo No volume information.")
-        stop("No volume information.")
+        system(paste0("echo No volume information, vol:",run_volum))
+        stop(paste0("echo No volume information, vol:",run_volum))
       }
       
       if(any(sapply(proc_signal,function(x){ifelse(is.data.frame(x$value),nrow(x$value),length(x$value))})<1)){
