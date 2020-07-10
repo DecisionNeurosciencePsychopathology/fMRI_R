@@ -199,6 +199,16 @@ do_all_first_level<-function(lvl1_datalist=NULL,lvl1_proc_func = NULL,lvl1_volin
         return(xa)
       })
       #proc_signal <- signalx
+      if(length(run_volum)!=length(func_runs)){
+        system("echo No volume information.")
+        stop("No volume information.")
+      }
+      
+      if(any(sapply(proc_signal,function(x){ifelse(is.data.frame(x$value),nrow(x$value),length(x$value))})<1)){
+        system("echo Error in signal.")
+        stop("Error in signal.")
+      }
+      
       save(proc_signal, run_volum,output,all_concat_evt,
            file = file.path(output$regpath,paste0("preconvovleID",ID,".rdata")))
       output$design<-dependlab::build_design_matrix(center_values=center_values,signals = proc_signal,
