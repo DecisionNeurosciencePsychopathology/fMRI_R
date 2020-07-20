@@ -152,7 +152,7 @@ fsl_pipe<-function(argu=NULL, #This is the arguments environment, each model sho
     
     step1_cmd<-substitute({
       allsub_design<-do_all_first_level(lvl1_datalist=argu$lvl1_datalist,lvl1_proc_func = argu$lvl1_procfunc,lvl1_volinfo = argu$lvl1_volinfo,
-                                        forcererun = argu$lvl1_forcegenreg,retry=argu$lvl1_retry,
+                                        forcererun = argu$lvl1_forcegenreg,retry=argu$lvl1_retry,tr=argu$tr,
                                         model_name=argu$model_name,dsgrid=argu$dsgrid,center_values=argu$lvl1_centervalues,
                                         reg_rootpath=argu$lvl1path_reg,nprocess=argu$nprocess) 
       save(allsub_design,file = file.path(argu$lvl1path_output,argu$model_name,"design.rdata"))
