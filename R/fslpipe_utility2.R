@@ -743,7 +743,9 @@ gfeat2afni <- function(gfeat_dir=NULL,include_varcope=F,copy_subj_cope=F,outputd
   }
   
   #cleanup ingredients of individual cope aggregation
-  system(paste("rm", paste0(allafniout, "*", collapse=" ")))
+  if(allafniout!=""){
+    system(paste("rm", paste0(allafniout, "*", collapse=" ")))
+  }
   
   if(is.null(template_path)){
     file.copy(from = template_path,to = file.path(outputdir,"template_brain.nii.gz"),overwrite = T)
